@@ -20,11 +20,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from hermes_memory.classification import UNKNOWN_PROJECT
-from hermes_memory.classification.alias_classifier import AliasProjectClassifier
-from hermes_memory.classification.matcher import AliasMatcher
-from hermes_memory.classification.rules import ProjectRule, ProjectRuleSet
-from hermes_memory.normalization import Conversation, Message, ProjectTag, Role, Source
+from engineering_memory.classification import UNKNOWN_PROJECT
+from engineering_memory.classification.alias_classifier import AliasProjectClassifier
+from engineering_memory.classification.matcher import AliasMatcher
+from engineering_memory.classification.rules import ProjectRule, ProjectRuleSet
+from engineering_memory.normalization import Conversation, Message, ProjectTag, Role, Source
 from tests.synthetic import projects
 
 STARTED_AT = datetime(2026, 3, 4, 9, 30, tzinfo=UTC)

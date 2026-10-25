@@ -7,13 +7,13 @@ on exit — the opposite of what Principle I asks the archive to be. #13 writes 
 
 from __future__ import annotations
 
-from hermes_memory.archive import (
+from engineering_memory.archive import (
     ArchiveDocumentNotFound,
     ArchiveRejected,
     ArchiveUnavailable,
     OriginalPayload,
 )
-from hermes_memory.normalization import EnrichedConversation
+from engineering_memory.normalization import EnrichedConversation
 
 
 class InMemoryRawArchive:

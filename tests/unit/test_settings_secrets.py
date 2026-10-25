@@ -18,7 +18,7 @@ import json
 import pytest
 from pydantic import SecretStr
 
-from hermes_memory.settings import (
+from engineering_memory.settings import (
     HindsightSettings,
     LlmSettings,
     Settings,
@@ -70,8 +70,8 @@ def test_a_load_failure_does_not_contain_the_offending_secret(
     A secret is supplied alongside a fault elsewhere, so the load fails while the credential is in
     hand. Neither the message nor the exception chain may carry it.
     """
-    monkeypatch.setenv("HERMES_HINDSIGHT__TOKEN", HINDSIGHT_TOKEN)
-    monkeypatch.setenv("HERMES_HINDSIGHT__BASE_URL", "not-a-url")
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__TOKEN", HINDSIGHT_TOKEN)
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL", "not-a-url")
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
@@ -81,15 +81,15 @@ def test_a_load_failure_does_not_contain_the_offending_secret(
     )
 
     assert HINDSIGHT_TOKEN not in rendered
-    assert "HERMES_HINDSIGHT__BASE_URL" in str(failure.value)
+    assert "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL" in str(failure.value)
 
 
 def test_a_secret_of_the_wrong_shape_is_not_echoed(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The credential itself is the invalid value — the worst case for an echoing error."""
-    monkeypatch.setenv("HERMES_HINDSIGHT__BANK_ID", "")
-    monkeypatch.setenv("HERMES_HINDSIGHT__TOKEN", HINDSIGHT_TOKEN)
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__BANK_ID", "")
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__TOKEN", HINDSIGHT_TOKEN)
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
@@ -105,7 +105,7 @@ def test_the_exception_chain_is_severed(
     `raise ... from None` is not enough: it clears `__cause__` and leaves `__context__`, which a
     logger configured to render the chain will happily print.
     """
-    monkeypatch.setenv("HERMES_HINDSIGHT__BASE_URL", "not-a-url")
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL", "not-a-url")
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
@@ -151,7 +151,7 @@ def test_a_validator_message_cannot_carry_the_value_into_the_failure(
     """
     from pydantic import ValidationError, field_validator
 
-    from hermes_memory.settings import Settings, _describe
+    from engineering_memory.settings import Settings, _describe
 
     class Leaky(Settings):
         @field_validator("archive_root", mode="before")
@@ -159,7 +159,7 @@ def test_a_validator_message_cannot_carry_the_value_into_the_failure(
         def _shout_the_value(cls, value: object) -> object:
             raise ValueError(f"refusing {HINDSIGHT_TOKEN}")
 
-    monkeypatch.setenv("HERMES_ARCHIVE_ROOT", "anything")
+    monkeypatch.setenv("ENGINEERING_MEMORY_ARCHIVE_ROOT", "anything")
 
     try:
         Leaky(_env_file=None)  # type: ignore[call-arg]

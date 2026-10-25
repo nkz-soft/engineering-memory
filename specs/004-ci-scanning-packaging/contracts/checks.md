@@ -115,7 +115,7 @@ than an assertion about it.
 
 | # | Check |
 |---|---|
-| P1 | `pyproject.toml` declares the console script `hermes-memory` pointing into `hermes_memory.cli` |
+| P1 | `pyproject.toml` declares the console script `engineering-memory` pointing into `engineering_memory.cli` |
 | P2 | Invoking the application with `--help` exits 0 and prints usage text naming the application |
 | P3 | The application registers no behavioural command — the command list is empty (FR-022). This check is what keeps the entry point a shell rather than a surface |
 | P4 | The runtime dependency guard lists `typer` exactly once, alongside the five already declared |

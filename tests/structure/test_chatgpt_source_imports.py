@@ -2,7 +2,7 @@
 
 It is an implementation, not an interface, so it may use more than an interface may: the logging
 boundary, and its own sibling modules. What it may not use is the same list that holds the
-interfaces — and it is not re-exported by `hermes_memory.ingestion`, so importing the interface
+interfaces — and it is not re-exported by `engineering_memory.ingestion`, so importing the interface
 never loads an implementation (specs/008-chatgpt-export-source/tasks.md T002).
 """
 
@@ -17,19 +17,19 @@ import pytest
 from tests.structure.test_boundary_interfaces import FORBIDDEN_AT_RUNTIME, imported_roots
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE = REPO_ROOT / "src" / "hermes_memory" / "ingestion" / "chatgpt"
-INGESTION_INIT = REPO_ROOT / "src" / "hermes_memory" / "ingestion" / "__init__.py"
+PACKAGE = REPO_ROOT / "src" / "engineering_memory" / "ingestion" / "chatgpt"
+INGESTION_INIT = REPO_ROOT / "src" / "engineering_memory" / "ingestion" / "__init__.py"
 
 ALLOWED_THIRD_PARTY = frozenset({"pydantic"})
 
 ALLOWED_INTERNAL = (
-    "hermes_memory.errors",
-    "hermes_memory.normalization",
-    "hermes_memory.archive.interface",
-    "hermes_memory.archive",
-    "hermes_memory.ingestion.source",
-    "hermes_memory.ingestion.chatgpt",
-    "hermes_memory.observability",
+    "engineering_memory.errors",
+    "engineering_memory.normalization",
+    "engineering_memory.archive.interface",
+    "engineering_memory.archive",
+    "engineering_memory.ingestion.source",
+    "engineering_memory.ingestion.chatgpt",
+    "engineering_memory.observability",
 )
 
 
@@ -92,7 +92,7 @@ def test_the_interface_package_does_not_load_the_implementation() -> None:
     assert not [name for name in imported if "chatgpt" in name]
 
 
-@pytest.mark.parametrize("name", ["hermes_memory.ingestion.chatgpt"])
+@pytest.mark.parametrize("name", ["engineering_memory.ingestion.chatgpt"])
 def test_the_package_exposes_only_the_source(name: str) -> None:
     module = __import__(name, fromlist=["__all__"])
 

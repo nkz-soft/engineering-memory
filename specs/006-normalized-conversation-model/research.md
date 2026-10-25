@@ -236,7 +236,7 @@ in the package could drag in `httpx` and pass. The runtime check sees the true t
 and cannot be argued with, but it reports a module that arrived rather than the line that asked for
 it. Together they fail on both the direct violation and the laundered one.
 
-Confirmed viable: a subprocess importing `hermes_memory.normalization` today returns 52 entries in
+Confirmed viable: a subprocess importing `engineering_memory.normalization` today returns 52 entries in
 `sys.modules` and the package `__init__` is a bare docstring, so the measurement is not swamped by
 the package itself.
 
@@ -263,7 +263,7 @@ already there for `observability` and `cli`.
 **Decision.**
 
 ```text
-src/hermes_memory/normalization/
+src/engineering_memory/normalization/
 ├── __init__.py       # the module's public surface, re-exporting the names below
 ├── base.py           # the frozen value base and the two validated string types
 ├── conversation.py   # Conversation, Message, ToolActivity, NonTextPart, Role, Source

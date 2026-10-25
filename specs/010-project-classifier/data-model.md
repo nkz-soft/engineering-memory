@@ -3,18 +3,18 @@
 **Feature**: 010-project-classifier (issue #12)
 
 This feature adds no type that crosses a boundary. What crosses is #9's: a `Conversation` in, a
-`ProjectTag` out. The types below are internal to `hermes_memory.classification`, and are described
+`ProjectTag` out. The types below are internal to `engineering_memory.classification`, and are described
 here because they are where the rules of [contracts/rule-set.md](./contracts/rule-set.md) live.
 
 ## Types that already exist and are used unchanged
 
 | Type | Declared in | Role here |
 |---|---|---|
-| `Conversation`, `Message`, `ToolActivity`, `NonTextPart` | `hermes_memory.normalization` (#8) | the input, and the text-bearing fields R10 enumerates |
-| `ProjectTag` | `hermes_memory.normalization.tags` (#8) | the answer; its `Slug` is what validates a rule's project name |
-| `ProjectClassifier` | `hermes_memory.classification.classifier` (#9) | the protocol this feature satisfies |
+| `Conversation`, `Message`, `ToolActivity`, `NonTextPart` | `engineering_memory.normalization` (#8) | the input, and the text-bearing fields R10 enumerates |
+| `ProjectTag` | `engineering_memory.normalization.tags` (#8) | the answer; its `Slug` is what validates a rule's project name |
+| `ProjectClassifier` | `engineering_memory.classification.classifier` (#9) | the protocol this feature satisfies |
 | `UNKNOWN_PROJECT` | same | the §15 answer, returned on no match and on a top-priority tie |
-| `Settings` | `hermes_memory.settings` (#5) | gains one field; see below |
+| `Settings` | `engineering_memory.settings` (#5) | gains one field; see below |
 
 None of these is edited except `Settings`, which gains `project_rules_path`.
 
@@ -50,7 +50,7 @@ claimed by two projects, an alias that is empty or holds no letter or digit, a p
 wrong kind, and the reserved slug. An empty rule set is **valid** — it is what FR-012a builds when
 no rules were configured, and it classifies everything as `project:unknown`.
 
-Case is not part of an alias's identity: `Hermes-Memory` and `hermes-memory` are the same alias, so
+Case is not part of an alias's identity: `engineering-memory` and `engineering-memory` are the same alias, so
 two projects declaring them collide and the rule set is refused.
 
 ## `AliasMatcher` (internal)
@@ -100,7 +100,7 @@ it has never seen any — loading happens before any conversation is read.
 
 Resolved against the repository root like `archive_root` and `import_state_path` (#5, FR-013 of that
 feature), so the same value means the same place wherever a command is run from. Documented in
-`.env.example` as `HERMES_PROJECT_RULES_PATH`; the test #5 left standing fails if it is not.
+`.env.example` as `ENGINEERING_MEMORY_PROJECT_RULES_PATH`; the test #5 left standing fails if it is not.
 
 The field cannot by itself say whether the operator chose the path or inherited it, and FR-012a
 needs that distinction. The loader asks the settings object which fields were explicitly set rather

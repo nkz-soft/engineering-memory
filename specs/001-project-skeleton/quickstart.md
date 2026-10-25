@@ -40,22 +40,22 @@ Expected: the layout test passes, having read the module tree out of
 Then prove it can fail, in a scratch commit that is thrown away:
 
 ```bash
-mkdir -p src/hermes_memory/unrecorded && touch src/hermes_memory/unrecorded/__init__.py
+mkdir -p src/engineering_memory/unrecorded && touch src/engineering_memory/unrecorded/__init__.py
 uv run pytest -k layout          # expect failure: unrecorded module
-rm -rf src/hermes_memory/unrecorded
+rm -rf src/engineering_memory/unrecorded
 
-mv src/hermes_memory/archive src/hermes_memory/archive_renamed
+mv src/engineering_memory/archive src/engineering_memory/archive_renamed
 uv run pytest -k layout          # expect failure: recorded module missing
-mv src/hermes_memory/archive_renamed src/hermes_memory/archive
+mv src/engineering_memory/archive_renamed src/engineering_memory/archive
 
-mkdir -p src/hermes_memory/leaks
-printf 'import subprocess\n' > src/hermes_memory/leaks/mod.py
+mkdir -p src/engineering_memory/leaks
+printf 'import subprocess\n' > src/engineering_memory/leaks/mod.py
 uv run pytest -k layout          # expect failure: namespace package, unrecorded, has behaviour
-rm -rf src/hermes_memory/leaks
+rm -rf src/engineering_memory/leaks
 
-printf 'import subprocess\n' > src/hermes_memory/api/server.py
+printf 'import subprocess\n' > src/engineering_memory/api/server.py
 uv run pytest -k layout          # expect failure: behaviour in a non-__init__ module
-rm -f src/hermes_memory/api/server.py
+rm -f src/engineering_memory/api/server.py
 ```
 
 Expected: every run fails, each naming the specific module. A check that cannot be made to fail has
@@ -81,7 +81,7 @@ test, which is why the workflow is now parsed as YAML.
 For SC-007, that the modules carry no behaviour:
 
 ```bash
-find src/hermes_memory -name '__init__.py' -size +200c
+find src/engineering_memory -name '__init__.py' -size +200c
 ```
 
 Expected: no output. Each `__init__.py` is a single docstring.

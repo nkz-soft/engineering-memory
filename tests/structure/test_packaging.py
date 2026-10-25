@@ -72,16 +72,18 @@ def test_package_is_importable_from_src_layout() -> None:
     Under a flat layout this passes whether or not the packaging metadata is correct, and the
     first packaging defect surfaces in Docker instead of here (research.md R1).
     """
-    spec = find_spec("hermes_memory")
+    spec = find_spec("engineering_memory")
 
     assert spec is not None, (
-        "hermes_memory is not importable; the package is not installed into the environment."
+        "engineering_memory is not importable; the package is not installed into the environment."
     )
-    assert spec.origin is not None, "hermes_memory resolved to a namespace package, not a package."
+    assert spec.origin is not None, (
+        "engineering_memory resolved to a namespace package, not a package."
+    )
 
     origin = Path(spec.origin).resolve()
     assert "src" in origin.parts, (
-        f"hermes_memory resolved to {origin}, which is not under a src/ directory."
+        f"engineering_memory resolved to {origin}, which is not under a src/ directory."
     )
 
 
@@ -143,11 +145,11 @@ def test_the_command_line_entry_point_is_installed() -> None:
     """
     scripts = _pyproject()["project"].get("scripts", {})
 
-    assert "hermes-memory" in scripts, (
-        f"No console script named `hermes-memory` is declared; found {sorted(scripts)}. The "
+    assert "engineering-memory" in scripts, (
+        f"No console script named `engineering-memory` is declared; found {sorted(scripts)}. The "
         "container image's entry point is the installed script, not a path into src/."
     )
-    assert scripts["hermes-memory"].startswith("hermes_memory.cli"), (
-        f"The console script points at {scripts['hermes-memory']!r}, which is not in "
-        "`hermes_memory.cli`. The command-line surface lives in the cli boundary."
+    assert scripts["engineering-memory"].startswith("engineering_memory.cli"), (
+        f"The console script points at {scripts['engineering-memory']!r}, which is not in "
+        "`engineering_memory.cli`. The command-line surface lives in the cli boundary."
     )

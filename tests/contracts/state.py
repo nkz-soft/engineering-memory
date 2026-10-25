@@ -14,8 +14,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from hermes_memory.errors import BoundaryError
-from hermes_memory.ingestion import (
+from engineering_memory.errors import BoundaryError
+from engineering_memory.ingestion import (
     ImportRecord,
     ImportState,
     ImportStateCorrupt,
@@ -23,7 +23,7 @@ from hermes_memory.ingestion import (
     ImportStatus,
     may_skip,
 )
-from hermes_memory.normalization import Source
+from engineering_memory.normalization import Source
 
 HASH = "a" * 64
 OTHER_HASH = "b" * 64

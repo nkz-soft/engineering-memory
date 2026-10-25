@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.sanitization import RedactionCategory
-from hermes_memory.sanitization.patterns import PATTERNS
-from hermes_memory.sanitization.scanner import REDACTED, redact
+from engineering_memory.sanitization import RedactionCategory
+from engineering_memory.sanitization.patterns import PATTERNS
+from engineering_memory.sanitization.scanner import REDACTED, redact
 from tests.synthetic.secrets import SAMPLES, Sample, sample_for
 
 # Assembled from parts, never written whole: a `token: <base64>` line in the source is what a

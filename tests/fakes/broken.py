@@ -13,23 +13,23 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from hermes_memory.archive import ArchiveDocumentNotFound, OriginalPayload
-from hermes_memory.errors import PermanentBoundaryError
-from hermes_memory.ingestion import (
+from engineering_memory.archive import ArchiveDocumentNotFound, OriginalPayload
+from engineering_memory.errors import PermanentBoundaryError
+from engineering_memory.ingestion import (
     ImportRecord,
     ImportStatus,
     SourceConversation,
     SourceFormatError,
 )
-from hermes_memory.memory.interface import RecallResult
-from hermes_memory.normalization import (
+from engineering_memory.memory.interface import RecallResult
+from engineering_memory.normalization import (
     AnyTag,
     Conversation,
     EnrichedConversation,
     ProjectTag,
     Source,
 )
-from hermes_memory.sanitization import RedactionCategory, RedactionReport
+from engineering_memory.sanitization import RedactionCategory, RedactionReport
 
 
 class SourceThatStopsAtTheFirstBadConversation:

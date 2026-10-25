@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.classification import ProjectRulesError, load_project_rules
+from engineering_memory.classification import ProjectRulesError, load_project_rules
 from tests.synthetic import projects
 from tests.unit.conftest import Rendered
 

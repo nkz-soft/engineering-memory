@@ -10,7 +10,7 @@ from __future__ import annotations
 import tracemalloc
 from pathlib import Path
 
-from hermes_memory.ingestion.chatgpt import ChatGPTExportSource
+from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
 from tests.synthetic import chatgpt_export as synth
 
 PARAGRAPH = "A synthesized paragraph about retry policies and idempotency keys. " * 30

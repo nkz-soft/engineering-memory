@@ -9,7 +9,7 @@ review have the same roster to work from.
 
 ## The surface
 
-Everything a consumer needs is re-exported from `hermes_memory.observability`. Nothing outside that
+Everything a consumer needs is re-exported from `engineering_memory.observability`. Nothing outside that
 package configures logging, installs a handler, writes to a stream, or constructs a tracer provider
 (FR-001, SC-010).
 

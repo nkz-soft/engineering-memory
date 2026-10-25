@@ -94,8 +94,8 @@ have defaults, so a project with no logging configuration at all is correctly co
 
 | Field | Environment variable | Type | Default |
 |---|---|---|---|
-| `level` | `HERMES_LOGGING__LEVEL` | one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` | `INFO` |
-| `include_conversation_content` | `HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT` | boolean | `false` |
+| `level` | `ENGINEERING_MEMORY_LOGGING__LEVEL` | one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` | `INFO` |
+| `include_conversation_content` | `ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT` | boolean | `false` |
 
 `level` is validated against the closed set and matched case-insensitively; anything else fails at
 load time through 002's existing error path, which names the variable and withholds the value.
@@ -110,7 +110,7 @@ from the ambient environment (research.md R11):
 
 | Attribute | Value |
 |---|---|
-| `service.name` | `hermes-memory` |
+| `service.name` | `engineering-memory` |
 | `service.version` | the installed distribution version |
 
 No exporter, no span processor, no sampler beyond the default — nothing is exported, and starting a

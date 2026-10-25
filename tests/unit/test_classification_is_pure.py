@@ -18,14 +18,14 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.classification import UNKNOWN_PROJECT, alias_classifier, chain, matcher
-from hermes_memory.classification.alias_classifier import AliasProjectClassifier
-from hermes_memory.classification.rules import (
+from engineering_memory.classification import UNKNOWN_PROJECT, alias_classifier, chain, matcher
+from engineering_memory.classification.alias_classifier import AliasProjectClassifier
+from engineering_memory.classification.rules import (
     ProjectRule,
     ProjectRulesError,
     ProjectRuleSet,
 )
-from hermes_memory.normalization import Conversation, Message, ProjectTag, Role, Source
+from engineering_memory.normalization import Conversation, Message, ProjectTag, Role, Source
 from tests.contracts import conversations
 from tests.synthetic import projects
 from tests.unit.conftest import Rendered

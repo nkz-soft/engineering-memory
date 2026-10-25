@@ -1,4 +1,4 @@
-# hermes-memory Constitution
+# engineering-memory Constitution
 
 ## Core Principles
 

@@ -53,7 +53,7 @@ storage module.
 Put a real export under `data/`, which git ignores, and read it without printing content:
 
 ```bash
-uv run python -c "from pathlib import Path; from hermes_memory.ingestion.chatgpt import ChatGPTExportSource as S; print(sum(1 for _ in S(Path('data/chatgpt-export.zip')).read()))"
+uv run python -c "from pathlib import Path; from engineering_memory.ingestion.chatgpt import ChatGPTExportSource as S; print(sum(1 for _ in S(Path('data/chatgpt-export.zip')).read()))"
 ```
 
 Expected: a count, plus one `chatgpt.conversation.read` log event per conversation that holds

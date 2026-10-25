@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     Message,
     NonTextKind,
@@ -21,8 +21,8 @@ from hermes_memory.normalization import (
     Source,
     ToolActivity,
 )
-from hermes_memory.sanitization import PatternSecretSanitizer, RedactionCategory
-from hermes_memory.sanitization.scanner import REDACTED
+from engineering_memory.sanitization import PatternSecretSanitizer, RedactionCategory
+from engineering_memory.sanitization.scanner import REDACTED
 from tests.synthetic.secrets import CONTRACT_SAMPLE
 
 STARTED_AT = datetime(2026, 3, 4, 9, 30, tzinfo=UTC)

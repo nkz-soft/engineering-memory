@@ -244,7 +244,7 @@ the normalization module and observe the suite fail.
   HTTP client and no storage library, asserted by a test that fails when one is added.
 - **SC-006**: Every field named by §3.3, §6, §10 and §11 has exactly one place in the model, and a
   reviewer can point at it.
-- **SC-007**: The committed change adds no file outside `src/hermes_memory/normalization/`,
+- **SC-007**: The committed change adds no file outside `src/engineering_memory/normalization/`,
   `tests/` and `specs/006-normalized-conversation-model/`, and touches no other module.
 
 ## Assumptions

@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 
-from hermes_memory.observability import get_logger
+from engineering_memory.observability import get_logger
 
 from .conftest import Rendered
 

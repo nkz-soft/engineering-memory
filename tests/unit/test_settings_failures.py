@@ -10,13 +10,13 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.settings import (
+from engineering_memory.settings import (
     SettingsError,
     environment_variable_names,
     load_settings,
 )
 
-REQUIRED_VARIABLES = ("HERMES_HINDSIGHT__BASE_URL", "HERMES_LLM__BASE_URL")
+REQUIRED_VARIABLES = ("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL", "ENGINEERING_MEMORY_LLM__BASE_URL")
 """The settings with no default. Pinned literally because a *test* that derives what it checks
 from the thing it checks would pass on a settings object that required nothing at all."""
 
@@ -90,13 +90,13 @@ def test_every_missing_setting_is_reported_not_only_the_first(
 def test_a_missing_group_names_the_leaf_variable_not_the_group(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`HERMES_HINDSIGHT` is not a variable anyone can set; `..__BASE_URL` is."""
+    """`ENGINEERING_MEMORY_HINDSIGHT` is not a variable anyone can set; `..__BASE_URL` is."""
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
 
     message = str(failure.value)
-    assert "HERMES_HINDSIGHT__BASE_URL" in message
-    assert "HERMES_HINDSIGHT:" not in message
+    assert "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL" in message
+    assert "ENGINEERING_MEMORY_HINDSIGHT:" not in message
 
 
 @pytest.mark.parametrize("malformed", ["not-a-url", "://missing-scheme", "localhost:8088"])
@@ -104,24 +104,24 @@ def test_a_malformed_url_fails_naming_the_setting(
     malformed: str, complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A value of the wrong shape fails like a missing one (FR-006)."""
-    monkeypatch.setenv("HERMES_HINDSIGHT__BASE_URL", malformed)
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL", malformed)
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
 
-    assert "HERMES_HINDSIGHT__BASE_URL" in str(failure.value)
+    assert "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL" in str(failure.value)
 
 
 def test_an_empty_bank_id_fails(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A defaulted setting set to nothing is an error, not a fallback to the default."""
-    monkeypatch.setenv("HERMES_HINDSIGHT__BANK_ID", "   ")
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__BANK_ID", "   ")
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
 
-    assert "HERMES_HINDSIGHT__BANK_ID" in str(failure.value)
+    assert "ENGINEERING_MEMORY_HINDSIGHT__BANK_ID" in str(failure.value)
 
 
 def test_the_failure_is_settings_error_not_validation_error(

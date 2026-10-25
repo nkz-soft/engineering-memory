@@ -6,9 +6,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from hermes_memory.ingestion.chatgpt.conversation import ThreadAccount, parse_record
-from hermes_memory.ingestion.chatgpt.thread import UnreadableRecord
-from hermes_memory.normalization import Message, Role, Source
+from engineering_memory.ingestion.chatgpt.conversation import ThreadAccount, parse_record
+from engineering_memory.ingestion.chatgpt.thread import UnreadableRecord
+from engineering_memory.normalization import Message, Role, Source
 from tests.synthetic import chatgpt_export as synth
 
 say = synth.message
@@ -255,7 +255,7 @@ def test_no_clock_is_read(monkeypatch: pytest.MonkeyPatch) -> None:
             return sentinel
 
     for module in ("conversation", "content"):
-        monkeypatch.setattr(f"hermes_memory.ingestion.chatgpt.{module}.datetime", Clock)
+        monkeypatch.setattr(f"engineering_memory.ingestion.chatgpt.{module}.datetime", Clock)
     record = synth.linear_record(
         "c", say("user", "a", create_time=None), create_time=None, update_time=None
     )

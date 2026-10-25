@@ -2,7 +2,7 @@
 
 This feature adds no entity to the normalized model. It produces #8's `Conversation`, paired with
 an `OriginalPayload` as #9's `SourceConversation`. The types below are internal to
-`hermes_memory.ingestion.chatgpt` and do not cross the boundary. The one exception is the log event
+`engineering_memory.ingestion.chatgpt` and do not cross the boundary. The one exception is the log event
 of R9.
 
 ## Output (existing, unchanged)

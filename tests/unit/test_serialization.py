@@ -21,7 +21,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     EnrichedConversation,
     Message,
@@ -83,7 +83,7 @@ def an_exhaustive_enriched_conversation() -> EnrichedConversation:
             source=Source.CHATGPT,
             source_id="conversation-id",
             project="miratorg",
-            repository="nkz-soft/hermes-memory",
+            repository="nkz-soft/engineering-memory",
             title="Wolverine Saga Error Handling",
             imported_at=IMPORTED,
             importer_version="1",

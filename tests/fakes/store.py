@@ -15,12 +15,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from hermes_memory.memory.interface import (
+from engineering_memory.memory.interface import (
     MemoryStoreRejected,
     MemoryStoreUnavailable,
     RecallResult,
 )
-from hermes_memory.normalization import AnyTag, EnrichedConversation
+from engineering_memory.normalization import AnyTag, EnrichedConversation
 
 
 def _content(enriched: EnrichedConversation) -> str:

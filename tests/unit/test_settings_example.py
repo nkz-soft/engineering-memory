@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.settings import (
+from engineering_memory.settings import (
     PROJECT_ROOT,
     environment_variable_names,
     secret_variable_names,
@@ -34,7 +34,8 @@ class ExampleFileError(AssertionError):
 def parse_example(path: Path = EXAMPLE_FILE) -> dict[str, str]:
     """Variable names to assigned values, including the ones commented out.
 
-    A defaulted setting is documented as `#HERMES_ARCHIVE_ROOT=` so an operator can see it exists
+    A defaulted setting is documented as `#ENGINEERING_MEMORY_ARCHIVE_ROOT=` so an operator can see
+    it exists
     without being asked to set it. Those count as declared: FR-009 wants every setting listed, not
     every setting mandatory.
     """
@@ -139,7 +140,7 @@ def test_no_secret_in_the_example_file_carries_a_usable_value() -> None:
 def test_the_required_settings_are_not_commented_out() -> None:
     """A required setting shown as `#NAME=` reads as optional, and the operator skips it."""
     text = EXAMPLE_FILE.read_text(encoding="utf-8")
-    required = ("HERMES_HINDSIGHT__BASE_URL", "HERMES_LLM__BASE_URL")
+    required = ("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL", "ENGINEERING_MEMORY_LLM__BASE_URL")
 
     commented = [name for name in required if f"#{name}" in text]
 
@@ -159,11 +160,12 @@ def test_an_export_line_cannot_smuggle_a_credential_past_the_check(tmp_path: Pat
     """
     path = tmp_path / ".env.example"
     path.write_text(
-        "HERMES_HINDSIGHT__TOKEN=\nexport HERMES_HINDSIGHT__TOKEN=sk-a-real-looking-token\n",
+        "ENGINEERING_MEMORY_HINDSIGHT__TOKEN=\n"
+        "export ENGINEERING_MEMORY_HINDSIGHT__TOKEN=sk-a-real-looking-token\n",
         encoding="utf-8",
     )
 
-    assert parse_example(path)["HERMES_HINDSIGHT__TOKEN"] == "sk-a-real-looking-token"
+    assert parse_example(path)["ENGINEERING_MEMORY_HINDSIGHT__TOKEN"] == "sk-a-real-looking-token"
 
 
 def test_a_line_the_parser_cannot_classify_fails_rather_than_being_skipped(
@@ -175,7 +177,7 @@ def test_a_line_the_parser_cannot_classify_fails_rather_than_being_skipped(
     """
     path = tmp_path / ".env.example"
     path.write_text(
-        "HERMES_HINDSIGHT__TOKEN=\nnot a variable assignment at all\n", encoding="utf-8"
+        "ENGINEERING_MEMORY_HINDSIGHT__TOKEN=\nnot a variable assignment at all\n", encoding="utf-8"
     )
 
     with pytest.raises(ExampleFileError):

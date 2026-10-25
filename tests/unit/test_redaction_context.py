@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.sanitization import PatternSecretSanitizer, RedactionCategory
-from hermes_memory.sanitization.scanner import REDACTED
+from engineering_memory.sanitization import PatternSecretSanitizer, RedactionCategory
+from engineering_memory.sanitization.scanner import REDACTED
 from tests.synthetic.secrets import PEM_BEGIN, PEM_END, SAMPLES, Sample, sample_for
 
 

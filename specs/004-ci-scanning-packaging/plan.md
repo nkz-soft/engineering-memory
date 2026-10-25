@@ -151,7 +151,7 @@ The issue records one rejected alternative; research produced the rest. Full rea
 | A floating `latest` scanner tag (R8) | Makes the verdict a function of an upstream release rather than the change under test, and a contributor cannot distinguish that from a real finding. |
 | Single-stage image, `pip install .`, distroless or Alpine base (R9) | Respectively: ships the toolchain; ignores `uv.lock` so the image's dependencies are not the ones tested; removes the shell the content assertions use; trades manylinux wheels for musl surprises with nothing gained. |
 | `ENTRYPOINT` with no default `CMD` (R10) | Makes the acceptance criterion depend on the argument parser's no-args exit status, which has differed between releases. |
-| `python -m hermes_memory`, or a shell script printing usage (R11) | Neither proves the packaged console script runs — the second would pass on an image with no working Python at all. |
+| `python -m engineering_memory`, or a shell script printing usage (R11) | Neither proves the packaged console script runs — the second would pass on an image with no working Python at all. |
 | Appending the new steps to the existing `checks` job (R12) | The scan needs `fetch-depth: 0`, which would slow every lint and test run; and a red build would say "checks" rather than naming the scan or the image. |
 | A non-container fallback for the local scan (R13) | A second code path with a second verdict, only one of which is CI's — precisely what FR-010 exists to prevent. |
 
@@ -180,13 +180,13 @@ specs/004-ci-scanning-packaging/
 .gitleaks.toml                          # NEW: [extend] useDefault, 5 narrow exemptions
 Dockerfile                              # NEW: two stages, non-root, ENTRYPOINT + CMD ["--help"]
 .dockerignore                           # NEW: .git, tests/, specs/, data/, .claude/
-pyproject.toml                          # CHANGED: + typer, + [project.scripts] hermes-memory
+pyproject.toml                          # CHANGED: + typer, + [project.scripts] engineering-memory
 uv.lock                                 # Re-resolved, committed
 README.md                               # + the two new checks and the container prerequisite
 specs/001-project-skeleton/contracts/checks.md   # CHANGED: the table gains C5, C6, C7
 
 src/
-└── hermes_memory/
+└── engineering_memory/
     └── cli/
         └── __init__.py                 # CHANGED: the Typer application; no command (FR-022)
 

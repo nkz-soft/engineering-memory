@@ -19,8 +19,8 @@ rewrites — are joined with a NUL and scanned once, so the text is read once ra
 rule. The NUL is not decoration: a line break is a boundary character, but the relaxed whitespace
 of a multi-word alias consumes one, and the two rules together let an alias straddle the join
 between two fields. A match requires a boundary at each of the alias's own word-character
-edges under a word alphabet that includes `-`, so `nz` misses `nzxt` while `hermes-memory` misses
-`hermes-memory-ui` and still hits `nkz-soft/hermes-memory`.
+edges under a word alphabet that includes `-`, so `nz` misses `nzxt` while `engineering-memory` misses
+`engineering-memory-ui` and still hits `nkz-soft/engineering-memory`.
 
 One project matched is the answer. Several resolve to the highest declared priority, and a tie at
 the top resolves to `project:unknown` — a rule set that has not said which project wins does not
@@ -98,8 +98,8 @@ equally-ranked projects is filed under neither, and a person who wants it filed 
 preference in the rule set. Second, R7's asymmetry: the default location warns and the configured
 one fails, which means a user who deletes their rules file while keeping the setting gets an error
 and a user who never had one gets a warning — intended, and visible in the output of both. Third,
-R2's alphabet: treating `-` as a word character is the choice that makes `hermes-memory-ui` a miss,
-and it is also what makes an alias `hermes` miss `hermes-memory`. A user who wants both writes both,
+R2's alphabet: treating `-` as a word character is the choice that makes `engineering-memory-ui` a miss,
+and it is also what makes an alias `hermes` miss `engineering-memory`. A user who wants both writes both,
 which is the behaviour AM-5 already commits to.
 
 ## Alternatives considered
@@ -129,7 +129,7 @@ which is the behaviour AM-5 already commits to.
   consistently refuses, and the damage — an entire corpus tagged `project:unknown` — surfaces months
   later (FR-012a).
 - **`\b` for the alias boundary.** Rejected: `\b` is defined over `\w`, which excludes `-`, so
-  `hermes-memory` would match inside `hermes-memory-ui` (research R2).
+  `engineering-memory` would match inside `engineering-memory-ui` (research R2).
 - **A `fallback` parameter on the alias classifier instead of a chain.** Rejected: it makes one
   implementation the owner of §15's ordering, and the level that arrives first in practice is level
   1, which belongs *ahead* of the alias rules (research R8).
@@ -159,7 +159,7 @@ specs/010-project-classifier/
 ### Source Code (repository root)
 
 ```text
-src/hermes_memory/classification/
+src/engineering_memory/classification/
 ├── __init__.py            # public surface: #9's boundary types plus the classifiers and the loader
 ├── classifier.py          # #9's protocol and UNKNOWN_PROJECT — UNCHANGED by this feature
 ├── rules.py               # ProjectRule, ProjectRuleSet, ProjectRulesError (RS-5..RS-12)
@@ -168,7 +168,7 @@ src/hermes_memory/classification/
 ├── alias_classifier.py    # AliasProjectClassifier: the field sweep and the priority resolution (AM-8..9, AR-1..9)
 └── chain.py               # ChainedProjectClassifier: the §15 seam (CH-1..6)
 
-src/hermes_memory/
+src/engineering_memory/
 └── settings.py            # extended: project_rules_path (#5's resolution rules)
 
 tests/
@@ -190,7 +190,7 @@ tests/
     └── projects.py                       # synthesized rule sets and project names (research R12)
 
 projects.example.toml      # the documented format, mirroring .env.example
-.env.example               # extended: HERMES_PROJECT_RULES_PATH
+.env.example               # extended: ENGINEERING_MEMORY_PROJECT_RULES_PATH
 ```
 
 **Structure Decision**: the constitution's module tree fixes `classification`; this feature fills

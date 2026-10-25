@@ -66,10 +66,10 @@ module: the layout check derives packages from directories.
 checks but trips the behaviour guard:
 
 ```text
-$ printf 'VALUE = 1\n' > src/hermes_memory/ingestion/state.py && uv run pytest tests/structure/test_module_layout.py -q
+$ printf 'VALUE = 1\n' > src/engineering_memory/ingestion/state.py && uv run pytest tests/structure/test_module_layout.py -q
 FAILED tests/structure/test_module_layout.py::test_recorded_modules_carry_no_behaviour
 AssertionError: These modules contain more than a docstring:
-['src/hermes_memory/ingestion/state.py']
+['src/engineering_memory/ingestion/state.py']
 1 failed, 6 passed
 ```
 
@@ -86,7 +86,7 @@ a sanitizer is, which is the dependency Principle IV exists to prevent.
 
 ## R3 — The shared error taxonomy is a top-level module, owned by no boundary
 
-**Decision.** `src/hermes_memory/errors.py` holds `BoundaryError`, `TransientBoundaryError` and
+**Decision.** `src/engineering_memory/errors.py` holds `BoundaryError`, `TransientBoundaryError` and
 `PermanentBoundaryError`. Each boundary declares its own specific errors in its own module, deriving
 from one of the two.
 
@@ -99,7 +99,7 @@ that boundary to catch a failure.
 
 **Checked by running it.** The top-level placement is invisible to the layout checks — the guard
 walks only recorded module directories, and `present_modules()` derives packages from directories
-containing Python files, so `src/hermes_memory/errors.py` is neither a module nor guarded behaviour.
+containing Python files, so `src/engineering_memory/errors.py` is neither a module nor guarded behaviour.
 That is the precedent `settings.py` already relies on; both layout tests pass over it today
 (677 passed on the branch point).
 

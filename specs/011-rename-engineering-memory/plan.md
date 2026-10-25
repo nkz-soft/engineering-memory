@@ -38,7 +38,7 @@ Pre-research and post-design checks both PASS:
 
 ### Source Code (repository root)
 
-- Rename `src/hermes_memory/` to `src/engineering_memory/`, preserving its boundary layout.
+- Use `src/engineering_memory/` as the renamed package, preserving its boundary layout.
 - Update source/test imports and identity literals in CLI, version lookups, tracing and logging internals.
 - Update `pyproject.toml`, regenerate project metadata in `uv.lock`, and update `.env.example`.
 - Update Docker user/ownership/entrypoint, CI image tags and corresponding structure tests.

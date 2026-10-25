@@ -7,7 +7,7 @@ and `tomllib` from the standard library, and the logging of #6 for the two recor
 (specs/010-project-classifier/research.md R11).
 
 That last one carries an obligation this file cannot express, and does not need to: the logging
-import must stay **inside** the loader's function body. `hermes_memory.observability` pulls
+import must stay **inside** the loader's function body. `engineering_memory.observability` pulls
 OpenTelemetry, which pulls `socket`, and `test_boundary_interfaces.py` imports this package in a
 fresh interpreter and fails on exactly that. So the module-scope rule is enforced there, by a test
 that was already standing, and what is enforced here is the narrower question of which names may
@@ -26,15 +26,15 @@ from pathlib import Path
 from tests.structure.test_boundary_interfaces import FORBIDDEN_AT_RUNTIME, imported_roots
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE = REPO_ROOT / "src" / "hermes_memory" / "classification"
+PACKAGE = REPO_ROOT / "src" / "engineering_memory" / "classification"
 
 ALLOWED_THIRD_PARTY = frozenset({"pydantic", "structlog"})
 
 ALLOWED_INTERNAL = (
-    "hermes_memory.errors",
-    "hermes_memory.normalization",
-    "hermes_memory.observability",
-    "hermes_memory.classification",
+    "engineering_memory.errors",
+    "engineering_memory.normalization",
+    "engineering_memory.observability",
+    "engineering_memory.classification",
 )
 
 MODEL_CLIENTS = (
@@ -90,12 +90,12 @@ def test_the_classifier_imports_only_what_it_may() -> None:
 
 def test_the_guard_still_bites(tmp_path: Path) -> None:
     (tmp_path / "leak.py").write_text(
-        "import httpx\nimport openai\nfrom hermes_memory.settings import Settings\n",
+        "import httpx\nimport openai\nfrom engineering_memory.settings import Settings\n",
         encoding="utf-8",
     )
 
     assert _offenders(tmp_path) == [
-        "leak.py: hermes_memory.settings",
+        "leak.py: engineering_memory.settings",
         "leak.py: httpx",
         "leak.py: openai",
     ]
@@ -103,7 +103,7 @@ def test_the_guard_still_bites(tmp_path: Path) -> None:
 
 def test_the_package_exports_what_a_caller_needs() -> None:
     """The surface #19 composes against, asserted so a rename cannot pass quietly."""
-    import hermes_memory.classification as package
+    import engineering_memory.classification as package
 
     assert set(package.__all__) == {
         "UNKNOWN_PROJECT",
@@ -128,7 +128,7 @@ def test_the_boundary_module_still_declares_only_the_boundary() -> None:
     against `origin/main`: a test that shells out to git fails inside the container image (#7),
     where there is no repository, and the property worth holding is the shape, not the bytes.
     """
-    import hermes_memory.classification.classifier as boundary
+    import engineering_memory.classification.classifier as boundary
 
     assert set(boundary.__all__) == {"UNKNOWN_PROJECT", "ProjectClassifier"}
 

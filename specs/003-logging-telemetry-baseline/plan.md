@@ -163,13 +163,13 @@ specs/003-logging-telemetry-baseline/
 ### Source Code (repository root)
 
 ```text
-.env.example                            # + HERMES_LOGGING__LEVEL, __INCLUDE_CONVERSATION_CONTENT
+.env.example                            # + ENGINEERING_MEMORY_LOGGING__LEVEL, __INCLUDE_CONVERSATION_CONTENT
 pyproject.toml                          # + structlog, opentelemetry-api, opentelemetry-sdk
 uv.lock                                 # Re-resolved, committed
 README.md                               # + a short Logging section
 
 src/
-└── hermes_memory/
+└── engineering_memory/
     ├── settings.py                     # CHANGED: + LoggingSettings group
     └── observability/
         ├── __init__.py                 # CHANGED: the public surface; installs the pipeline

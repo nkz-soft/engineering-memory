@@ -15,9 +15,9 @@ import time
 
 import pytest
 
-from hermes_memory.sanitization import PatternSecretSanitizer
-from hermes_memory.sanitization.patterns import PATTERNS, Pattern
-from hermes_memory.sanitization.scanner import redact
+from engineering_memory.sanitization import PatternSecretSanitizer
+from engineering_memory.sanitization.patterns import PATTERNS, Pattern
+from engineering_memory.sanitization.scanner import redact
 
 HOSTILE = (
     "-----BEGIN OPENSSH " * 400

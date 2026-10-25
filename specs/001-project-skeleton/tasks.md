@@ -26,8 +26,8 @@ the thing before its test has failed is not done.
 ## Path Conventions
 
 Single Python project, `src/` layout (plan.md → Structure Decision). Package root is
-`src/hermes_memory/`; tests live in `tests/` at the repository root. Paths below are relative to
-the repository root, which for this work is the worktree `../hermes-memory-4`.
+`src/engineering_memory/`; tests live in `tests/` at the repository root. Paths below are relative to
+the repository root, which for this work is the worktree `../engineering-memory-4`.
 
 ---
 
@@ -43,7 +43,7 @@ configuration and no README section — precisely so that the tests in Phase 3 f
 reasons rather than passing by accident. Completing the metadata is US1's job, in Phase 3.
 
 - [x] T001 Create a minimal `pyproject.toml` at the repository root: `[project]` with `name =
-  "hermes-memory"` and `version = "0.1.0"` only, plus a `dev` dependency group containing `pytest`
+  "engineering-memory"` and `version = "0.1.0"` only, plus a `dev` dependency group containing `pytest`
   and `ruff`. No `requires-python`, no build backend, no tool configuration — those are T009–T011.
 - [x] T002 Run `uv sync` to generate `uv.lock`, and confirm `uv run pytest --version` executes.
 - [x] T003 [P] Create `tests/__init__.py` and `tests/structure/__init__.py`, both empty.
@@ -84,7 +84,7 @@ test command. Both succeed with no further steps (quickstart.md Scenario 1).
   (stripped), and that the version it names satisfies `project.requires-python`. **Run it. It must
   fail** — there is no `.python-version` yet. This is the assertion behind FR-009.
 - [x] T007 [P] [US1] Add `test_package_is_importable_from_src_layout` to
-  `tests/structure/test_packaging.py`: asserts `hermes_memory` imports, and that its resolved
+  `tests/structure/test_packaging.py`: asserts `engineering_memory` imports, and that its resolved
   `__file__` lies under a `src/` directory — proving the installed package, not the working
   directory, is what is under test (research.md R1). **Run it. It must fail** — no package exists.
 - [x] T008 [P] [US1] Add `test_no_runtime_dependencies` to `tests/structure/test_packaging.py`:
@@ -96,14 +96,14 @@ test command. Both succeed with no further steps (quickstart.md Scenario 1).
 ### Implementation for User Story 1
 
 - [x] T009 [US1] Complete `pyproject.toml`: add `requires-python = "==3.13.*"`, a build backend
-  with `src/` package discovery for `hermes_memory`, and an explicitly empty
+  with `src/` package discovery for `engineering_memory`, and an explicitly empty
   `dependencies = []`. Satisfies T005, T007 (in part) and T008.
 - [x] T010 [US1] Create `.python-version` containing `3.13`. Satisfies T006.
 - [x] T011 [P] [US1] Add `[tool.ruff]` to `pyproject.toml` — target version `py313`, a line length,
   and an explicit rule selection — and `[tool.pytest.ini_options]` with `testpaths = ["tests"]`,
   `--strict-markers` and `--strict-config`, so a mistyped marker or option is an error rather than
   a silent no-op (data-model.md → Project metadata).
-- [x] T012 [US1] Create `src/hermes_memory/__init__.py` with a one-line docstring naming the
+- [x] T012 [US1] Create `src/engineering_memory/__init__.py` with a one-line docstring naming the
   distribution. Satisfies T007. **Run the packaging tests. All four must now pass.**
 - [x] T013 [US1] Re-run `uv sync` so `uv.lock` reflects the completed metadata, and verify
   `uv sync --locked` exits 0 — check C1 of [contracts/checks.md](contracts/checks.md).
@@ -140,21 +140,21 @@ fail by adding an unrecorded package or renaming a recorded one (quickstart.md S
   `memory.hindsight`, `evaluation`, `observability`. This pins the parser itself, so a parser bug
   cannot silently weaken the layout check. **Run it. It must fail** — no parser exists yet.
 - [x] T018 [US2] Add `test_every_recorded_module_exists`: for each parsed path, asserts the
-  corresponding directory under `src/hermes_memory/` exists and contains an `__init__.py`. The
+  corresponding directory under `src/engineering_memory/` exists and contains an `__init__.py`. The
   failure message names the missing modules. **Run it. It must fail** — only the package root
   exists.
 - [x] T019 [US2] Add `test_no_unrecorded_modules_exist`: walks the packages under
-  `src/hermes_memory/`, and asserts every one appears in the parsed set. The failure message names
+  `src/engineering_memory/`, and asserts every one appears in the parsed set. The failure message names
   the surplus packages. This is the second direction of the FR-005 invariant. **Run it.** It may
   pass trivially on an empty tree; T023 is where it is proven capable of failing.
 - [x] T020 [US2] Add `test_modules_carry_no_behaviour`: asserts every `__init__.py` under
-  `src/hermes_memory/` contains nothing but a module docstring — no import, no class, no function,
+  `src/engineering_memory/` contains nothing but a module docstring — no import, no class, no function,
   no assignment (FR-004, SC-007, research.md R4). **Run it. It must fail or pass vacuously**; it
   becomes meaningful in T022.
 
 ### Implementation for User Story 2
 
-- [x] T021 [US2] Create the fifteen module directories under `src/hermes_memory/` exactly as
+- [x] T021 [US2] Create the fifteen module directories under `src/engineering_memory/` exactly as
   recorded: `api/`, `cli/`, `ingestion/{chatgpt,claude_code,codex}/`, `normalization/`,
   `sanitization/`, `classification/`, `archive/`, `memory/{interface,hindsight}/`, `evaluation/`,
   `observability/`. Create no other package — in particular, do not add one for the import-state
@@ -163,8 +163,8 @@ fail by adding an unrecorded package or renaming a recorded one (quickstart.md S
   responsibility, taken from ARCHITECTURE.md §8 where §8 names it. Nothing else in the file.
   **Run the layout tests. All five must now pass.**
 - [x] T023 [US2] Prove the check can fail, per quickstart.md Scenario 2: temporarily add
-  `src/hermes_memory/unrecorded/__init__.py` and confirm T019 fails naming it; remove it. Then
-  temporarily rename `src/hermes_memory/archive/` and confirm T018 fails naming it; rename it back.
+  `src/engineering_memory/unrecorded/__init__.py` and confirm T019 fails naming it; remove it. Then
+  temporarily rename `src/engineering_memory/archive/` and confirm T018 fails naming it; rename it back.
   Record both observed failures in the commit message. Leave the tree clean.
 
 **Checkpoint**: the module tree matches the constitution and is enforced in both directions.
@@ -220,7 +220,7 @@ comes from the pull request itself.
 - [x] T029 [P] Verify the lock file is binding (quickstart.md Scenario 3): add a dependency line to
   `pyproject.toml` without regenerating the lock, confirm `uv sync --locked` fails rather than
   re-resolving, then restore the file.
-- [x] T030 [P] Run `find src/hermes_memory -name '__init__.py' -size +200c` and confirm no output,
+- [x] T030 [P] Run `find src/engineering_memory -name '__init__.py' -size +200c` and confirm no output,
   the independent check on SC-007.
 - [x] T031 Correct `plan.md` → Technical Context → Scale/Scope: it says "14 module packages"; the
   recorded layout has fifteen. Fix the number rather than leaving the plan disagreeing with what

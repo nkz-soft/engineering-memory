@@ -212,7 +212,7 @@ because a re-serialization is itself output of the code under suspicion.
 ## R9 — Where the omission record goes
 
 **Decision.** Each conversation's `ThreadAccount` (data-model.md) is emitted as one structured log
-event, `chatgpt.conversation.read`, through `hermes_memory.observability.get_logger`. The event
+event, `chatgpt.conversation.read`, through `engineering_memory.observability.get_logger`. The event
 carries the source id, the number of turns, the number of folded tool nodes, and the omission counts
 by reason. Unrecognized type names are included only when that count is non-zero. No title and no
 text are included. A conversation with nothing omitted still emits the event, with every omission

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.errors import BoundaryError
+from engineering_memory.errors import BoundaryError
 from tests.contracts import conversations as conversations_module
 from tests.contracts.archive import RawArchiveContract
 from tests.contracts.classifier import ProjectClassifierContract
@@ -43,7 +43,7 @@ class _BrokenSanitizer(SecretSanitizerContract):
         return broken.SanitizerThatReportsWhatItDidNotDo()
 
     def secret_sample(self):
-        from hermes_memory.sanitization import RedactionCategory
+        from engineering_memory.sanitization import RedactionCategory
 
         return conversations_module.FAKE_SECRET, RedactionCategory.PASSWORD
 

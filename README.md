@@ -1,4 +1,4 @@
-# hermes-memory
+# engineering-memory
 
 Long-term engineering memory shared across AI assistants.
 
@@ -49,7 +49,7 @@ uv run ruff check . && uv run ruff format --check .  # lint and formatting
 The same three commands run in CI on every pull request, installing from the
 committed `uv.lock`, so a local pass and a CI pass mean the same thing.
 
-The module tree under `src/hermes_memory/` mirrors the layout recorded in the
+The module tree under `src/engineering_memory/` mirrors the layout recorded in the
 [constitution](.specify/memory/constitution.md); a test parses that record and
 fails if the two disagree in either direction.
 
@@ -65,7 +65,7 @@ docker run --rm -v "$PWD:/repo" -w /repo \
   ghcr.io/gitleaks/gitleaks:v8.30.1 git . --no-banner --redact -v
 
 # Build the image and run it
-docker build -t hermes-memory:local . && docker run --rm hermes-memory:local
+docker build -t engineering-memory:local . && docker run --rm engineering-memory:local
 ```
 
 The scan reads the **history**, not the working tree, because git remembers what
@@ -95,8 +95,8 @@ Everything the project reads from its environment is listed in
 cp .env.example .env
 ```
 
-Two variables are required — `HERMES_HINDSIGHT__BASE_URL`, your self-hosted
-Hindsight instance, and `HERMES_LLM__BASE_URL`, the OpenAI-compatible endpoint
+Two variables are required — `ENGINEERING_MEMORY_HINDSIGHT__BASE_URL`, your self-hosted
+Hindsight instance, and `ENGINEERING_MEMORY_LLM__BASE_URL`, the OpenAI-compatible endpoint
 extraction is routed through. Everything else has a working default. Tokens are
 optional, because a local instance may run unauthenticated.
 
@@ -129,7 +129,7 @@ tagged `project:unknown`.
 
 The default location is under the ignored `data/` on purpose: these are your
 repository names and local paths, and this repository is public. Point elsewhere
-with `HERMES_PROJECT_RULES_PATH` — and note the asymmetry, because it is
+with `ENGINEERING_MEMORY_PROJECT_RULES_PATH` — and note the asymmetry, because it is
 deliberate: a path you set and that does not exist is an error, while no rules
 at the default location is a warning and an import that tags everything
 `project:unknown`. Those tags do not fix themselves when the rules arrive: a
@@ -148,12 +148,12 @@ withheld value is replaced by `[redacted]` rather than dropped, so a reader can
 tell redaction from absence.
 
 **Conversation contents are not logged by default.** Set
-`HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT=true` for a single debugging run
+`ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT=true` for a single debugging run
 when you need to see the conversation a parser choked on. It puts private text
 wherever your log goes, so leave it out of `.env`. It never reveals a
 credential: those stay redacted whatever it is set to.
 
-`HERMES_LOGGING__LEVEL` sets how much is emitted (`DEBUG` through `CRITICAL`,
+`ENGINEERING_MEMORY_LOGGING__LEVEL` sets how much is emitted (`DEBUG` through `CRITICAL`,
 default `INFO`). Both variables are described in [`.env.example`](.env.example).
 
 ## Documentation
@@ -164,3 +164,7 @@ the Hindsight contract the design relies on, phases, and decision records.
 ## License
 
 See [LICENSE](LICENSE).
+
+## Migrating the project name
+
+Install and invoke `engineering-memory` and import `engineering_memory`. Update local environment files and process configuration to use `ENGINEERING_MEMORY_` followed by the existing setting name (including nested `__` separators). Consumer-prefixed variables are ignored; there is no compatibility fallback. Update container image references and repository remotes to the new name. The checkout directory may keep its current name. Keep archive paths, import state, document IDs and the `engineering-global` bank unchanged; no data migration or re-extraction is needed.

@@ -14,9 +14,9 @@ import re
 
 import pytest
 
-from hermes_memory.sanitization import RedactionCategory
-from hermes_memory.sanitization.patterns import Pattern, is_placeholder
-from hermes_memory.sanitization.scanner import REDACTED, find_spans, redact, resolve
+from engineering_memory.sanitization import RedactionCategory
+from engineering_memory.sanitization.patterns import Pattern, is_placeholder
+from engineering_memory.sanitization.scanner import REDACTED, find_spans, redact, resolve
 
 WHOLE_VALUE = Pattern(
     category=RedactionCategory.GITLAB_TOKEN,

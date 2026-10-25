@@ -26,7 +26,7 @@ verified on its own.
 
 ## Path Conventions
 
-Single project: `src/hermes_memory/` and `tests/` at the repository root, per
+Single project: `src/engineering_memory/` and `tests/` at the repository root, per
 [plan.md](./plan.md#project-structure).
 
 ---
@@ -57,7 +57,7 @@ this exists.
   (`AwareDatetime`, research R5), rejects an opaque identifier that is empty or contains whitespace
   or a control character (research R10), and rejects a slug outside `[a-z0-9][a-z0-9._-]*`
   (research R9). Run them and record that they fail.
-- [x] T003 Implement `src/hermes_memory/normalization/base.py` — the frozen base
+- [x] T003 Implement `src/engineering_memory/normalization/base.py` — the frozen base
   (`model_config = ConfigDict(frozen=True, extra="forbid")`, research R7), the opaque-identifier
   type and the slug type — until T002 passes.
 - [x] T004 Record the addition of `base.py` in [plan.md](./plan.md#source-code-repository-root) and
@@ -105,16 +105,16 @@ the architecture requires.
 
 ### Implementation for User Story 1
 
-- [x] T008 [P] [US1] Implement `src/hermes_memory/normalization/conversation.py` — `Source`, `Role`,
+- [x] T008 [P] [US1] Implement `src/engineering_memory/normalization/conversation.py` — `Source`, `Role`,
   `NonTextKind`, `NonTextPart`, `ToolActivity`, `Message`, `Conversation` — until T005 passes. Field
   types and rules are quoted in [data-model.md](./data-model.md); `messages` is
   `tuple[Message, ...]`, `text` may be empty, `source_id` is the opaque identifier type from T003.
-- [x] T009 [P] [US1] Implement `src/hermes_memory/normalization/tags.py` — `TagNamespace`,
+- [x] T009 [P] [US1] Implement `src/engineering_memory/normalization/tags.py` — `TagNamespace`,
   `ConversationType`, `Tag` and the four concrete forms, rendering through one method — until T006
   passes.
-- [x] T010 [US1] Implement `src/hermes_memory/normalization/provenance.py` — `Provenance` and
+- [x] T010 [US1] Implement `src/engineering_memory/normalization/provenance.py` — `Provenance` and
   `EnrichedConversation` — until T007 passes. Depends on T008 and T009.
-- [x] T011 [US1] Fill `src/hermes_memory/normalization/__init__.py`: re-export exactly the names in
+- [x] T011 [US1] Fill `src/engineering_memory/normalization/__init__.py`: re-export exactly the names in
   [contracts/module-boundary.md](./contracts/module-boundary.md) and declare `__all__`. The module
   docstring states what the boundary is, citing §7 and §8.
 
@@ -155,15 +155,15 @@ change a message, then change only the title, and observe which digest moves.
 
 ### Implementation for User Story 2
 
-- [x] T015 [US2] Implement `src/hermes_memory/normalization/canonical.py` — `canonical_form` and
+- [x] T015 [US2] Implement `src/engineering_memory/normalization/canonical.py` — `canonical_form` and
   `content_hash` — until T013 and T014 pass. The included fields are written out by name, never
   derived from a model dump (research R1); timestamps convert with `astimezone(UTC)` and render
   `%Y-%m-%dT%H:%M:%S.%fZ`, an absent one as `null` (research R4); the digest is
   `hashlib.sha256(...).hexdigest()` (research R3).
 - [x] T016 [US2] Wire `Conversation.document_id`, `Conversation.canonical_form()` and
-  `Conversation.content_hash()` in `src/hermes_memory/normalization/conversation.py` until T012
+  `Conversation.content_hash()` in `src/engineering_memory/normalization/conversation.py` until T012
   passes, and export `canonical_form` and `content_hash` from
-  `src/hermes_memory/normalization/__init__.py`.
+  `src/engineering_memory/normalization/__init__.py`.
 
 **Checkpoint**: The §17 skip has the value it depends on, and it is stable across processes.
 
@@ -202,21 +202,21 @@ record fails loudly instead of parsing into a partial object.
 
 **Goal**: Principle IV's boundary fails a test rather than an argument.
 
-**Independent Test**: Add `import httpx` to a file under `src/hermes_memory/normalization/` and
+**Independent Test**: Add `import httpx` to a file under `src/engineering_memory/normalization/` and
 watch both guards fail; remove it again.
 
 ### Tests for User Story 4 ⚠️ Write first, observe failing
 
 - [x] T020 [US4] Write the static import guard in
   `tests/structure/test_normalization_boundary.py`: parse every `.py` under
-  `src/hermes_memory/normalization/` with `ast`, collect the root of every import, and assert the
+  `src/engineering_memory/normalization/` with `ast`, collect the root of every import, and assert the
   set falls inside the allowlist of
   [contracts/module-boundary.md](./contracts/module-boundary.md) — the standard library, `pydantic`,
   and the module itself. The failure message names the file and the offending import.
 - [x] T021 [US4] Write the runtime import guard in the same file: import
-  `hermes_memory.normalization` in a subprocess and assert no forbidden name appears in that
-  process's `sys.modules` — `hermes_memory.memory.*`, `httpx`, `requests`, `urllib.request`,
-  `aiohttp`, `sqlalchemy`, `sqlite3`, `boto3`, `hermes_memory.settings` (FR-016, FR-018,
+  `engineering_memory.normalization` in a subprocess and assert no forbidden name appears in that
+  process's `sys.modules` — `engineering_memory.memory.*`, `httpx`, `requests`, `urllib.request`,
+  `aiohttp`, `sqlalchemy`, `sqlite3`, `boto3`, `engineering_memory.settings` (FR-016, FR-018,
   research R12).
 - [x] T022 [US4] Write the test that proves both guards bite, in the same file, following the
   precedent of `test_the_behaviour_guard_still_bites` in
@@ -243,7 +243,7 @@ watch both guards fail; remove it again.
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [x] T026 [P] Write the module and class docstrings required by NFR-001 across
-  `src/hermes_memory/normalization/*.py`, each citing the architecture section its rule comes from
+  `src/engineering_memory/normalization/*.py`, each citing the architecture section its rule comes from
   (§3.3, §6, §7, §8, §10, §11, §17, ADR-006), so a later reader changing a field sees what it was
   holding up.
 - [x] T027 Run `uv run ruff check .` and `uv run ruff format --check .` and fix what they report.
@@ -253,7 +253,7 @@ watch both guards fail; remove it again.
   IV guard is made to fail on purpose and then restored, and step 6, which proves the module is
   usable with no configuration and no service.
 - [x] T030 Confirm `git diff --stat origin/main...HEAD` is confined to
-  `src/hermes_memory/normalization/`, `tests/`, `specs/006-normalized-conversation-model/` and the
+  `src/engineering_memory/normalization/`, `tests/`, `specs/006-normalized-conversation-model/` and the
   single deliberate line in `tests/structure/test_module_layout.py` (SC-007). In particular
   `pyproject.toml` is untouched: this feature adds no dependency.
 
@@ -296,8 +296,8 @@ Task: "Failing tests for the §6 tag convention in tests/unit/test_tags.py"
 Task: "Failing tests for provenance in tests/unit/test_provenance.py"
 
 # Then the two independent implementations:
-Task: "Implement src/hermes_memory/normalization/conversation.py"
-Task: "Implement src/hermes_memory/normalization/tags.py"
+Task: "Implement src/engineering_memory/normalization/conversation.py"
+Task: "Implement src/engineering_memory/normalization/tags.py"
 ```
 
 ## Implementation Strategy
@@ -335,7 +335,7 @@ three of them changed a written decision rather than code.
   under" — is true of the source and native id and false of a start time. The exclusion stands, the
   consequence is now stated, and changing the trade is named as an amendment to ADR-006.
 - [x] T032 Make `FrozenModel.model_copy(update=...)` revalidate, in
-  `src/hermes_memory/normalization/base.py`, with tests in `tests/unit/test_base.py`. `frozen=True`
+  `src/engineering_memory/normalization/base.py`, with tests in `tests/unit/test_base.py`. `frozen=True`
   stops assignment but not that call, which skipped every validator — and §7's sanitizer (#12)
   returns a rewritten conversation, so it is exactly the door the next feature would have walked
   through, into the archive Principle I makes the source of truth.
@@ -343,7 +343,7 @@ three of them changed a written decision rather than code.
   An unpaired surrogate survives `json.loads`, constructs happily, and then breaks the content hash
   mid-import with a codec error naming neither the conversation nor the field.
 - [x] T034 Validate the tags against what they scope, in
-  `src/hermes_memory/normalization/provenance.py`: a `source:` tag must match the conversation's
+  `src/engineering_memory/normalization/provenance.py`: a `source:` tag must match the conversation's
   source and a `project:` tag the provenance's project. The same argument the provenance check
   already made, one field over — a wrong tag files a conversation where nobody will look for it.
 - [x] T035 Add `AnyTag` to [contracts/module-boundary.md](./contracts/module-boundary.md), which

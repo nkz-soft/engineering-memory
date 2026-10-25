@@ -15,13 +15,13 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.settings import SettingsError, load_settings
+from engineering_memory.settings import SettingsError, load_settings
 
 LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 def test_defaults_need_no_configuration(complete_environment: dict[str, str]) -> None:
-    """An environment with no `HERMES_LOGGING__*` at all is valid, and safe (FR-014)."""
+    """An environment with no `ENGINEERING_MEMORY_LOGGING__*` at all is valid, and safe (FR-014)."""
     settings = load_settings(env_file=None)
 
     assert settings.logging.level == "INFO"
@@ -35,7 +35,7 @@ def test_every_standard_level_is_accepted(
     level: str,
 ) -> None:
     """The closed set of data-model.md, each one, not a sample."""
-    monkeypatch.setenv("HERMES_LOGGING__LEVEL", level)
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__LEVEL", level)
 
     assert load_settings(env_file=None).logging.level == level
 
@@ -47,7 +47,7 @@ def test_the_level_is_matched_case_insensitively(
     spelling: str,
 ) -> None:
     """`debug` is what a person types; rejecting it would be pedantry, not validation."""
-    monkeypatch.setenv("HERMES_LOGGING__LEVEL", spelling)
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__LEVEL", spelling)
 
     assert load_settings(env_file=None).logging.level == spelling.strip().upper()
 
@@ -57,12 +57,12 @@ def test_an_unknown_level_fails_at_load_naming_the_variable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Check 28 — a typo stops the run at startup rather than becoming a silent default."""
-    monkeypatch.setenv("HERMES_LOGGING__LEVEL", "VERBOSE")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__LEVEL", "VERBOSE")
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
 
-    assert "HERMES_LOGGING__LEVEL" in str(failure.value)
+    assert "ENGINEERING_MEMORY_LOGGING__LEVEL" in str(failure.value)
 
 
 def test_an_empty_level_fails_rather_than_defaulting(
@@ -70,7 +70,7 @@ def test_an_empty_level_fails_rather_than_defaulting(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An empty value is an unfinished edit, which is how 002 treats every other setting."""
-    monkeypatch.setenv("HERMES_LOGGING__LEVEL", "   ")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__LEVEL", "   ")
 
     with pytest.raises(SettingsError):
         load_settings(env_file=None)
@@ -87,7 +87,7 @@ def test_the_content_flag_parses_the_usual_spellings(
     expected: bool,
 ) -> None:
     """Whatever an operator types for a boolean, the answer must not be "silently off"."""
-    monkeypatch.setenv("HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT", value)
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT", value)
 
     assert load_settings(env_file=None).logging.include_conversation_content is expected
 
@@ -102,12 +102,12 @@ def test_a_nonsense_content_flag_fails_rather_than_defaulting_to_off(
     person would conclude the flag is broken. FR-015 keeps credentials safe either way, so this is
     about not wasting an afternoon rather than about a leak.
     """
-    monkeypatch.setenv("HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT", "maybe")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT", "maybe")
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=None)
 
-    assert "HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT" in str(failure.value)
+    assert "ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT" in str(failure.value)
 
 
 def test_the_group_is_frozen(complete_environment: dict[str, str]) -> None:

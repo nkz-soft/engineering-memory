@@ -2,7 +2,7 @@
 
 It recognizes one string, which is enough to prove the shape of the answer. The patterns that find
 real credentials are #11's, and the categories they report in are §13's, declared in
-`hermes_memory.sanitization`.
+`engineering_memory.sanitization`.
 
 "Everywhere" is the point worth copying: the title, every message's text, every tool request and
 result, and every attachment name. §13's own example is tool output, and the title reaches the
@@ -12,8 +12,8 @@ memory store in provenance — a sanitizer that rewrote only message text would 
 
 from __future__ import annotations
 
-from hermes_memory.normalization import Conversation, Message
-from hermes_memory.sanitization import RedactionCategory, RedactionReport, SanitizationError
+from engineering_memory.normalization import Conversation, Message
+from engineering_memory.sanitization import RedactionCategory, RedactionReport, SanitizationError
 
 REDACTED = "[REDACTED]"
 

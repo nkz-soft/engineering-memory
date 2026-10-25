@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     EnrichedConversation,
     Message,
@@ -56,12 +56,12 @@ def a_provenance(**overrides: object) -> Provenance:
 
 def test_provenance_carries_every_field_the_architecture_requires() -> None:
     """Source, source id, project, repository, title, import time and importer version (§3.3)."""
-    provenance = a_provenance(repository="nkz-soft/hermes-memory")
+    provenance = a_provenance(repository="nkz-soft/engineering-memory")
 
     assert provenance.source is Source.CHATGPT
     assert provenance.source_id == "conversation-id"
     assert provenance.project == "miratorg"
-    assert provenance.repository == "nkz-soft/hermes-memory"
+    assert provenance.repository == "nkz-soft/engineering-memory"
     assert provenance.title == "Wolverine Saga Error Handling"
     assert provenance.imported_at == IMPORTED
     assert provenance.importer_version == "1"

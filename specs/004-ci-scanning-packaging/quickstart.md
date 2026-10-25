@@ -78,7 +78,7 @@ not matched (research R7).
 ## C6 — build the image
 
 ```bash
-docker build -t hermes-memory:local .
+docker build -t engineering-memory:local .
 ```
 
 Expected: a successful build. It fails, by design, when `uv.lock` disagrees with `pyproject.toml` —
@@ -88,7 +88,7 @@ tests did not run against.
 ## C7 — run it
 
 ```bash
-docker run --rm hermes-memory:local
+docker run --rm engineering-memory:local
 ```
 
 Expected: the application's usage text, and exit status 0. No arguments are needed because `--help`
@@ -96,7 +96,7 @@ is the image's default argument (research R10); the entry point is the installed
 arguments given instead reach the application directly:
 
 ```bash
-docker run --rm hermes-memory:local --version
+docker run --rm engineering-memory:local --version
 ```
 
 Assert on the **text**, not the status. An entry point that exits 0 having printed nothing satisfies
@@ -106,7 +106,7 @@ workflow to match the output's content.
 ## Confirming what the image does not contain
 
 ```bash
-docker run --rm --entrypoint sh hermes-memory:local -c 'ls /app/tests 2>&1; python -c "import pytest" 2>&1; id -u'
+docker run --rm --entrypoint sh engineering-memory:local -c 'ls /app/tests 2>&1; python -c "import pytest" 2>&1; id -u'
 ```
 
 Expected: no such directory, a `ModuleNotFoundError` for pytest, and a non-zero uid. Those are

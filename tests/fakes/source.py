@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from hermes_memory.ingestion import SourceConversation, SourceFormatError, SourceUnavailable
-from hermes_memory.normalization import Source
+from engineering_memory.ingestion import SourceConversation, SourceFormatError, SourceUnavailable
+from engineering_memory.normalization import Source
 
 
 class _ResumableReader(Iterator[SourceConversation]):

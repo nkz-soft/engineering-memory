@@ -15,7 +15,7 @@ from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     Message,
     NonTextKind,
@@ -24,13 +24,13 @@ from hermes_memory.normalization import (
     Source,
     ToolActivity,
 )
-from hermes_memory.observability import get_logger
-from hermes_memory.sanitization import (
+from engineering_memory.observability import get_logger
+from engineering_memory.sanitization import (
     PatternSecretSanitizer,
     RedactionCategory,
     SanitizationError,
 )
-from hermes_memory.sanitization.patterns import Pattern
+from engineering_memory.sanitization.patterns import Pattern
 from tests.synthetic.secrets import SAMPLES
 
 from .conftest import Rendered

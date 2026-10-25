@@ -193,7 +193,7 @@ the report carries, at the boundary least able to afford a mistake about what is
 
 ## R9 — Where the code lives
 
-**Decision**: inside `hermes_memory.sanitization`, beside the boundary it implements:
+**Decision**: inside `engineering_memory.sanitization`, beside the boundary it implements:
 
 * `patterns.py` — the table: one entry per pattern with its category, compiled expression, value
   group and precedence, plus the placeholder rejection of R5.

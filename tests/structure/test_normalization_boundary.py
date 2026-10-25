@@ -27,10 +27,10 @@ from pathlib import Path
 
 import pytest
 
-import hermes_memory.normalization as normalization
+import engineering_memory.normalization as normalization
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MODULE_ROOT = REPO_ROOT / "src" / "hermes_memory" / "normalization"
+MODULE_ROOT = REPO_ROOT / "src" / "engineering_memory" / "normalization"
 
 ALLOWED_THIRD_PARTY = frozenset({"pydantic"})
 """Everything outside the standard library this module may import.
@@ -40,11 +40,11 @@ change to what the domain model depends on, which the constitution makes a decis
 commit.
 """
 
-INTERNAL_PREFIX = "hermes_memory.normalization"
+INTERNAL_PREFIX = "engineering_memory.normalization"
 
 FORBIDDEN_AT_RUNTIME = (
-    "hermes_memory.memory",
-    "hermes_memory.settings",
+    "engineering_memory.memory",
+    "engineering_memory.settings",
     "httpx",
     "requests",
     "urllib.request",
@@ -60,9 +60,11 @@ FORBIDDEN_AT_RUNTIME = (
 )
 """Named explicitly because these are the ones that would actually be reached for.
 
-`hermes_memory.memory` — Principle IV: only the memory store knows Hindsight. The HTTP clients and
+`engineering_memory.memory` — Principle IV: only the memory store knows Hindsight. The HTTP clients
+and
 `urllib.request` — §8: the domain model makes no calls. The storage libraries — §8: it persists
-nothing. `hermes_memory.settings` — FR-018: a model that reads configuration is a model that cannot
+nothing. `engineering_memory.settings` — FR-018: a model that reads configuration is a model that
+cannot
 be constructed in a test.
 """
 
@@ -154,7 +156,7 @@ def test_the_static_guard_still_bites(tmp_path: Path, monkeypatch: pytest.Monkey
     fake_root.mkdir()
     (fake_root / "clean.py").write_text("from pydantic import BaseModel\n", encoding="utf-8")
     (fake_root / "leaky.py").write_text(
-        "import httpx\nimport sqlite3\nfrom hermes_memory.memory.hindsight import Client\n",
+        "import httpx\nimport sqlite3\nfrom engineering_memory.memory.hindsight import Client\n",
         encoding="utf-8",
     )
 
@@ -166,7 +168,7 @@ def test_the_static_guard_still_bites(tmp_path: Path, monkeypatch: pytest.Monkey
 
     reported = str(failure.value)
     assert "leaky.py: httpx" in reported
-    assert "leaky.py: hermes_memory.memory.hindsight" in reported
+    assert "leaky.py: engineering_memory.memory.hindsight" in reported
     # Standard library, and still forbidden: storage reaches the domain model through `sqlite3`
     # long before it reaches it through anything exotic.
     assert "leaky.py: sqlite3" in reported
@@ -175,7 +177,7 @@ def test_the_static_guard_still_bites(tmp_path: Path, monkeypatch: pytest.Monkey
 
 def test_importing_the_module_pulls_in_nothing_forbidden() -> None:
     """FR-016, FR-018. The runtime half: the true transitive closure, in a fresh interpreter."""
-    script = "import hermes_memory.normalization, sys; print('\\n'.join(sorted(sys.modules)))"
+    script = "import engineering_memory.normalization, sys; print('\\n'.join(sorted(sys.modules)))"
     finished = subprocess.run(
         [sys.executable, "-c", script], capture_output=True, text=True, check=True
     )
@@ -189,7 +191,7 @@ def test_importing_the_module_pulls_in_nothing_forbidden() -> None:
     ]
 
     assert not offenders, (
-        f"Importing hermes_memory.normalization loaded {offenders}. Something it depends on "
+        f"Importing engineering_memory.normalization loaded {offenders}. Something it depends on "
         "reaches Hindsight, the network or storage, even if no source here names it directly."
     )
 
@@ -201,7 +203,7 @@ def test_the_module_imports_without_configuration() -> None:
     on this machine cannot make a configuration dependency look absent.
     """
     finished = subprocess.run(
-        [sys.executable, "-c", "import hermes_memory.normalization"],
+        [sys.executable, "-c", "import engineering_memory.normalization"],
         capture_output=True,
         text=True,
         env={"PATH": "", "SYSTEMROOT": ""},

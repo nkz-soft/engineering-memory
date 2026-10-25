@@ -8,11 +8,11 @@ a test rather than taken from documentation, and that discipline is applied here
 ## R1 — Where does the settings object live?
 
 **Question**: the constitution's module tree records fifteen packages, and
-`tests/structure/test_module_layout.py` fails on any package under `src/hermes_memory/` that the
+`tests/structure/test_module_layout.py` fails on any package under `src/engineering_memory/` that the
 tree does not record. Configuration has no package there. Where does it go?
 
-**Decision**: a single top-level module, `src/hermes_memory/settings.py`, beside
-`src/hermes_memory/__init__.py` — not a package.
+**Decision**: a single top-level module, `src/engineering_memory/settings.py`, beside
+`src/engineering_memory/__init__.py` — not a package.
 
 The layout check derives the present set from `source.parent.relative_to(PACKAGE_ROOT)` and skips
 files whose parent *is* the package root. A top-level module is therefore outside what that check
@@ -27,7 +27,7 @@ a sixteenth boundary.
 |---|---|
 | Amend the constitution's module tree to add `config/` | A constitution amendment, which the issue's Governance impact explicitly excludes ("None of the above"). Amending a binding document as a side effect of an implementation feature is exactly what the Governance section forbids. |
 | Put settings inside `observability/` or `api/` | Neither owns it. Every module would then import across a boundary that means something else, which is the drift Principle IV exists to prevent. |
-| A package `hermes_memory/settings/` with `__init__.py` | Trips `test_no_unrecorded_modules_exist`, correctly. The check is right and the design is wrong, not the other way round. |
+| A package `engineering_memory/settings/` with `__init__.py` | Trips `test_no_unrecorded_modules_exist`, correctly. The check is right and the design is wrong, not the other way round. |
 
 **Consequence, stated so it is not a surprise**: `test_modules_carry_no_behaviour` walks *every*
 `.py` under the package root, including top-level ones, and asserts each holds nothing but a
@@ -114,9 +114,9 @@ visible act at the call site, which is what makes a review able to see it.
 
 ## R4 — Variable names
 
-**Decision**: a common `HERMES_` prefix on every variable, with nested structure expressed by a
+**Decision**: a common `ENGINEERING_MEMORY_` prefix on every variable, with nested structure expressed by a
 double-underscore delimiter where a group of settings belongs together — for example
-`HERMES_HINDSIGHT__BASE_URL`. The prefix keeps the project's variables identifiable in an
+`ENGINEERING_MEMORY_HINDSIGHT__BASE_URL`. The prefix keeps the project's variables identifiable in an
 environment shared with other tools and makes accidental collisions (a bare `BANK_ID`) impossible.
 
 Grouping the Hindsight settings and the LLM settings into nested models, rather than a flat roster
@@ -192,7 +192,7 @@ one that should decide what to do when it is absent.
 **Two cases tightened during code review**, both of which had resolved silently to something
 wrong:
 
-* A blank value — `HERMES_ARCHIVE_ROOT=` uncommented but not filled in, the likeliest mistake given
+* A blank value — `ENGINEERING_MEMORY_ARCHIVE_ROOT=` uncommented but not filled in, the likeliest mistake given
   how `.env.example` presents it — resolved to the repository root itself, which would have put the
   raw archive in the checkout and made the import-state path a directory. Blank is now rejected,
   consistent with how a blank bank id is treated.

@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from hermes_memory.classification import UNKNOWN_PROJECT, ProjectRuleSet
-from hermes_memory.classification.alias_classifier import AliasProjectClassifier
-from hermes_memory.normalization import Conversation, Message, ProjectTag, Role, Source
+from engineering_memory.classification import UNKNOWN_PROJECT, ProjectRuleSet
+from engineering_memory.classification.alias_classifier import AliasProjectClassifier
+from engineering_memory.normalization import Conversation, Message, ProjectTag, Role, Source
 from tests.synthetic import projects
 
 STARTED_AT = datetime(2026, 3, 4, 9, 30, tzinfo=UTC)

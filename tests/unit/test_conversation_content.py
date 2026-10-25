@@ -14,9 +14,13 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.observability import REDACTED, ConversationContent, configure, get_logger
-from hermes_memory.observability.redaction import CONTENT_CAP, CONTENT_REDACTED, TRUNCATED_SUFFIX
-from hermes_memory.settings import load_settings
+from engineering_memory.observability import REDACTED, ConversationContent, configure, get_logger
+from engineering_memory.observability.redaction import (
+    CONTENT_CAP,
+    CONTENT_REDACTED,
+    TRUNCATED_SUFFIX,
+)
+from engineering_memory.settings import load_settings
 
 from .conftest import Rendered
 
@@ -27,7 +31,7 @@ A_TOKEN = "ghp_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"
 @pytest.fixture
 def content_enabled(complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> None:
     """Configure the process the way an operator chasing a parser defect would."""
-    monkeypatch.setenv("HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT", "true")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT", "true")
     configure(load_settings(env_file=None))
 
 
@@ -47,7 +51,7 @@ def test_content_is_absent_with_the_flag_explicitly_off(
     rendered: Rendered, complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Check 20 — the configured default agrees with the unconfigured one."""
-    monkeypatch.setenv("HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT", "false")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT", "false")
     configure(load_settings(env_file=None))
 
     get_logger().info("parsed a conversation", body=ConversationContent(A_BODY))

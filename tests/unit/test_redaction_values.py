@@ -23,8 +23,8 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr
 
-from hermes_memory.observability import REDACTED, get_logger
-from hermes_memory.observability.redaction import MAX_DEPTH
+from engineering_memory.observability import REDACTED, get_logger
+from engineering_memory.observability.redaction import MAX_DEPTH
 
 from .conftest import Rendered
 
@@ -245,8 +245,8 @@ def test_the_standard_library_path_is_redacted_too(
     """FR-001 and R5 — httpx logging a URL with credentials in it is the realistic leak."""
     import logging as stdlib_logging
 
-    from hermes_memory.observability import configure
-    from hermes_memory.settings import load_settings
+    from engineering_memory.observability import configure
+    from engineering_memory.settings import load_settings
 
     configure(load_settings(env_file=None))
 

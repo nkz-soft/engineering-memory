@@ -6,8 +6,8 @@ skip a conversation that was never imported, which is the quietest possible way 
 
 from __future__ import annotations
 
-from hermes_memory.ingestion import ImportRecord, ImportStateCorrupt, ImportStateUnavailable
-from hermes_memory.normalization import Source
+from engineering_memory.ingestion import ImportRecord, ImportStateCorrupt, ImportStateUnavailable
+from engineering_memory.normalization import Source
 
 
 class InMemoryImportState:

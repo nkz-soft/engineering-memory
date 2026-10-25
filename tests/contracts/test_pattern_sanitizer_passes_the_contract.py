@@ -14,12 +14,12 @@ from __future__ import annotations
 import re
 from typing import Any, cast
 
-from hermes_memory.sanitization import (
+from engineering_memory.sanitization import (
     PatternSecretSanitizer,
     RedactionCategory,
     SecretSanitizer,
 )
-from hermes_memory.sanitization.patterns import Pattern
+from engineering_memory.sanitization.patterns import Pattern
 from tests.contracts.sanitizer import SecretSanitizerContract
 from tests.synthetic.secrets import CONTRACT_SAMPLE
 

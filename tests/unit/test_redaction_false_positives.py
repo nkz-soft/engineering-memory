@@ -16,8 +16,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from hermes_memory.normalization import Conversation, Message, Role, Source
-from hermes_memory.sanitization import PatternSecretSanitizer
+from engineering_memory.normalization import Conversation, Message, Role, Source
+from engineering_memory.sanitization import PatternSecretSanitizer
 
 STARTED_AT = datetime(2026, 3, 4, 9, 30, tzinfo=UTC)
 
@@ -28,7 +28,7 @@ UNTOUCHED = {
     "a hex digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "a base64 fragment": "the payload began iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ",
     "a version string": "we pinned pydantic 2.9.2 and structlog 24.4.0",
-    "a dotted path": "the traceback pointed at hermes_memory.ingestion.chatgpt.records",
+    "a dotted path": "the traceback pointed at engineering_memory.ingestion.chatgpt.records",
     "a bearer with a variable": 'curl -H "Authorization: Bearer $TOKEN" https://example.com',
     "a bearer with a template": "Authorization: Bearer {{ gitlab_token }}",
     "a documentation placeholder": "set api_key=<your-api-key> before running it",

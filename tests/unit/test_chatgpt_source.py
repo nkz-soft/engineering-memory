@@ -9,11 +9,11 @@ from pathlib import Path
 import pytest
 from structlog.testing import capture_logs
 
-from hermes_memory.errors import BoundaryError
-from hermes_memory.ingestion import SourceConversation, SourceFormatError, SourceUnavailable
-from hermes_memory.ingestion.chatgpt import ChatGPTExportSource
-from hermes_memory.ingestion.chatgpt.conversation import parse_record
-from hermes_memory.normalization import Source
+from engineering_memory.errors import BoundaryError
+from engineering_memory.ingestion import SourceConversation, SourceFormatError, SourceUnavailable
+from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
+from engineering_memory.ingestion.chatgpt.conversation import parse_record
+from engineering_memory.normalization import Source
 from tests.synthetic import chatgpt_export as synth
 
 say = synth.message

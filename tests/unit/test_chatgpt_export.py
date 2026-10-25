@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.ingestion import SourceFormatError, SourceUnavailable
-from hermes_memory.ingestion.chatgpt.export import Export
+from engineering_memory.ingestion import SourceFormatError, SourceUnavailable
+from engineering_memory.ingestion.chatgpt.export import Export
 from tests.synthetic import chatgpt_export as synth
 
 RECORDS = [synth.linear_record(f"c{i}", synth.message("user", f"question {i}")) for i in range(3)]

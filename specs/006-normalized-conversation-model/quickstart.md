@@ -60,7 +60,7 @@ uv run pytest tests/structure/test_normalization_boundary.py -v
 Expected: the static import check and the runtime `sys.modules` check both pass.
 
 To see the guard bite rather than take it on trust, add `import httpx` to any file under
-`src/hermes_memory/normalization/` and re-run: both tests fail, the static one naming the file and
+`src/engineering_memory/normalization/` and re-run: both tests fail, the static one naming the file and
 the line. Remove it again.
 
 ## 6. The model is usable without anything else
@@ -68,7 +68,7 @@ the line. Remove it again.
 ```bash
 uv run python -c "
 from datetime import UTC, datetime
-from hermes_memory.normalization import Conversation, Message, Role, Source
+from engineering_memory.normalization import Conversation, Message, Role, Source
 
 c = Conversation(
     source=Source.CHATGPT,
@@ -105,7 +105,7 @@ constructing is the one to reach for, because it is safe in any model, not only 
 git diff --stat origin/main...HEAD
 ```
 
-Expected (SC-007): files under `src/hermes_memory/normalization/`, `tests/` and
+Expected (SC-007): files under `src/engineering_memory/normalization/`, `tests/` and
 `specs/006-normalized-conversation-model/`, plus one deliberate line in
 `tests/structure/test_module_layout.py` adding `normalization` to `FILLED_BOUNDARIES`
 (research R13). Nothing else — in particular no change to `pyproject.toml`, since this feature adds

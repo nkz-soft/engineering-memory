@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     Message,
     NonTextKind,
@@ -21,7 +21,7 @@ from hermes_memory.normalization import (
     Source,
     ToolActivity,
 )
-from hermes_memory.sanitization import (
+from engineering_memory.sanitization import (
     RedactionCategory,
     RedactionReport,
     SanitizationError,

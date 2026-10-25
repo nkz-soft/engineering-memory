@@ -10,9 +10,9 @@ classifier that raised would make the pipeline's failure path its ordinary path.
 
 from __future__ import annotations
 
-from hermes_memory.classification import UNKNOWN_PROJECT, ProjectClassifier
-from hermes_memory.errors import BoundaryError
-from hermes_memory.normalization import Conversation, ProjectTag
+from engineering_memory.classification import UNKNOWN_PROJECT, ProjectClassifier
+from engineering_memory.errors import BoundaryError
+from engineering_memory.normalization import Conversation, ProjectTag
 from tests.contracts import conversations
 
 

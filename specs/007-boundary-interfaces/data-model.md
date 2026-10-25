@@ -9,7 +9,7 @@ model deliberately does not define, as long as it does not invent a second way t
 conversation. Seven such types are defined here — six planned, and `SourceConversation`, which implementation
 showed was missing — and nothing else.
 
-Every value is a `FrozenModel` from `hermes_memory.normalization.base` — immutable, extra fields
+Every value is a `FrozenModel` from `engineering_memory.normalization.base` — immutable, extra fields
 forbidden, validated on construction — except the errors, which are exceptions (R16, R4).
 
 ---

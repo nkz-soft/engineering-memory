@@ -15,13 +15,13 @@ from datetime import datetime
 
 import pytest
 
-from hermes_memory.observability import (
+from engineering_memory.observability import (
     OperationStatus,
     configure,
     get_logger,
     ingestion_operation,
 )
-from hermes_memory.settings import load_settings
+from engineering_memory.settings import load_settings
 
 from .conftest import Rendered
 
@@ -42,7 +42,7 @@ AN_OPERATION = {
     "source": "chatgpt",
     "source_id": "abc-123",
     "bank": "engineering-global",
-    "project": "hermes-memory",
+    "project": "engineering-memory",
     "document_id": "chatgpt:abc-123",
 }
 
@@ -60,7 +60,7 @@ def test_one_record_carries_every_field_section_18_names(rendered: Rendered) -> 
     assert record["source"] == "chatgpt"
     assert record["source_id"] == "abc-123"
     assert record["bank"] == "engineering-global"
-    assert record["project"] == "hermes-memory"
+    assert record["project"] == "engineering-memory"
     assert record["document_id"] == "chatgpt:abc-123"
 
 
@@ -217,7 +217,7 @@ def test_failures_survive_a_raised_threshold(
     An operator who raises the level to quieten a long import must still be told which
     conversations failed — that is the half of §18's report they cannot reconstruct afterwards.
     """
-    monkeypatch.setenv("HERMES_LOGGING__LEVEL", "WARNING")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__LEVEL", "WARNING")
     configure(load_settings(env_file=None))
 
     with ingestion_operation(source="chatgpt", source_id="fine", bank="engineering-global"):

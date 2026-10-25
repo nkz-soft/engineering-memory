@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.observability import configure, get_logger
-from hermes_memory.settings import load_settings
+from engineering_memory.observability import configure, get_logger
+from engineering_memory.settings import load_settings
 
 from .conftest import Rendered
 
@@ -137,7 +137,7 @@ def test_the_configured_level_is_applied(
     rendered: Rendered, complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The level is configuration, not a constant."""
-    monkeypatch.setenv("HERMES_LOGGING__LEVEL", "ERROR")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LOGGING__LEVEL", "ERROR")
     configure(load_settings(env_file=None))
 
     get_logger().info("beneath the threshold")

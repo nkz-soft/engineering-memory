@@ -26,7 +26,7 @@ a table per project with a list of strings and an integer — is TOML's plainest
 mis-read of a user's project name. JSON — no comments, and a rule set is a file a person maintains
 by hand and annotates. The `.env` file of #5 — a list of projects each with several aliases and a
 priority is not a flat key-value namespace, and forcing it into one produces
-`HERMES_PROJECT_RULES__0__ALIASES__2` and a file nobody edits twice. Python module as
+`ENGINEERING_MEMORY_PROJECT_RULES__0__ALIASES__2` and a file nobody edits twice. Python module as
 configuration — executable configuration in a tool that reads a decade of private history is a
 liability out of all proportion to the convenience.
 
@@ -39,11 +39,11 @@ of the text. A word character here is a letter, a digit, `_` or `-`; everything 
 
 **Rationale**: the specification's FR-004 and Story 5 fix the behaviour; the question research has
 to settle is what "boundary" means, and the obvious answer is wrong here. Python's `\b` is defined
-over `\w`, which does **not** include `-`. Under `\b`, the alias `hermes-memory` matches inside
-`hermes-memory-ui`, which Story 5 scenario 3 forbids. Treating `-` as a word character fixes that
+over `\w`, which does **not** include `-`. Under `\b`, the alias `engineering-memory` matches inside
+`engineering-memory-ui`, which Story 5 scenario 3 forbids. Treating `-` as a word character fixes that
 and keeps the three cases the stories demand: `nz` does not match `nzxt` (a letter follows), `nz`
-matches `nz/hermes-memory` (`/` is a boundary) and `the nz repo` (space is a boundary), and
-`hermes-memory` matches inside `nkz-soft/hermes-memory` (`/` precedes).
+matches `nz/engineering-memory` (`/` is a boundary) and `the nz repo` (space is a boundary), and
+`engineering-memory` matches inside `nkz-soft/engineering-memory` (`/` precedes).
 
 The constraint is applied per edge, and only where the alias's own edge character is a word
 character. An alias that ends in a boundary character of its own — `nkz-soft/` — would otherwise
@@ -58,7 +58,7 @@ literals. A user who needs two spellings writes two aliases.
 rejected: a project called `api` would claim every conversation containing `rapid`, and the damage
 is silent misfiling, which is worse than a miss (§15 already treats a miss as ordinary). Token
 splitting of the text, then set membership — rejected: it needs a tokenizer that agrees with the
-alias writer about `nkz-soft/hermes-memory`, and the disagreement surfaces as a rule that mystifies.
+alias writer about `nkz-soft/engineering-memory`, and the disagreement surfaces as a rule that mystifies.
 
 ## R3 — Whitespace inside an alias matches any run of whitespace
 
@@ -98,7 +98,7 @@ rather than asserting it away. A rule set in the thousands would be the moment t
 the alternative below.
 
 Longest-first ordering matters because `re`'s alternation is leftmost-first rather than
-leftmost-longest: without it, at a position where both `nz` and `nz/hermes-memory` could match, the
+leftmost-longest: without it, at a position where both `nz` and `nz/engineering-memory` could match, the
 shorter alias would win and the match would be attributed to the wrong project. The mapping back is
 unambiguous because FR-010 refuses a rule set in which two projects declare the same alias.
 
@@ -174,7 +174,7 @@ shape for configuration that is wrong.
 
 ## R7 — An unconfigured rule set warns; a configured one that is missing fails
 
-**Decision** (the user's answer to Question 2): the setting `HERMES_PROJECT_RULES_PATH` defaults to
+**Decision** (the user's answer to Question 2): the setting `ENGINEERING_MEMORY_PROJECT_RULES_PATH` defaults to
 `data/projects.toml`, resolved against the repository root exactly as `archive_root` and
 `import_state_path` are in #5. If the setting was not given and nothing is at the default location,
 the classifier is built with an empty rule set, and one `warning` record is emitted naming the path
@@ -231,7 +231,7 @@ tag against `UNKNOWN_PROJECT` instead.
 **Decision**:
 
 ```text
-src/hermes_memory/classification/
+src/engineering_memory/classification/
 ├── __init__.py          # public surface
 ├── classifier.py        # #9's protocol and UNKNOWN_PROJECT — UNCHANGED
 ├── rules.py             # ProjectRule and ProjectRuleSet: the validated vocabulary (FR-010)

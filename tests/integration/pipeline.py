@@ -30,25 +30,25 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from hermes_memory.archive import RawArchive
-from hermes_memory.classification import ProjectClassifier
-from hermes_memory.errors import BoundaryError
-from hermes_memory.ingestion import (
+from engineering_memory.archive import RawArchive
+from engineering_memory.classification import ProjectClassifier
+from engineering_memory.errors import BoundaryError
+from engineering_memory.ingestion import (
     ConversationSource,
     ImportRecord,
     ImportState,
     ImportStatus,
     may_skip,
 )
-from hermes_memory.memory.interface import MemoryStore
-from hermes_memory.normalization import (
+from engineering_memory.memory.interface import MemoryStore
+from engineering_memory.normalization import (
     Conversation,
     EnrichedConversation,
     ProjectTag,
     Provenance,
     SourceTag,
 )
-from hermes_memory.sanitization import RedactionReport, SecretSanitizer
+from engineering_memory.sanitization import RedactionReport, SecretSanitizer
 
 EXPORT = "<export>"
 """The subject of a failure that concerns the export as a whole rather than one conversation."""

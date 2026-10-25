@@ -7,7 +7,7 @@ Principle IV from the other side: what it offers, and what it is forbidden to re
 
 ## What it offers
 
-`hermes_memory.normalization` re-exports exactly these names. Consumers import from the module, not
+`engineering_memory.normalization` re-exports exactly these names. Consumers import from the module, not
 from the files inside it, so the internal split of R14 can change without touching a caller.
 
 | Name | Kind | Defined in |
@@ -56,16 +56,16 @@ The module's imports — direct and transitive — stay inside:
 
 * the Python standard library;
 * `pydantic`;
-* `hermes_memory.normalization` itself.
+* `engineering_memory.normalization` itself.
 
 Forbidden, named explicitly because these are the ones that would actually be reached for:
 
 | Forbidden | Why |
 |---|---|
-| `hermes_memory.memory.*` | Principle IV: only the memory store knows Hindsight |
+| `engineering_memory.memory.*` | Principle IV: only the memory store knows Hindsight |
 | `httpx`, `requests`, `urllib.request`, `aiohttp` | §8: the domain model makes no calls |
 | `sqlalchemy`, `sqlite3`, `boto3` | §8: the domain model persists nothing |
-| `hermes_memory.settings` | FR-018: a model that reads configuration is a model that cannot be constructed in a test |
+| `engineering_memory.settings` | FR-018: a model that reads configuration is a model that cannot be constructed in a test |
 
 Enforced by two tests (R12):
 

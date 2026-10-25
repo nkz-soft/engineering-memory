@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.settings import PROJECT_ROOT, load_settings
+from engineering_memory.settings import PROJECT_ROOT, load_settings
 
 
 def test_the_default_location_is_under_the_ignored_data_directory(
@@ -28,7 +28,7 @@ def test_the_default_location_is_under_the_ignored_data_directory(
 def test_a_relative_path_resolves_against_the_project_root(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv("HERMES_PROJECT_RULES_PATH", "config/projects.toml")
+    monkeypatch.setenv("ENGINEERING_MEMORY_PROJECT_RULES_PATH", "config/projects.toml")
 
     from_here = load_settings(env_file=None).project_rules_path
 
@@ -42,7 +42,7 @@ def test_an_absolute_path_is_preserved(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     elsewhere = tmp_path / "mine.toml"
-    monkeypatch.setenv("HERMES_PROJECT_RULES_PATH", str(elsewhere))
+    monkeypatch.setenv("ENGINEERING_MEMORY_PROJECT_RULES_PATH", str(elsewhere))
 
     assert load_settings(env_file=None).project_rules_path == elsewhere
 
@@ -51,12 +51,12 @@ def test_a_blank_value_is_refused(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """As for the other paths: a blank is an unfinished edit, not "use the default"."""
-    monkeypatch.setenv("HERMES_PROJECT_RULES_PATH", "   ")
+    monkeypatch.setenv("ENGINEERING_MEMORY_PROJECT_RULES_PATH", "   ")
 
     with pytest.raises(Exception) as refusal:
         load_settings(env_file=None)
 
-    assert "HERMES_PROJECT_RULES_PATH" in str(refusal.value)
+    assert "ENGINEERING_MEMORY_PROJECT_RULES_PATH" in str(refusal.value)
 
 
 def test_an_unset_path_is_reported_as_not_chosen(complete_environment: dict[str, str]) -> None:
@@ -69,7 +69,7 @@ def test_an_unset_path_is_reported_as_not_chosen(complete_environment: dict[str,
 def test_a_set_path_is_reported_as_chosen_even_when_it_equals_the_default(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("HERMES_PROJECT_RULES_PATH", "data/projects.toml")
+    monkeypatch.setenv("ENGINEERING_MEMORY_PROJECT_RULES_PATH", "data/projects.toml")
 
     settings = load_settings(env_file=None)
 

@@ -12,14 +12,14 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.archive import (
+from engineering_memory.archive import (
     ArchiveDocumentNotFound,
     ArchiveRejected,
     ArchiveUnavailable,
     OriginalPayload,
     RawArchive,
 )
-from hermes_memory.errors import BoundaryError
+from engineering_memory.errors import BoundaryError
 from tests.contracts import conversations
 
 PAYLOAD = OriginalPayload(content=b'{"conversation": "as exported"}', media_type="application/json")

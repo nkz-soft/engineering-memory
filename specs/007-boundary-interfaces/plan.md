@@ -25,7 +25,7 @@ This unblocks #10, #11, #12, #13, #14 and #16, and through them #19 and #20.
 **Language/Version**: Python 3.13 (`requires-python = "==3.13.*"`).
 
 **Primary Dependencies**: none added. `typing.Protocol` and `enum.StrEnum` are standard library;
-the small immutable values reuse `FrozenModel` from `hermes_memory.normalization.base`, so Pydantic
+the small immutable values reuse `FrozenModel` from `engineering_memory.normalization.base`, so Pydantic
 v2 — already the "Models and contracts" row — carries validation-on-construction here too (R16).
 
 **Storage**: none. This feature declares the interfaces two storage boundaries will be implemented
@@ -48,7 +48,7 @@ database and no fixture file.
 **Constraints**: no Hindsight, HTTP or storage import in any interface module, direct or transitive
 (Principle IV). No Hindsight term in any public name (FR-009). No error borrowed from a backend
 library (FR-013). §18's never-retryable conditions not expressible as retryable (FR-014). No new
-package under `src/hermes_memory/` — the constitution's module tree is enforced in both directions
+package under `src/engineering_memory/` — the constitution's module tree is enforced in both directions
 by `tests/structure/test_module_layout.py` (R2).
 
 **Scale/Scope**: six protocols across six files, one errors module, six value types, six contract
@@ -190,7 +190,7 @@ specs/007-boundary-interfaces/
 ### Source Code (repository root)
 
 ```text
-src/hermes_memory/
+src/engineering_memory/
 ├── errors.py                         # NEW — BoundaryError, Transient…, Permanent…
 ├── ingestion/
 │   ├── source.py                     # NEW — ConversationSource, SourceConversation, source errors

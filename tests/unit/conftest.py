@@ -1,8 +1,8 @@
 """Shared fixtures for the unit suites.
 
-Every test here runs against an environment this file controls. A developer's own `HERMES_*`
-variables, or a `.env` sitting in their checkout, would otherwise decide whether the suite passes
-— which is the failure mode that makes a configuration test worthless.
+Every test here runs against an environment this file controls. A developer's own
+`ENGINEERING_MEMORY_*` variables, or a local `.env`, would otherwise decide whether the suite
+passes — which is the failure mode that makes a configuration test worthless.
 
 The second half of this file serves the observability suites, and carries one warning worth
 reading before writing a test against a log record: see `rendered`.
@@ -19,24 +19,24 @@ from typing import Any
 
 import pytest
 
-from hermes_memory.observability import logging as observability_logging
+from engineering_memory.observability import logging as observability_logging
 
-PREFIX = "HERMES_"
+PREFIX = "ENGINEERING_MEMORY_"
 
 COMPLETE_ENVIRONMENT = {
-    "HERMES_HINDSIGHT__BASE_URL": "http://localhost:8088",
-    "HERMES_HINDSIGHT__TOKEN": "hindsight-token-value",
-    "HERMES_LLM__BASE_URL": "http://localhost:4000/v1",
-    "HERMES_LLM__API_KEY": "llm-key-value",
+    "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL": "http://localhost:8088",
+    "ENGINEERING_MEMORY_HINDSIGHT__TOKEN": "hindsight-token-value",
+    "ENGINEERING_MEMORY_LLM__BASE_URL": "http://localhost:4000/v1",
+    "ENGINEERING_MEMORY_LLM__API_KEY": "llm-key-value",
 }
 """Enough to load successfully, with both secrets set so leaks have something to leak."""
 
 
 @pytest.fixture(autouse=True)
 def isolated_environment(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Remove every `HERMES_*` variable, so each test starts from nothing."""
+    """Remove service and consumer variables, so each test starts from nothing."""
     for name in list(os.environ):
-        if name.startswith(PREFIX):
+        if name.upper().startswith((PREFIX, "HERMES_")):
             monkeypatch.delenv(name, raising=False)
     yield
 

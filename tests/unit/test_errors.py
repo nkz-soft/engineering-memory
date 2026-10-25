@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.errors import BoundaryError, PermanentBoundaryError, TransientBoundaryError
+from engineering_memory.errors import BoundaryError, PermanentBoundaryError, TransientBoundaryError
 
 
 def test_the_two_branches_answer_retryability_by_type() -> None:

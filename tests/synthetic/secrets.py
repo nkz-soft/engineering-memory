@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from hermes_memory.sanitization import RedactionCategory
+from engineering_memory.sanitization import RedactionCategory
 
 __all__ = ["SAMPLES", "Sample", "sample_for"]
 

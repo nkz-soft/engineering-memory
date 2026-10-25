@@ -13,11 +13,11 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.archive import OriginalPayload
-from hermes_memory.ingestion import ImportRecord, ImportStatus
-from hermes_memory.memory.interface import RecallResult
-from hermes_memory.normalization import Provenance, Source
-from hermes_memory.sanitization import RedactionCategory, RedactionReport
+from engineering_memory.archive import OriginalPayload
+from engineering_memory.ingestion import ImportRecord, ImportStatus
+from engineering_memory.memory.interface import RecallResult
+from engineering_memory.normalization import Provenance, Source
+from engineering_memory.sanitization import RedactionCategory, RedactionReport
 
 NOW = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)
 
@@ -26,7 +26,7 @@ def provenance() -> Provenance:
     return Provenance(
         source=Source.CHATGPT,
         source_id="abc123",
-        project="hermes-memory",
+        project="engineering-memory",
         imported_at=NOW,
         importer_version="1",
     )

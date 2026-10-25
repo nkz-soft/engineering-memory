@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typer.testing import CliRunner
 
-from hermes_memory.cli import app
+from engineering_memory.cli import app
 
 runner = CliRunner()
 
@@ -33,7 +33,7 @@ def test_help_exits_zero_and_names_the_application() -> None:
 
     assert result.exit_code == 0, f"`--help` exited {result.exit_code}:\n{result.output}"
     assert "Usage:" in result.output, f"`--help` printed no usage text:\n{result.output}"
-    assert "hermes-memory" in result.output.lower().replace("_", "-"), (
+    assert "engineering-memory" in result.output.lower().replace("_", "-"), (
         f"The usage text does not name the application:\n{result.output}"
     )
 

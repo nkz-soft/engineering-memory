@@ -21,7 +21,7 @@ DOCKERFILE = REPO_ROOT / "Dockerfile"
 DOCKERIGNORE = REPO_ROOT / ".dockerignore"
 PYTHON_VERSION_FILE = REPO_ROOT / ".python-version"
 
-CONSOLE_SCRIPT = "hermes-memory"
+CONSOLE_SCRIPT = "engineering-memory"
 
 
 def _instructions() -> list[tuple[str, str]]:

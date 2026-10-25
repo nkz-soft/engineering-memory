@@ -37,7 +37,7 @@ Expected: build succeeds; default invocation prints usage and exits zero. Repeat
 
 ```powershell
 git grep -n -i -E 'hermes[-_]memory'
-git grep -n 'HERMES_'
+git grep -n 'ENGINEERING_MEMORY_'
 git diff --check
 git log --oneline origin/main..HEAD
 ```

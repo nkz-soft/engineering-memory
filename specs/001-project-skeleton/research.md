@@ -10,18 +10,18 @@ change to it; none displaces an entry in the ADR-004 table, so none requires a n
 
 ## R1 — Name of the top-level Python package
 
-**Decision**: distribution name `hermes-memory`, import package `hermes_memory`, laid out under
-`src/`, so every module of ADR-004 is `src/hermes_memory/<module>/`.
+**Decision**: distribution name `engineering-memory`, import package `engineering_memory`, laid out under
+`src/`, so every module of ADR-004 is `src/engineering_memory/<module>/`.
 
 **Rationale**: the constitution's tree is drawn with the root label `engineering-memory`, which is
 the name of the *system* in ARCHITECTURE.md §1, not of a Python package — the tree's purpose there
 is the module list and its nesting, and ADR-004 restates the same list with no root at all. The
-repository, the GitHub project and the eventual distribution are all `hermes-memory`, and having
+repository, the GitHub project and the eventual distribution are all `engineering-memory`, and having
 the import name disagree with all three buys nothing. Naming the package after the repository keeps
 one name for one thing.
 
 The `src/` layout is chosen because it is the arrangement that makes the installed package, rather
-than the working directory, the thing under test: without it, `import hermes_memory` succeeds from
+than the working directory, the thing under test: without it, `import engineering_memory` succeeds from
 the repository root whether or not the packaging metadata is correct, and the first packaging
 defect surfaces only in Docker. It also keeps `specs/`, `docs/` and `.specify/` from sitting as
 siblings of importable code.
@@ -31,7 +31,7 @@ siblings of importable code.
 - `engineering_memory` as the import name, matching the tree's root label literally. Rejected: it
   introduces a third name for one system and makes the repository harder to navigate, for the sake
   of a label that was never a package name.
-- A flat layout with `hermes_memory/` at the repository root. Rejected for the reasons above; the
+- A flat layout with `engineering_memory/` at the repository root. Rejected for the reasons above; the
   saving is one directory level.
 
 ## R2 — Linter and formatter
@@ -61,7 +61,7 @@ later decision with its own justification, not a silent addition to the skeleton
 
 **Decision**: a test reads the fenced module tree out of `.specify/memory/constitution.md`, parses
 it into a set of module paths, and compares that set against the packages actually present under
-`src/hermes_memory/`. It fails on a module that is recorded but missing, and on a package that is
+`src/engineering_memory/`. It fails on a module that is recorded but missing, and on a package that is
 present but unrecorded. If the fence cannot be located or parsed, the test fails rather than
 passing vacuously.
 

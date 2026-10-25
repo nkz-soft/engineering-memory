@@ -13,8 +13,8 @@ is what keeps the non-match honest.
 
 from __future__ import annotations
 
-from hermes_memory.classification import ProjectClassifier
-from hermes_memory.classification.alias_classifier import AliasProjectClassifier
+from engineering_memory.classification import ProjectClassifier
+from engineering_memory.classification.alias_classifier import AliasProjectClassifier
 from tests.contracts.classifier import ProjectClassifierContract
 from tests.synthetic import projects
 

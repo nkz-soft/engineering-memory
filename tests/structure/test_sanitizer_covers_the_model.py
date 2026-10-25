@@ -15,8 +15,8 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from hermes_memory.normalization import Conversation, Message, NonTextPart, ToolActivity
-from hermes_memory.sanitization.pattern_sanitizer import COPIED_FIELDS, SCANNED_FIELDS
+from engineering_memory.normalization import Conversation, Message, NonTextPart, ToolActivity
+from engineering_memory.sanitization.pattern_sanitizer import COPIED_FIELDS, SCANNED_FIELDS
 
 MODELS: tuple[type[BaseModel], ...] = (Conversation, Message, ToolActivity, NonTextPart)
 

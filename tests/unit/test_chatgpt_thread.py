@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.ingestion.chatgpt.thread import UnreadableRecord, reconstruct
+from engineering_memory.ingestion.chatgpt.thread import UnreadableRecord, reconstruct
 from tests.synthetic import chatgpt_export as synth
 
 

@@ -26,8 +26,8 @@ code before its test has failed is not done.
 ## Path Conventions
 
 Single Python project, `src/` layout (plan.md → Structure Decision). Package root is
-`src/hermes_memory/`; tests live in `tests/` at the repository root. Paths below are relative to
-the repository root, which for this work is the worktree `../hermes-memory-5`.
+`src/engineering_memory/`; tests live in `tests/` at the repository root. Paths below are relative to
+the repository root, which for this work is the worktree `../engineering-memory-5`.
 
 ---
 
@@ -74,9 +74,9 @@ reads back as supplied.
   [contracts/settings.md](contracts/settings.md): load from environment only; load from `.env`
   only; environment beats `.env`; `.env` beats a default; a missing `.env` loads normally; unrelated
   environment variables are ignored; the loaded object is immutable. Run and observe it **fail** —
-  `hermes_memory.settings` does not exist.
-- [x] T005 [US1] Create `src/hermes_memory/settings.py` with `HindsightSettings`, `LlmSettings`,
-  `Settings` and `load_settings()` per [data-model.md](data-model.md): `HERMES_` prefix, `__`
+  `engineering_memory.settings` does not exist.
+- [x] T005 [US1] Create `src/engineering_memory/settings.py` with `HindsightSettings`, `LlmSettings`,
+  `Settings` and `load_settings()` per [data-model.md](data-model.md): `ENGINEERING_MEMORY_` prefix, `__`
   nesting delimiter, the defaults of research.md R6. Observe T004 pass.
 - [x] T006 [US1] `test_modules_carry_no_behaviour` in `tests/structure/test_module_layout.py` now
   fails — observe it first. Then narrow it to the recorded module tree, so the boundaries it was
@@ -100,7 +100,7 @@ it.
   own (parametrized over the required set, so the coverage is total rather than a sample per
   SC-002); empty string; whitespace only; a URL with no scheme or host; an empty bank id; several
   faults at once reported together. Run and observe it **fail**.
-- [x] T009 [US2] Add the validation constraints to `src/hermes_memory/settings.py` that make T008
+- [x] T009 [US2] Add the validation constraints to `src/engineering_memory/settings.py` that make T008
   pass — stripped minimum length on required strings, URL shape, non-empty bank id — without
   changing what US1 already proves.
 
@@ -132,7 +132,7 @@ in none.
 
 - [x] T012 [US1] Write `tests/unit/test_settings_paths.py`: a relative configured path resolves to
   the same absolute path from any working directory; an absolute one is preserved; loading creates
-  no file or directory. Observe **fail**, then make it pass in `src/hermes_memory/settings.py`.
+  no file or directory. Observe **fail**, then make it pass in `src/engineering_memory/settings.py`.
 
 ---
 

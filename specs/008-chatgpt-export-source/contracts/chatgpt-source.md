@@ -5,7 +5,7 @@ The public surface this feature adds, and the behaviour it promises beyond #9's 
 ## Surface
 
 ```python
-from hermes_memory.ingestion.chatgpt import ChatGPTExportSource
+from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
 
 source = ChatGPTExportSource(path)  # a .zip archive, a directory, or a conversations JSON file
 source.source  # Source.CHATGPT
@@ -14,7 +14,7 @@ source.read()  # Iterator[SourceConversation]
 
 The constructor does no I/O: it cannot fail on a missing path. Each call to `read()` opens the export
 afresh, which is why reading twice yields equal results (CS-4). Nothing else in
-`hermes_memory.ingestion.chatgpt` is public.
+`engineering_memory.ingestion.chatgpt` is public.
 
 ## Rules
 

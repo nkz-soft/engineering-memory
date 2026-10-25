@@ -1,4 +1,4 @@
-# hermes-memory — working agreements
+# engineering-memory — working agreements
 
 Read [`.specify/memory/constitution.md`](.specify/memory/constitution.md) before planning or
 implementing. It is binding: five principles, the fixed technology stack, and the review gates.
