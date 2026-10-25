@@ -12,12 +12,12 @@ implementation and not the first.
 
 from __future__ import annotations
 
-from hermes_memory.archive import RawArchive
-from hermes_memory.classification import ProjectClassifier
-from hermes_memory.ingestion import ConversationSource, ImportState
-from hermes_memory.memory.interface import MemoryStore
-from hermes_memory.normalization import Conversation
-from hermes_memory.sanitization import RedactionCategory, SecretSanitizer
+from engineering_memory.archive import RawArchive
+from engineering_memory.classification import ProjectClassifier
+from engineering_memory.ingestion import ConversationSource, ImportState
+from engineering_memory.memory.interface import MemoryStore
+from engineering_memory.normalization import Conversation
+from engineering_memory.sanitization import RedactionCategory, SecretSanitizer
 from tests.contracts import conversations as conversations_module
 from tests.contracts.archive import RawArchiveContract
 from tests.contracts.classifier import ProjectClassifierContract
@@ -62,7 +62,7 @@ class TestInMemorySecretSanitizer(SecretSanitizerContract):
 
 class TestInMemoryProjectClassifier(ProjectClassifierContract):
     def make_classifier(self) -> ProjectClassifier:
-        return InMemoryProjectClassifier({"wolverine": "hermes-memory"})
+        return InMemoryProjectClassifier({"wolverine": "engineering-memory"})
 
 
 class TestInMemoryRawArchive(RawArchiveContract):

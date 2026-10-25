@@ -34,22 +34,22 @@ RUN uv sync --locked --no-dev --no-editable
 FROM python:3.13-slim-bookworm AS runtime
 
 # An unprivileged user, created before the copy so the virtual environment can be owned by it.
-RUN useradd --create-home --uid 10001 hermes
+RUN useradd --create-home --uid 10001 engineering-memory
 
-COPY --from=builder --chown=hermes:hermes /app/.venv /app/.venv
+COPY --from=builder --chown=engineering-memory:engineering-memory /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-USER hermes
+USER engineering-memory
 WORKDIR /app
 
 # ENTRYPOINT plus a default CMD resolves both halves of FR-014 at once. `docker run <image>` runs
-# `hermes-memory --help`: usage text, exit 0 — issue #7's acceptance criterion. `docker run <image>
+# `engineering-memory --help`: usage text, exit 0 — issue #7's acceptance criterion. `docker run <image>
 # <args>` replaces the default argument list, so arguments reach the application rather than a
 # shell. The exec form keeps a shell out of it entirely.
 #
 # --help is the default rather than relying on the no-argument behaviour because the exit status of
 # a command group invoked with no arguments has differed between releases of the underlying
 # argument parser, while --help is specified to exit 0.
-ENTRYPOINT ["hermes-memory"]
+ENTRYPOINT ["engineering-memory"]
 CMD ["--help"]

@@ -7,8 +7,8 @@ import json
 
 import pytest
 
-from hermes_memory.ingestion import SourceFormatError
-from hermes_memory.ingestion.chatgpt.records import RecordScanner
+from engineering_memory.ingestion import SourceFormatError
+from engineering_memory.ingestion.chatgpt.records import RecordScanner
 from tests.synthetic import chatgpt_export as synth
 
 TRICKY = [

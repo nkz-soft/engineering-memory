@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     ConversationType,
     ProjectTag,
     Source,
@@ -77,7 +77,7 @@ def test_the_base_tag_cannot_be_constructed_directly() -> None:
     would pair a namespace with an unvalidated value, which is exactly the free string §6 is
     written against.
     """
-    from hermes_memory.normalization import Tag
+    from engineering_memory.normalization import Tag
 
     with pytest.raises(ValidationError):
         Tag(namespace=TagNamespace.PROJECT, value="Not A Slug")

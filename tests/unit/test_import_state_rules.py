@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from hermes_memory.ingestion import ImportRecord, ImportStatus, may_skip
-from hermes_memory.normalization import Source
+from engineering_memory.ingestion import ImportRecord, ImportStatus, may_skip
+from engineering_memory.normalization import Source
 
 HASH = "a" * 64
 OTHER_HASH = "b" * 64

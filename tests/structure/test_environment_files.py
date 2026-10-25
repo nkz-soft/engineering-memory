@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE_ROOT = REPO_ROOT / "src" / "hermes_memory"
+PACKAGE_ROOT = REPO_ROOT / "src" / "engineering_memory"
 SETTINGS_MODULE = PACKAGE_ROOT / "settings.py"
 
 ENVIRONMENT_READERS = {"getenv", "environ", "environb"}
@@ -135,7 +135,7 @@ def test_no_module_outside_settings_reads_the_environment(source: Path) -> None:
 
     assert not readers, (
         f"{source.relative_to(REPO_ROOT).as_posix()} reads the environment: {readers}. "
-        "Configuration comes from hermes_memory.settings, and from nowhere else."
+        "Configuration comes from engineering_memory.settings, and from nowhere else."
     )
 
 
@@ -145,7 +145,7 @@ def test_the_invariant_check_would_catch_a_violation(tmp_path: Path) -> None:
     offender.write_text(
         '"""A module that helps itself to the environment."""\n'
         "import os\n\n"
-        "VALUE = os.environ['HERMES_HINDSIGHT__TOKEN']\n",
+        "VALUE = os.environ['ENGINEERING_MEMORY_HINDSIGHT__TOKEN']\n",
         encoding="utf-8",
     )
 

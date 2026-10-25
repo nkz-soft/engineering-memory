@@ -1,5 +1,5 @@
 [project]
-name = "hermes-memory"
+name = "engineering-memory"
 version = "0.1.0"
 description = "Engineering memory: private conversation history, retained and recallable."
 readme = "README.md"
@@ -18,7 +18,7 @@ dependencies = [
 # The container image's entry point. It is the installed console script rather than a path into
 # src/, so that the image exercises the packaged application — see
 # specs/004-ci-scanning-packaging/research.md R11.
-hermes-memory = "hermes_memory.cli:main"
+engineering-memory = "engineering_memory.cli:main"
 
 # Each dependency arrives with the feature that needs it — the stack table fixes which tool is
 # used when one is needed, not that all of them are pinned on day one.
@@ -51,7 +51,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/hermes_memory"]
+packages = ["src/engineering_memory"]
 
 [tool.ruff]
 line-length = 100

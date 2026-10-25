@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from hermes_memory.normalization import Conversation, Message, NonTextKind
+from engineering_memory.normalization import Conversation, Message, NonTextKind
 
 MISSING: Any = object()
 """Leave a field out of the record entirely, rather than writing it as null."""

@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.normalization.base import (
+from engineering_memory.normalization.base import (
     FrozenModel,
     OpaqueIdentifier,
     Slug,
@@ -203,7 +203,9 @@ def test_copying_with_an_update_revalidates() -> None:
 
 def test_copying_with_a_valid_update_still_works() -> None:
     """Revalidation is not a prohibition: the supported way to derive a value stays supported."""
-    assert an_example().model_copy(update={"slug": "hermes-memory"}).slug == "hermes-memory"
+    assert (
+        an_example().model_copy(update={"slug": "engineering-memory"}).slug == "engineering-memory"
+    )
 
 
 def test_copying_without_an_update_is_unchanged() -> None:
@@ -218,7 +220,7 @@ def test_copying_without_an_update_is_unchanged() -> None:
     [
         pytest.param("miratorg", id="plain"),
         pytest.param("unknown", id="the §15 fallback"),
-        pytest.param("hermes-memory", id="hyphen"),
+        pytest.param("engineering-memory", id="hyphen"),
         pytest.param("team.platform", id="dot"),
         pytest.param("user_42", id="underscore"),
         pytest.param("9lives", id="leading digit"),

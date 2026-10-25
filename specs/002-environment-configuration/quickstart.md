@@ -15,7 +15,7 @@ the tokens if the instances need them. Nothing else has to be set.
 ## 2. The settings load
 
 ```bash
-uv run python -c "from hermes_memory.settings import load_settings; s = load_settings(); print(s)"
+uv run python -c "from engineering_memory.settings import load_settings; s = load_settings(); print(s)"
 ```
 
 Expected: the settings print with resolved absolute paths and the bank id `engineering-global`, and
@@ -24,22 +24,22 @@ Expected: the settings print with resolved absolute paths and the bank id `engin
 ## 3. A missing required value fails at startup
 
 ```bash
-uv run python -c "from hermes_memory.settings import load_settings; load_settings(env_file=None)"
+uv run python -c "from engineering_memory.settings import load_settings; load_settings(env_file=None)"
 ```
 
-Expected: a failure naming `HERMES_HINDSIGHT__BASE_URL` and `HERMES_LLM__BASE_URL` — both, not the
+Expected: a failure naming `ENGINEERING_MEMORY_HINDSIGHT__BASE_URL` and `ENGINEERING_MEMORY_LLM__BASE_URL` — both, not the
 first one only. That is US2 and SC-002.
 
 ## 4. The environment beats the file
 
 ```bash
-HERMES_HINDSIGHT__BANK_ID=scratch uv run python -c "from hermes_memory.settings import load_settings; print(load_settings().hindsight.bank_id)"
+ENGINEERING_MEMORY_HINDSIGHT__BANK_ID=scratch uv run python -c "from engineering_memory.settings import load_settings; print(load_settings().hindsight.bank_id)"
 ```
 
 The variable-prefix form is bash. In PowerShell, set it first:
 
 ```powershell
-$env:HERMES_HINDSIGHT__BANK_ID = "scratch"; uv run python -c "from hermes_memory.settings import load_settings; print(load_settings().hindsight.bank_id)"
+$env:ENGINEERING_MEMORY_HINDSIGHT__BANK_ID = "scratch"; uv run python -c "from engineering_memory.settings import load_settings; print(load_settings().hindsight.bank_id)"
 ```
 
 Expected: `scratch`, whatever `.env` says. That is FR-004.

@@ -14,8 +14,12 @@ from datetime import UTC, datetime
 
 import pytest
 
-from hermes_memory.normalization import Conversation, Message, Role, Source
-from hermes_memory.sanitization import PatternSecretSanitizer, RedactionCategory, RedactionReport
+from engineering_memory.normalization import Conversation, Message, Role, Source
+from engineering_memory.sanitization import (
+    PatternSecretSanitizer,
+    RedactionCategory,
+    RedactionReport,
+)
 from tests.synthetic.secrets import sample_for
 
 STARTED_AT = datetime(2026, 3, 4, 9, 30, tzinfo=UTC)

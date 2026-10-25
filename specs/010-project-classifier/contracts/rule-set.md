@@ -18,8 +18,8 @@ TOML, read with `tomllib` (research R1). One array-of-tables entry per project:
 # projects.example.toml — copy to data/projects.toml and make it yours.
 
 [[project]]
-project = "hermes-memory"
-aliases = ["hermes-memory", "nkz-soft/hermes-memory", "engineering memory"]
+project = "engineering-memory"
+aliases = ["engineering-memory", "nkz-soft/engineering-memory", "engineering memory"]
 priority = 10
 
 [[project]]
@@ -41,7 +41,7 @@ silently does less than its author meant, and a strict read turns it into a mess
 
 | Id | Rule |
 |---|---|
-| RS-1 | The location comes from `HERMES_PROJECT_RULES_PATH`, defaulting to `data/projects.toml`, relative paths resolved against the repository root as in #5. |
+| RS-1 | The location comes from `ENGINEERING_MEMORY_PROJECT_RULES_PATH`, defaulting to `data/projects.toml`, relative paths resolved against the repository root as in #5. |
 | RS-2 | A path given explicitly with nothing at it is a failure naming that path. |
 | RS-3 | No path given and nothing at the default location is **not** a failure: the rule set is empty, and one warning names the path looked at, states that every conversation this run will be `project:unknown`, and states that §17 will not revisit them (FR-012a, FR-012b). |
 | RS-4 | A file that is not valid TOML is a failure naming the file and the parser's complaint. |

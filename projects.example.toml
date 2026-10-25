@@ -1,4 +1,4 @@
-# hermes-memory — project rules
+# engineering-memory — project rules
 #
 # Copy this file to `data/projects.toml` and make it yours:
 #
@@ -7,7 +7,7 @@
 # `data/` is ignored by git and never committed, which is the point: your rules are your
 # repository names, your project names and your local paths, and this repository is public.
 #
-# Point somewhere else with HERMES_PROJECT_RULES_PATH. Setting that to a path that does not exist
+# Point somewhere else with ENGINEERING_MEMORY_PROJECT_RULES_PATH. Setting that to a path that does not exist
 # is an error; leaving it unset with no file at the default is a warning, and the import then
 # tags every conversation `project:unknown`.
 #

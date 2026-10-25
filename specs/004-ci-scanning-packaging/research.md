@@ -286,10 +286,10 @@ run as a non-root user.
 
 ## R10 — `ENTRYPOINT` plus a default `CMD` of `--help`
 
-**Decision.** `ENTRYPOINT ["hermes-memory"]` and `CMD ["--help"]`.
+**Decision.** `ENTRYPOINT ["engineering-memory"]` and `CMD ["--help"]`.
 
 **Rationale.** This is the one design choice in the packaging half worth arguing, and it resolves
-FR-014's two clauses at once. `docker run <image>` runs `hermes-memory --help`: usage text, exit
+FR-014's two clauses at once. `docker run <image>` runs `engineering-memory --help`: usage text, exit
 status 0 — which is issue #7's acceptance criterion verbatim ("an image whose entry point runs the
 CLI's `--help`"). `docker run <image> anything` replaces the default argument list, so arguments
 reach the application rather than a shell, and the exec form means no shell is involved at all.
@@ -304,15 +304,15 @@ the library's hands: `--help` is specified to exit 0, in every version.
 | Alternative | Rejected because |
 |---|---|
 | `ENTRYPOINT` only, relying on no-args behaviour | Makes the acceptance criterion depend on an upstream library's exit-status choice, which changed between releases. |
-| `CMD ["hermes-memory", "--help"]` with no `ENTRYPOINT` | `docker run <image> foo` would try to execute `foo` as a program instead of passing it to the application. |
+| `CMD ["engineering-memory", "--help"]` with no `ENTRYPOINT` | `docker run <image> foo` would try to execute `foo` as a program instead of passing it to the application. |
 | A shell-form entry point | Argument quoting becomes the shell's business, and signals do not reach the application. |
 
 ---
 
 ## R11 — The command-line entry point is a shell, deliberately
 
-**Decision.** A Typer application in `hermes_memory.cli` with a callback, a description and a
-`--version` option, registered as the console script `hermes-memory`. No behavioural command.
+**Decision.** A Typer application in `engineering_memory.cli` with a callback, a description and a
+`--version` option, registered as the console script `engineering-memory`. No behavioural command.
 
 **Rationale.** `cli` is an empty package today; feature 001 stated explicitly that "the Typer
 application arrives with the feature that has something to run". This feature has something to run
@@ -328,7 +328,7 @@ updated in the same commit, for that one entry, the way feature 003 updated it f
 
 | Alternative | Rejected because |
 |---|---|
-| `python -m hermes_memory` as the image's entry point | Not an installed console script, so FR-021's property — the image runs the packaged application — goes unproven. |
+| `python -m engineering_memory` as the image's entry point | Not an installed console script, so FR-021's property — the image runs the packaged application — goes unproven. |
 | A shell script printing static usage text | Proves the image starts, not that the packaged application starts. The smoke test would pass on an image with no working Python at all. |
 | Adding a real first command now | Scope the issue did not ask for, on a surface no specification has designed. |
 

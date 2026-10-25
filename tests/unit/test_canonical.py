@@ -20,7 +20,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime, timedelta, timezone
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     EnrichedConversation,
     Message,
@@ -79,7 +79,7 @@ def hash_in_a_separate_process(seed: str) -> str:
     """
     script = """
 from datetime import UTC, datetime
-from hermes_memory.normalization import Conversation, Message, Role, Source, content_hash
+from engineering_memory.normalization import Conversation, Message, Role, Source, content_hash
 
 print(
     content_hash(

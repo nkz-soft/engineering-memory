@@ -49,19 +49,19 @@ below emits through what this phase builds.
 
 **⚠️ CRITICAL**: no user story work begins until this phase is complete.
 
-- [X] T003 [P] Write `tests/unit/test_settings_logging.py`: `HERMES_LOGGING__LEVEL` defaults to
+- [X] T003 [P] Write `tests/unit/test_settings_logging.py`: `ENGINEERING_MEMORY_LOGGING__LEVEL` defaults to
   `"INFO"`; it accepts each of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` case-insensitively;
   any other value fails at load naming the variable and withholding the value (check 28);
-  `HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT` defaults to `False` and parses `true`/`false`; an
-  absent `HERMES_LOGGING__*` environment is valid because every field has a default. Observe it
+  `ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT` defaults to `False` and parses `true`/`false`; an
+  absent `ENGINEERING_MEMORY_LOGGING__*` environment is valid because every field has a default. Observe it
   fail.
-- [X] T004 Add the `LoggingSettings` group to `src/hermes_memory/settings.py` per data-model.md:
+- [X] T004 Add the `LoggingSettings` group to `src/engineering_memory/settings.py` per data-model.md:
   a `_Frozen` subclass with `level` (closed set of the five standard names, default `INFO`,
   matched case-insensitively) and `include_conversation_content` (bool, default `False`), attached
   to `Settings` as `logging: LoggingSettings` with `default_factory=LoggingSettings` so an absent
   group is valid. Do **not** add it to `_always_descend_into_the_groups` — research.md R12 says
   why. Observe T003 pass.
-- [X] T005 Add `HERMES_LOGGING__LEVEL` and `HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT` to
+- [X] T005 Add `ENGINEERING_MEMORY_LOGGING__LEVEL` and `ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT` to
   `.env.example`, commented out with their defaults and, for the flag, a line stating that setting
   it puts conversation text in the log. 002's existing
   `tests/unit/test_settings_example.py` goes red at T004 and green here (check 29).
@@ -75,13 +75,13 @@ below emits through what this phase builds.
   call at all is still structured (check 26); `configure()` twice then one log emits exactly one
   line (check 25); `configure()` performs no network call and creates no file (check 27). Observe
   it fail.
-- [X] T008 Create `src/hermes_memory/observability/logging.py`: the processor chain of research.md
+- [X] T008 Create `src/engineering_memory/observability/logging.py`: the processor chain of research.md
   R2 in the fixed order — `merge_contextvars`, `add_log_level`, `TimeStamper(fmt="iso", utc=True)`,
   `StackInfoRenderer`, `format_exc_info`, then the correlation and redaction slots, then
   `JSONRenderer` — writing to standard error, with `get_logger(name=None)` and a `configure`
   applying the level. Leave the correlation and redaction slots as no-op placeholders; US2 and US4
   fill them.
-- [X] T009 Rewrite `src/hermes_memory/observability/__init__.py` as the public surface of
+- [X] T009 Rewrite `src/engineering_memory/observability/__init__.py` as the public surface of
   contracts/observability.md, installing the default pipeline at import time (research.md R3) with
   a call that reads no environment, opens no file and makes no network connection.
 - [X] T010 Run `uv run pytest tests/structure/test_module_layout.py` and **observe
@@ -90,7 +90,7 @@ below emits through what this phase builds.
   the docstring-only assertion, with a docstring saying which feature filled it and that the other
   fourteen are still guarded. Leave `test_the_behaviour_guard_still_bites` untouched: its fixture
   is built from `archive/`, so it keeps proving the narrowed guard bites.
-- [X] T011 Complete `configure(settings)` in `src/hermes_memory/observability/logging.py`: install
+- [X] T011 Complete `configure(settings)` in `src/engineering_memory/observability/logging.py`: install
   the standard-library bridge through `structlog.stdlib.ProcessorFormatter` with a
   `foreign_pre_chain` sharing the chain (research.md R5), on a single handler tagged with an
   attribute so a previous one is removed rather than stacked (research.md R4), and set
@@ -127,13 +127,13 @@ and assert all ten fields are present with the intended values.
 
 ### Implementation for User Story 1
 
-- [X] T014 [US1] Create `src/hermes_memory/observability/operations.py`: `OperationStatus` as a
+- [X] T014 [US1] Create `src/engineering_memory/observability/operations.py`: `OperationStatus` as a
   closed enumeration of exactly `imported`, `skipped`, `failed`; the `ingestion_operation`
   context manager binding the §18 context through `structlog.contextvars`, timing the body with a
   monotonic clock for `duration_ms` and `datetime.now(UTC)` for `start_time`, emitting one terminal
   record, re-raising every exception unchanged, and unbinding the context on every exit path.
 - [X] T015 [US1] Export `ingestion_operation` and `OperationStatus` from
-  `src/hermes_memory/observability/__init__.py`. Observe T012 and T013 pass.
+  `src/engineering_memory/observability/__init__.py`. Observe T012 and T013 pass.
 
 **Checkpoint**: §18's record exists and is honest about failure. Credentials are **not** yet
 redacted, so this is not shippable on its own — see the MVP note at the end.
@@ -169,7 +169,7 @@ output, and assert the literal appears nowhere in it.
 
 ### Implementation for User Story 2
 
-- [X] T018 [US2] Create `src/hermes_memory/observability/redaction.py`: the two rosters exactly as
+- [X] T018 [US2] Create `src/engineering_memory/observability/redaction.py`: the two rosters exactly as
   contracts/observability.md lists them, `REDACTED = "[redacted]"`, name matching by lowercasing
   and splitting on runs of non-alphanumeric characters and testing segments and adjacent pairs —
   never substrings (research.md R6) — and shape matching by compiled patterns replacing only the
@@ -179,7 +179,7 @@ output, and assert the literal appears nowhere in it.
   boolean or `None` rendered with `repr()` and then shape-scanned; every per-value step inside a
   guard so that an exception withholds that value and the record is still emitted (research.md R9).
 - [X] T020 [US2] Wire the processor into the redaction slot of
-  `src/hermes_memory/observability/logging.py` — immediately before `JSONRenderer` and after
+  `src/engineering_memory/observability/logging.py` — immediately before `JSONRenderer` and after
   `format_exc_info`, which is the ordering the guarantee depends on (research.md R2) — including in
   the import-time default configuration and in the `foreign_pre_chain` for standard-library
   records. Export `REDACTED` from `__init__.py`. Observe T016 and T017 pass.
@@ -207,7 +207,7 @@ same body, observe it present.
 
 ### Implementation for User Story 3
 
-- [X] T022 [US3] Add `ConversationContent` to `src/hermes_memory/observability/redaction.py`: a
+- [X] T022 [US3] Add `ConversationContent` to `src/engineering_memory/observability/redaction.py`: a
   frozen wrapper rendering as `[redacted:content]` unless the flag is on, with `__repr__` and
   `__str__` withholding the text (research.md R8), and a documented truncation cap applied when the
   flag is on.
@@ -234,14 +234,14 @@ identifiers tying it to that span.
 
 ### Implementation for User Story 4
 
-- [X] T025 [US4] Create `src/hermes_memory/observability/tracing.py`: a `TracerProvider` built with
-  an explicit `Resource` of `service.name = "hermes-memory"` and `service.version` from the
+- [X] T025 [US4] Create `src/engineering_memory/observability/tracing.py`: a `TracerProvider` built with
+  an explicit `Resource` of `service.name = "engineering-memory"` and `service.version` from the
   installed distribution, with **no** span processor and **no** exporter (research.md R11), set
   once per process behind a module-level flag; plus `get_tracer(name)` and the correlation
   processor adding `trace_id` and `span_id` as lowercase hexadecimal only when the current span
   context is valid.
 - [X] T026 [US4] Wire the correlation processor into its slot in
-  `src/hermes_memory/observability/logging.py` — before redaction, so the ids pass through it like
+  `src/engineering_memory/observability/logging.py` — before redaction, so the ids pass through it like
   any other field — construct the provider in `configure()`, and export `get_tracer` from
   `__init__.py`. Observe T024 pass.
 
@@ -252,7 +252,7 @@ identifiers tying it to that span.
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [X] T027 [P] Write `tests/structure/test_logging_surface.py` (check 33): parse the committed
-  sources and assert that no module outside `src/hermes_memory/observability/` calls
+  sources and assert that no module outside `src/engineering_memory/observability/` calls
   `logging.basicConfig`, adds a handler, calls `structlog.configure`, or writes to `sys.stdout` or
   `sys.stderr` — asked of the parsed tree rather than by grepping, as
   `tests/structure/test_environment_files.py` does for the environment.

@@ -32,15 +32,15 @@ from types import SimpleNamespace
 
 import pytest
 
-import hermes_memory.archive as archive
-import hermes_memory.classification as classification
-import hermes_memory.ingestion as ingestion
-import hermes_memory.memory.interface as memory_interface
-import hermes_memory.sanitization as sanitization
-from hermes_memory.errors import BoundaryError, PermanentBoundaryError, TransientBoundaryError
+import engineering_memory.archive as archive
+import engineering_memory.classification as classification
+import engineering_memory.ingestion as ingestion
+import engineering_memory.memory.interface as memory_interface
+import engineering_memory.sanitization as sanitization
+from engineering_memory.errors import BoundaryError, PermanentBoundaryError, TransientBoundaryError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE_ROOT = REPO_ROOT / "src" / "hermes_memory"
+PACKAGE_ROOT = REPO_ROOT / "src" / "engineering_memory"
 
 INTERFACE_SOURCES = (
     "errors.py",
@@ -54,12 +54,12 @@ INTERFACE_SOURCES = (
 """The files this feature adds to `src/`. Every one of them is an interface or the taxonomy."""
 
 INTERFACE_MODULES = (
-    "hermes_memory.errors",
-    "hermes_memory.ingestion",
-    "hermes_memory.sanitization",
-    "hermes_memory.classification",
-    "hermes_memory.archive",
-    "hermes_memory.memory.interface",
+    "engineering_memory.errors",
+    "engineering_memory.ingestion",
+    "engineering_memory.sanitization",
+    "engineering_memory.classification",
+    "engineering_memory.archive",
+    "engineering_memory.memory.interface",
 )
 
 BOUNDARY_PACKAGES = (
@@ -74,26 +74,27 @@ ALLOWED_THIRD_PARTY = frozenset({"pydantic"})
 """Pydantic only — the "Models and contracts" row of the stack table (ADR-004)."""
 
 ALLOWED_INTERNAL = (
-    "hermes_memory.errors",
-    "hermes_memory.normalization",
-    "hermes_memory.archive.interface",
+    "engineering_memory.errors",
+    "engineering_memory.normalization",
+    "engineering_memory.archive.interface",
 )
 """What an interface module may import from inside the package.
 
-`hermes_memory.archive.interface` is here for one reason, and it is worth stating rather than
+`engineering_memory.archive.interface` is here for one reason, and it is worth stating rather than
 leaving to be puzzled over: `ingestion/source.py` names `OriginalPayload`, because a source yields
 a conversation together with the bytes it was read from, and the archive is what those bytes are
 for (Principle I). One interface naming another interface's value type is the dependency
 Principle IV wants — on the declaration, never on an implementation.
 
-It is the module and not the `hermes_memory.archive` package, to say which thing is depended on.
+It is the module and not the `engineering_memory.archive` package, to say which thing is depended
+on.
 Python still initializes the package on the way in, so the matching rule lives on
 `archive/__init__.py`: it re-exports the interface and no implementation.
 """
 
 FORBIDDEN_AT_RUNTIME = (
-    "hermes_memory.memory.hindsight",
-    "hermes_memory.settings",
+    "engineering_memory.memory.hindsight",
+    "engineering_memory.settings",
     "httpx",
     "requests",
     "urllib.request",
@@ -107,7 +108,8 @@ FORBIDDEN_AT_RUNTIME = (
     "dbm",
     "boto3",
 )
-"""`hermes_memory.memory.hindsight` rather than `hermes_memory.memory`: the interface lives under
+"""`engineering_memory.memory.hindsight` rather than `engineering_memory.memory`: the interface
+lives under
 that package, and forbidding the parent would forbid the module being checked."""
 
 HINDSIGHT_TERMS = ("bank", "hindsight", "update_mode", "operation_id", "endpoint", "mission")
@@ -180,10 +182,10 @@ def test_no_interface_imports_outside_the_allowlist() -> None:
 
 def test_the_static_guard_still_bites(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The guard fails on the case it exists for, watched rather than assumed."""
-    fake_root = tmp_path / "hermes_memory"
+    fake_root = tmp_path / "engineering_memory"
     (fake_root / "archive").mkdir(parents=True)
     (fake_root / "archive" / "interface.py").write_text(
-        "import httpx\nimport sqlite3\nfrom hermes_memory.memory.hindsight import Client\n",
+        "import httpx\nimport sqlite3\nfrom engineering_memory.memory.hindsight import Client\n",
         encoding="utf-8",
     )
     (fake_root / "errors.py").write_text("from pydantic import BaseModel\n", encoding="utf-8")
@@ -200,7 +202,7 @@ def test_the_static_guard_still_bites(tmp_path: Path, monkeypatch: pytest.Monkey
 
     reported = str(failure.value)
     assert "archive/interface.py: httpx" in reported
-    assert "archive/interface.py: hermes_memory.memory.hindsight" in reported
+    assert "archive/interface.py: engineering_memory.memory.hindsight" in reported
     assert "archive/interface.py: sqlite3" in reported
     assert "errors.py" not in reported
 
@@ -309,7 +311,7 @@ def test_the_vocabulary_guard_still_bites() -> None:
         pass
 
     named_boundary = SimpleNamespace(
-        __name__="hermes_memory.pretend", __all__=["BankConfig"], BankConfig=BankConfig
+        __name__="engineering_memory.pretend", __all__=["BankConfig"], BankConfig=BankConfig
     )
 
     with pytest.raises(AssertionError, match="BankConfig"):
@@ -321,7 +323,7 @@ def test_the_vocabulary_guard_still_bites() -> None:
         def mission_for_bank(self) -> None: ...
 
     method_boundary = SimpleNamespace(
-        __name__="hermes_memory.pretend", __all__=["Store"], Store=Store
+        __name__="engineering_memory.pretend", __all__=["Store"], Store=Store
     )
 
     with pytest.raises(AssertionError, match="mission_for_bank"):
@@ -335,7 +337,7 @@ def test_the_taxonomy_guard_still_bites() -> None:
         """What a boundary raises the day somebody forgets the two branches exist."""
 
     pretend_boundary = SimpleNamespace(
-        __name__="hermes_memory.pretend", __all__=["RawFailure"], RawFailure=RawFailure
+        __name__="engineering_memory.pretend", __all__=["RawFailure"], RawFailure=RawFailure
     )
 
     with pytest.raises(AssertionError, match="RawFailure"):

@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.observability import REDACTED, get_logger
-from hermes_memory.observability.redaction import SENSITIVE_PAIRS, SENSITIVE_SEGMENTS
+from engineering_memory.observability import REDACTED, get_logger
+from engineering_memory.observability.redaction import SENSITIVE_PAIRS, SENSITIVE_SEGMENTS
 
 from .conftest import Rendered
 

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from hermes_memory.classification import UNKNOWN_PROJECT
-from hermes_memory.normalization import Conversation, ProjectTag
+from engineering_memory.classification import UNKNOWN_PROJECT
+from engineering_memory.normalization import Conversation, ProjectTag
 
 
 class InMemoryProjectClassifier:

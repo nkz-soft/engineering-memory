@@ -115,7 +115,7 @@ jobs:
       - name: Build the image (C6)
         # Nothing is pushed and no registry is logged into: publishing needs credentials, and a job
         # that needs a secret stops running on pull requests from forks.
-        run: docker build -t hermes-memory:ci .
+        run: docker build -t engineering-memory:ci .
 
       - name: Run the image (C7)
         # Both halves are asserted, and separately. The container must exit 0 *and* print usage:
@@ -130,14 +130,14 @@ jobs:
         # No arguments are passed: `--help` is the image's default argument, so this is exactly the
         # acceptance criterion of issue #7 — an image whose entry point runs the CLI's --help.
         run: |
-          docker run --rm hermes-memory:ci > usage.txt
+          docker run --rm engineering-memory:ci > usage.txt
           grep -q "Usage:" usage.txt
 
       - name: Confirm what the image does not carry
         # The image must not ship the development dependencies, the tests, or anything from the
         # ignored data directory, and must not run as root.
         run: |
-          docker run --rm --entrypoint sh hermes-memory:ci -c '
+          docker run --rm --entrypoint sh engineering-memory:ci -c '
             test ! -d /app/tests || { echo "tests/ shipped in the image"; exit 1; }
             test ! -e /app/data || { echo "data/ shipped in the image"; exit 1; }
             if python -c "import pytest" 2>/dev/null; then

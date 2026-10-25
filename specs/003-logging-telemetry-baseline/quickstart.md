@@ -28,9 +28,9 @@ for the repository invariants.
 
 ```bash
 uv run python -c "
-from hermes_memory.observability import ingestion_operation
+from engineering_memory.observability import ingestion_operation
 with ingestion_operation(source='chatgpt', source_id='abc-123', bank='engineering-global',
-                         project='hermes-memory', document_id='chatgpt:abc-123'):
+                         project='engineering-memory', document_id='chatgpt:abc-123'):
     pass
 "
 ```
@@ -43,7 +43,7 @@ Expected: one JSON object on standard error carrying `event`, `source`, `source_
 
 ```bash
 uv run python -c "
-from hermes_memory.observability import ingestion_operation
+from engineering_memory.observability import ingestion_operation
 try:
     with ingestion_operation(source='chatgpt', source_id='abc-123', bank='engineering-global'):
         raise RuntimeError('the export was truncated')
@@ -60,7 +60,7 @@ failure would look identical in the log.
 
 ```bash
 uv run python -c "
-from hermes_memory.observability import get_logger
+from engineering_memory.observability import get_logger
 get_logger().info('calling hindsight',
                   hindsight_token='hs-live-9f3c2a7e51b04d6f',
                   authorization='Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl',
@@ -77,7 +77,7 @@ point of the name roster being segments rather than substrings.
 
 ```bash
 uv run python -c "
-from hermes_memory.observability import ConversationContent, get_logger
+from engineering_memory.observability import ConversationContent, get_logger
 get_logger().info('parsed a conversation', body=ConversationContent('the private text'))
 "
 ```
@@ -85,9 +85,9 @@ get_logger().info('parsed a conversation', body=ConversationContent('the private
 Expected: `[redacted:content]`, with no configuration set.
 
 ```bash
-HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT=true uv run python -c "
-from hermes_memory.observability import ConversationContent, configure, get_logger
-from hermes_memory.settings import load_settings
+ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT=true uv run python -c "
+from engineering_memory.observability import ConversationContent, configure, get_logger
+from engineering_memory.settings import load_settings
 configure(load_settings())
 get_logger().info('parsed a conversation',
                   body=ConversationContent('the private text'),
@@ -103,8 +103,8 @@ variables set, because `load_settings` validates the whole object; `.env.example
 
 ```bash
 uv run python -c "
-from hermes_memory.observability import configure, get_logger, get_tracer
-from hermes_memory.settings import load_settings
+from engineering_memory.observability import configure, get_logger, get_tracer
+from engineering_memory.settings import load_settings
 configure(load_settings())
 with get_tracer(__name__).start_as_current_span('retain'):
     get_logger().info('inside a span')
@@ -121,8 +121,8 @@ nothing hangs or retries — there is no collector and none is looked for.
 uv run pytest tests/unit/test_settings_example.py
 ```
 
-Expected: green, with `HERMES_LOGGING__LEVEL` and
-`HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT` now listed in `.env.example`. This is 002's check,
+Expected: green, with `ENGINEERING_MEMORY_LOGGING__LEVEL` and
+`ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT` now listed in `.env.example`. This is 002's check,
 unchanged, which is why this feature adds no check of its own for it.
 
 ## What this quickstart deliberately does not show

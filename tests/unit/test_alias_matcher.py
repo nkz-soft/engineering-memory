@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import time
 
-from hermes_memory.classification.matcher import AliasMatcher
-from hermes_memory.classification.rules import ProjectRule, ProjectRuleSet
+from engineering_memory.classification.matcher import AliasMatcher
+from engineering_memory.classification.rules import ProjectRule, ProjectRuleSet
 from tests.synthetic import projects
 
 

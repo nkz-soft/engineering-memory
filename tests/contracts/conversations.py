@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from hermes_memory.archive import OriginalPayload
-from hermes_memory.ingestion import SourceConversation
-from hermes_memory.normalization import (
+from engineering_memory.archive import OriginalPayload
+from engineering_memory.ingestion import SourceConversation
+from engineering_memory.normalization import (
     Conversation,
     EnrichedConversation,
     Message,
@@ -109,7 +109,7 @@ def conversation_using_every_field(source_id: str = "rich1") -> Conversation:
     )
 
 
-def enrich(source: Conversation, *, project: str = "hermes-memory") -> EnrichedConversation:
+def enrich(source: Conversation, *, project: str = "engineering-memory") -> EnrichedConversation:
     """Attach the provenance and tags §7's enrich stage would, so a boundary gets what it wants."""
     return EnrichedConversation(
         conversation=source,

@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.ingestion import ConversationSource
-from hermes_memory.ingestion.chatgpt import ChatGPTExportSource
-from hermes_memory.normalization import Conversation
+from engineering_memory.ingestion import ConversationSource
+from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
+from engineering_memory.normalization import Conversation
 from tests.contracts import conversations
 from tests.contracts.source import ConversationSourceContract
 from tests.synthetic import chatgpt_export as synth

@@ -36,7 +36,7 @@ and a false-positive suite in `tests/unit/`; the composed guard in
 
 **Target Platform**: The developer machine and the container image (#7), Linux and Windows.
 
-**Project Type**: A module of the modular monolith — `hermes_memory.sanitization`.
+**Project Type**: A module of the modular monolith — `engineering_memory.sanitization`.
 
 **Performance Goals**: Linear in the text, patterns compiled once (R12). A large tool result —
 hundreds of kilobytes of manifest — is sanitized within a bounded time asserted by a test. No
@@ -123,7 +123,7 @@ specs/009-secret-sanitizer/
 ### Source Code (repository root)
 
 ```text
-src/hermes_memory/sanitization/
+src/engineering_memory/sanitization/
 ├── __init__.py            # public surface: #9's boundary types plus PatternSecretSanitizer
 ├── sanitizer.py           # #9's protocol, report and error — UNCHANGED by this feature
 ├── patterns.py            # the ordered table: category, expression, value group, precedence; placeholder rejection (R3, R5)

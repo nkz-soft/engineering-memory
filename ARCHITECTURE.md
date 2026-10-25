@@ -16,8 +16,8 @@ both plain chats and coding-agent sessions.**
 Everything else — Claude Code and Codex reading the same memory, mental models,
 evaluation — follows from that, and is sequenced after it.
 
-hermes-memory is the store of that history, not only its importer. Hermes and
-every other consumer reach it through the MCP server hermes-memory exposes, and
+engineering-memory is the store of that history, not only its importer. Hermes and
+every other consumer reach it through the MCP server engineering-memory exposes, and
 never through Hindsight directly (ADR-008).
 
 Hindsight is the memory engine. We do not build our own RAG, and we do not add a
@@ -92,9 +92,9 @@ the importer that produced it.
 
 Hindsight stores metadata alongside memory units and returns it on retrieval.
 
-### 3.4. Consumers depend on hermes-memory, not on the engine
+### 3.4. Consumers depend on engineering-memory, not on the engine
 
-A consumer is configured against hermes-memory's MCP server and sees its tools,
+A consumer is configured against engineering-memory's MCP server and sees its tools,
 never Hindsight's endpoints, banks or vocabulary. The memory engine is then
 replaceable for consumers as well as for ingestion: swapping it changes one
 implementation behind `memory/interface`, and no agent is reconfigured. The
@@ -148,7 +148,7 @@ recalled fact, which extracted memory alone cannot give back (ADR-008).
             (primary)       (later)       (later)
 ```
 
-A self-hosted Hindsight instance is deployed separately, and only hermes-memory
+A self-hosted Hindsight instance is deployed separately, and only engineering-memory
 talks to it. Consumers reach memory through the access surface (§16, ADR-008).
 Neither the Hindsight instance embedded in Hermes nor Hermes's native Hindsight
 memory provider is used: memory must be reachable by more than one consumer, and
@@ -355,7 +355,7 @@ it is slower and reasons over accumulated memory rather than fetching it.
 
 ### 16.1. Memory access surface
 
-Consumers retrieve through an MCP server that hermes-memory exposes, not through
+Consumers retrieve through an MCP server that engineering-memory exposes, not through
 Hindsight (ADR-008). It is a module of the monolith, `access`, and depends only
 on `memory/interface`, the raw archive and the import state.
 
@@ -510,7 +510,7 @@ independent of Hindsight, so the backend can be replaced later without
 re-exporting anything from the original services.
 
 *Revisited by ADR-008:* consumers no longer use the native Hermes provider or the
-coding-agent integrations; they reach memory through hermes-memory's own MCP
+coding-agent integrations; they reach memory through engineering-memory's own MCP
 server, which extends the exit strategy from ingestion to consumers.
 
 ### ADR-002 — One shared bank, projects separated by tags
@@ -719,13 +719,15 @@ Memory ages between refreshes and nothing forces one, which is why the age of
 the last import belongs in whatever the command surface reports: the decay is
 made visible rather than prevented.
 
-### ADR-008 — Consumers reach memory through hermes-memory's MCP server
+### ADR-008 — Consumers reach memory through engineering-memory's MCP server
+
+**Project identity.** The project is named `engineering-memory`, independently of Hermes or any other consumer. The package, command and runtime identifiers follow that name, and configuration uses the dedicated `ENGINEERING_MEMORY_` prefix. A consumer starts the stdio server as a child process with an inherited environment; a consumer-owned prefix could therefore configure the server accidentally. Only the dedicated prefix is accepted, with no fallback to the former consumer prefix. The rename changes no archived data, stable identities or memory-bank policy.
 
 ADR-007 is reserved for automated export acquisition (#40).
 
-**Decision.** hermes-memory is the store of the user's AI history, and the only
+**Decision.** engineering-memory is the store of the user's AI history, and the only
 component that talks to Hindsight. Consumers — Hermes first, then Claude Code
-and Codex — connect to an MCP server that hermes-memory exposes, the memory
+and Codex — connect to an MCP server that engineering-memory exposes, the memory
 access surface of §16.1, and are not configured against Hindsight at all.
 Settled together, because they are one policy:
 

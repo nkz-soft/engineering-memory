@@ -16,8 +16,8 @@ import socket
 
 import pytest
 
-from hermes_memory.observability import configure, get_logger, get_tracer
-from hermes_memory.settings import load_settings
+from engineering_memory.observability import configure, get_logger, get_tracer
+from engineering_memory.settings import load_settings
 
 from .conftest import Rendered
 

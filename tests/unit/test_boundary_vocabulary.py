@@ -21,7 +21,7 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import NamedTuple, Protocol, runtime_checkable
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     AnyTag,
     Conversation,
     EnrichedConversation,
@@ -203,7 +203,7 @@ def run_the_pipeline(
     """parse → normalize → sanitize → classify → enrich → archive → retain (§7).
 
     Every parameter is one of the six boundaries, and every value that crosses between them comes
-    from `hermes_memory.normalization`. That is the whole of what this test asserts.
+    from `engineering_memory.normalization`. That is the whole of what this test asserts.
     """
     outcomes: list[str] = []
 

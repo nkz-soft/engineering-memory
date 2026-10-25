@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.classification import ProjectRule, ProjectRulesError, ProjectRuleSet
-from hermes_memory.errors import BoundaryError
+from engineering_memory.classification import ProjectRule, ProjectRulesError, ProjectRuleSet
+from engineering_memory.errors import BoundaryError
 
 
 def test_a_well_formed_rule_set_builds() -> None:
@@ -145,8 +145,8 @@ def test_the_duplicate_alias_check_normalizes_whitespace(first: str, second: str
 
 def test_the_rule_set_and_the_matcher_agree_on_what_an_alias_is() -> None:
     """The general form of the defect above: one normalization, asked by both."""
-    from hermes_memory.classification import matcher as matcher_module
-    from hermes_memory.classification.rules import alias_key
+    from engineering_memory.classification import matcher as matcher_module
+    from engineering_memory.classification.rules import alias_key
 
     assert matcher_module.alias_key is alias_key
 

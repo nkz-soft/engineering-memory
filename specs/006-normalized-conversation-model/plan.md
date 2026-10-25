@@ -7,7 +7,7 @@
 
 ## Summary
 
-Fill `src/hermes_memory/normalization/` with the source-independent vocabulary the rest of the
+Fill `src/engineering_memory/normalization/` with the source-independent vocabulary the rest of the
 pipeline speaks: a conversation and its ordered messages, the §3.3 provenance record, the §6 tag
 convention as typed values, and the canonical form and content hash §17 depends on. Nothing else —
 no parser, no archive format, no boundary protocol.
@@ -161,7 +161,7 @@ specs/006-normalized-conversation-model/
 ### Source Code (repository root)
 
 ```text
-src/hermes_memory/normalization/
+src/engineering_memory/normalization/
 ├── __init__.py                  # the public surface; re-exports, __all__
 ├── base.py                      # frozen value base, opaque identifier and slug types
 ├── conversation.py              # Conversation, Message, ToolActivity, NonTextPart, Role, Source

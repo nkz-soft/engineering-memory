@@ -19,7 +19,7 @@ must be run and **observed failing** before the implementation task starts.
 
 ## Path Conventions
 
-Single project: `src/hermes_memory/ingestion/chatgpt/`, `tests/` at repository root, per
+Single project: `src/engineering_memory/ingestion/chatgpt/`, `tests/` at repository root, per
 [plan.md](./plan.md#source-code-repository-root).
 
 ---
@@ -32,12 +32,12 @@ new package.
 - [X] T001 [P] Create `tests/synthetic/__init__.py` with a docstring stating that it builds
       synthesized inputs, never real history (CLAUDE.md), and is neither a fake nor a contract
 - [X] T002 [P] Write `tests/structure/test_chatgpt_source_imports.py`: every `.py` under
-      `src/hermes_memory/ingestion/chatgpt/` imports only the standard library, `pydantic`,
-      `hermes_memory.errors`, `hermes_memory.normalization`, `hermes_memory.archive.interface`,
-      `hermes_memory.ingestion.source`, `hermes_memory.ingestion.chatgpt.*` and
-      `hermes_memory.observability`. Nothing on `FORBIDDEN_AT_RUNTIME` of
+      `src/engineering_memory/ingestion/chatgpt/` imports only the standard library, `pydantic`,
+      `engineering_memory.errors`, `engineering_memory.normalization`, `engineering_memory.archive.interface`,
+      `engineering_memory.ingestion.source`, `engineering_memory.ingestion.chatgpt.*` and
+      `engineering_memory.observability`. Nothing on `FORBIDDEN_AT_RUNTIME` of
       `tests/structure/test_boundary_interfaces.py` is allowed; reuse that list by import. Also
-      assert that `hermes_memory/ingestion/__init__.py` does not import `chatgpt`, so that importing
+      assert that `engineering_memory/ingestion/__init__.py` does not import `chatgpt`, so that importing
       the interface loads no implementation. It passes vacuously on the empty package; include a
       "still bites" test against a `tmp_path` package holding `import httpx`
 
@@ -65,7 +65,7 @@ No story can read an export without these.
       path raises `SourceUnavailable`. A path that is neither zip, directory nor JSON file, a
       corrupt zip, no conversation file, or both single and split forms raise `SourceFormatError`
       with `subject is None`. Every raised error chains its cause (research R2, R10)
-- [X] T005 Implement `src/hermes_memory/ingestion/chatgpt/export.py`: `conversation_files(path)`
+- [X] T005 Implement `src/engineering_memory/ingestion/chatgpt/export.py`: `conversation_files(path)`
       resolves and orders the files, and `open_text(...)` opens each as a UTF-8 text stream
       (`zipfile.ZipFile.open` wrapped in `io.TextIOWrapper` for archives), translating `OSError`
       to `SourceUnavailable` and `BadZipFile` / layout problems to `SourceFormatError`. Makes T004
@@ -79,7 +79,7 @@ No story can read an export without these.
       JSON, raises `SourceFormatError` without subject after yielding every earlier record. Two
       records of 1 MiB with a 64 KiB chunk decode with a number of `raw_decode` calls logarithmic
       in the record size (research R3; count calls through an injectable decoder)
-- [X] T007 Implement `src/hermes_memory/ingestion/chatgpt/records.py`: frozen `ExportRecord(raw:
+- [X] T007 Implement `src/engineering_memory/ingestion/chatgpt/records.py`: frozen `ExportRecord(raw:
       str, value: object)` and a resumable `RecordScanner` iterator over a text stream, with a
       configurable chunk size and a buffer that at least doubles between decode attempts (research
       R3, data-model `ExportRecord`). Makes T006 pass
@@ -102,29 +102,29 @@ edited message and a regenerated answer; each result equals the synthesized visi
       parent/children disagreement and a cycle each raise a thread error naming the rule, with no
       node content. Order follows the graph even when message times run backwards (FR-007). Walking
       is iterative, so a 10,000-node linear graph does not hit the recursion limit
-- [X] T009 [US1] Implement `src/hermes_memory/ingestion/chatgpt/thread.py`: `validate_graph(mapping)`,
+- [X] T009 [US1] Implement `src/engineering_memory/ingestion/chatgpt/thread.py`: `validate_graph(mapping)`,
       `choose_leaf(mapping, current_node) -> (leaf, fallback)`, `walk(mapping, leaf) -> tuple[node
       id, ...]` (research R4). Makes T008 pass
 - [X] T010 [P] [US1] Write `tests/unit/test_chatgpt_content.py`, part 1, first and observe it fail:
       the `text` type joins string parts with `\n`; the author roles `user`, `assistant`, `system`
       and `tool` map to `Role` (FR-012, FR-013); an empty-text message is kept
-- [X] T011 [US1] Implement `src/hermes_memory/ingestion/chatgpt/content.py`, part 1: `turn_of(message)
+- [X] T011 [US1] Implement `src/engineering_memory/ingestion/chatgpt/content.py`, part 1: `turn_of(message)
       -> Message` for the `text` type and role mapping. Makes T010 pass
 - [X] T012 [US1] Write `tests/unit/test_chatgpt_conversation.py`, part 1, first and observe it fail.
       `parse_record(value)` on a linear record and on a branched record returns a `Conversation`
       whose messages equal the visible thread (SC-001). Structural nodes, such as the root with
       `message: null`, contribute no turn
-- [X] T013 [US1] Implement `src/hermes_memory/ingestion/chatgpt/conversation.py`, part 1:
+- [X] T013 [US1] Implement `src/engineering_memory/ingestion/chatgpt/conversation.py`, part 1:
       `parse_record(value) -> ReadConversation` composing `thread` and `content`, with
       `source=Source.CHATGPT`. Makes T012 pass
 - [X] T014 [US1] Write `tests/unit/test_chatgpt_source.py`, part 1, first and observe it fail.
       `ChatGPTExportSource(path)` does no I/O in its constructor. `read()` over a synthesized
       directory and zip yields `SourceConversation`s in export order, across split files. Reading
       twice yields equal results (CS-4, CG-1)
-- [X] T015 [US1] Implement `src/hermes_memory/ingestion/chatgpt/source.py`: `ChatGPTExportSource` with
+- [X] T015 [US1] Implement `src/engineering_memory/ingestion/chatgpt/source.py`: `ChatGPTExportSource` with
       `source = Source.CHATGPT` and a class-based iterator (not a generator) chaining files →
       `RecordScanner` → `parse_record` (data-model state diagram). Export only
-      `ChatGPTExportSource` from `src/hermes_memory/ingestion/chatgpt/__init__.py`, keeping its
+      `ChatGPTExportSource` from `src/engineering_memory/ingestion/chatgpt/__init__.py`, keeping its
       docstring. Makes T014 pass
 
 **Checkpoint**: US1 is demonstrable. A real reading of a synthesized export gives the displayed
@@ -149,14 +149,14 @@ message maps exactly, and no time equals the controlled clock.
       (research R7). With `datetime` patched in the module to a sentinel clock, no yielded time
       equals it (SC-006). An empty conversation (only a root node) is yielded with `messages == ()`
 - [X] T017 [US2] Implement identity and time mapping in
-      `src/hermes_memory/ingestion/chatgpt/conversation.py`, using
+      `src/engineering_memory/ingestion/chatgpt/conversation.py`, using
       `datetime.fromtimestamp(value, UTC)` and never reading a clock (research R7). Makes T016 pass
 - [X] T018 [P] [US2] Extend `tests/unit/test_chatgpt_source.py` first and observe it fail. Each
       `original.content` equals the record's exact bytes in the written file, encoded as UTF-8, and
       `media_type == "application/json"`. Parsing `original.content` alone through `parse_record`
       yields an equal conversation for every fixture in this file (CG-10, research R8)
 - [X] T019 [US2] Build `OriginalPayload` from `ExportRecord.raw` in
-      `src/hermes_memory/ingestion/chatgpt/source.py`. Makes T018 pass
+      `src/engineering_memory/ingestion/chatgpt/source.py`. Makes T018 pass
 
 **Checkpoint**: US1 + US2 give correct turns with correct identity and time.
 
@@ -178,7 +178,7 @@ result, an image and an unknown type produces the expected turns, markers and co
       keeps the message with empty text plus `NonTextPart(kind=OTHER, name=<type>)` and does not
       raise. `metadata.attachments` adds `FILE` markers with names. `is_visually_hidden_from_conversation`
       omits the node as `hidden`, whatever its type
-- [X] T021 [US3] Implement the R5 table in `src/hermes_memory/ingestion/chatgpt/content.py`. Makes
+- [X] T021 [US3] Implement the R5 table in `src/engineering_memory/ingestion/chatgpt/content.py`. Makes
       T020 pass
 - [X] T022 [P] [US3] Extend `tests/unit/test_chatgpt_content.py` with tool folding first and observe
       it fail (research R6). An assistant message with `recipient="python"` followed by a `tool`
@@ -187,7 +187,7 @@ result, an image and an unknown type produces the expected turns, markers and co
       node keeps `result is None`. A call followed by a tool node of a different name keeps
       `result is None`, and that tool node stays a `TOOL` turn. A lone tool node stays a `TOOL` turn
 - [X] T023 [US3] Implement `fold_turns(thread_messages) -> (tuple[Message, ...], folded_count)` in
-      `src/hermes_memory/ingestion/chatgpt/content.py`. Makes T022 pass
+      `src/engineering_memory/ingestion/chatgpt/content.py`. Makes T022 pass
 - [X] T024 [P] [US3] Write the `ThreadAccount` tests in `tests/unit/test_chatgpt_conversation.py`
       first and observe them fail. Constructing one whose counts do not sum to the mapping size
       raises. For each fixture in the file, `turns + folded_tool_results + structural + hidden +
@@ -199,7 +199,7 @@ result, an image and an unknown type produces the expected turns, markers and co
       `abandoned_branch` as "`int` ≥ 0"; `fallback_branch`, `start_from_messages`,
       `inconsistent_times` as `bool`; `unrecognized_content_types: tuple[str, ...]` "sorted,
       distinct"; the sum invariant) and `ReadConversation(conversation, account)` in
-      `src/hermes_memory/ingestion/chatgpt/conversation.py`, and have `parse_record` fill them.
+      `src/engineering_memory/ingestion/chatgpt/conversation.py`, and have `parse_record` fill them.
       Makes T024 pass
 - [X] T026 [P] [US3] Extend `tests/unit/test_chatgpt_source.py` first and observe it fail. Reading
       emits exactly one `chatgpt.conversation.read` event per yielded conversation, carrying the
@@ -207,8 +207,8 @@ result, an image and an unknown type produces the expected turns, markers and co
       Capture events with `structlog.testing.capture_logs`. Over a fixture whose title and texts
       contain a unique marker string, no captured event contains that marker anywhere (CG-9,
       Principle V)
-- [X] T027 [US3] Emit the event via `hermes_memory.observability.get_logger` in
-      `src/hermes_memory/ingestion/chatgpt/source.py` (research R9). Makes T026 pass
+- [X] T027 [US3] Emit the event via `engineering_memory.observability.get_logger` in
+      `src/engineering_memory/ingestion/chatgpt/source.py` (research R9). Makes T026 pass
 
 **Checkpoint**: every node is accounted for, and the log is content-free.
 
@@ -233,8 +233,8 @@ unreachable and non-export paths raise the right kind.
       text appears in neither `str(error)` nor `error.message` (CG-13), and the error is a
       `BoundaryError` (CS-7)
 - [X] T029 [US4] Implement failure translation per the research R10 table in
-      `src/hermes_memory/ingestion/chatgpt/conversation.py` and
-      `src/hermes_memory/ingestion/chatgpt/source.py`: a seen-id set per `read()`; `ValidationError`
+      `src/engineering_memory/ingestion/chatgpt/conversation.py` and
+      `src/engineering_memory/ingestion/chatgpt/source.py`: a seen-id set per `read()`; `ValidationError`
       rendered from `error["type"]` and `error["loc"]` only; every cause chained with `from`; after
       an export-level failure the iterator is exhausted. Makes T028 pass
 
@@ -271,7 +271,7 @@ reports 7 passed and 0 skipped.
 - [X] T032 [P] Add `ingestion.chatgpt` to the `FILLED_BOUNDARIES` docstring in
       `tests/structure/test_module_layout.py`, naming 008-chatgpt-export-source and stating that
       `ingestion` already covers it by prefix. No code change to the set
-- [X] T033 [P] Update `src/hermes_memory/ingestion/__init__.py` docstring: #10's ChatGPT
+- [X] T033 [P] Update `src/engineering_memory/ingestion/__init__.py` docstring: #10's ChatGPT
       implementation lives in `ingestion.chatgpt` and is deliberately not re-exported here (T002)
 - [X] T034 Run the whole [quickstart.md](./quickstart.md) sections 1–4
       (`uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`), and record the

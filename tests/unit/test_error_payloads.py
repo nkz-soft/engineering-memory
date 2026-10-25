@@ -16,16 +16,16 @@ import inspect
 
 import pytest
 
-from hermes_memory.archive import ArchiveDocumentNotFound, ArchiveRejected, ArchiveUnavailable
-from hermes_memory.errors import BoundaryError
-from hermes_memory.ingestion import (
+from engineering_memory.archive import ArchiveDocumentNotFound, ArchiveRejected, ArchiveUnavailable
+from engineering_memory.errors import BoundaryError
+from engineering_memory.ingestion import (
     ImportStateCorrupt,
     ImportStateUnavailable,
     SourceFormatError,
     SourceUnavailable,
 )
-from hermes_memory.memory.interface import MemoryStoreRejected, MemoryStoreUnavailable
-from hermes_memory.sanitization import SanitizationError
+from engineering_memory.memory.interface import MemoryStoreRejected, MemoryStoreUnavailable
+from engineering_memory.sanitization import SanitizationError
 
 SECRET = "hunter2"
 CONTENT = "We moved the saga to Wolverine in March."

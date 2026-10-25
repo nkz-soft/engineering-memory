@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.normalization import (
+from engineering_memory.normalization import (
     Conversation,
     Message,
     NonTextKind,
@@ -260,7 +260,7 @@ def test_the_document_id_is_stable_across_processes() -> None:
             sys.executable,
             "-c",
             "from datetime import UTC, datetime\n"
-            "from hermes_memory.normalization import Conversation, Source\n"
+            "from engineering_memory.normalization import Conversation, Source\n"
             "print(Conversation(source=Source.CHATGPT, source_id='conversation-id',"
             " started_at=datetime(2026, 1, 1, 9, tzinfo=UTC)).document_id)",
         ],

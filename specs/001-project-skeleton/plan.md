@@ -9,7 +9,7 @@ issue #4 (Phase 1, wave 1; blocks #5, #6, #7, #8).
 
 Create the Python project skeleton so that the boundaries of ADR-004 exist before any code fills
 them: `uv` with a committed lock file on Python 3.13, the recorded module tree under
-`src/hermes_memory/`, Ruff as linter and formatter, pytest, and one GitHub Actions workflow running
+`src/engineering_memory/`, Ruff as linter and formatter, pytest, and one GitHub Actions workflow running
 all of it on every pull request.
 
 The approach has one idea in it beyond the obvious. The module layout is not re-typed into a test —
@@ -96,7 +96,7 @@ reasoning is in [research.md](research.md); the summary:
 |---|---|
 | **Let the first feature create whatever structure it needs** (the issue's alternative) | The layout is a decision already recorded in ADR-004. Re-deriving it per feature is how a module ends up importing Hindsight from the wrong side of Principle IV — and by the time that shows up, three features have each built half a layout and the cost of reconciling them is paid in rewrites rather than in one afternoon of scaffolding. |
 | `engineering_memory` as the import package name (R1) | A third name for one system, for the sake of a label in a diagram that was never a package name. |
-| Flat layout instead of `src/` (R1) | Makes `import hermes_memory` succeed regardless of whether packaging is correct, so the first packaging defect surfaces in Docker instead of in CI. |
+| Flat layout instead of `src/` (R1) | Makes `import engineering_memory` succeed regardless of whether packaging is correct, so the first packaging defect surfaces in Docker instead of in CI. |
 | Black + Flake8 + isort instead of Ruff (R2) | Three dependencies and three configurations where one suffices, and slower on every run. |
 | Adding a type checker now (R2) | ADR-004 states maximum static typing is explicitly not the target. A later decision with its own justification, not a silent addition. |
 | Hard-coding the expected module list in the test (R3) | A second source of truth for a decision the constitution already records; the check would only prove the two copies matched each other. |
@@ -131,7 +131,7 @@ uv.lock                      # Committed, exact resolution
 .python-version              # 3.13
 
 src/
-└── hermes_memory/
+└── engineering_memory/
     ├── __init__.py
     ├── api/
     ├── cli/
@@ -160,7 +160,7 @@ tests/
 README.md                    # Development section: the three commands and the Python version
 ```
 
-**Structure Decision**: single Python package under `src/`, named `hermes_memory` after the
+**Structure Decision**: single Python package under `src/`, named `engineering_memory` after the
 repository (R1). Its subpackages are exactly the module tree recorded in the constitution's
 Technology Stack section and ADR-004 — no more, no fewer — and the layout test enforces both
 directions. Tests live in a top-level `tests/` outside the package, grouped by what they are about;

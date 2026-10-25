@@ -72,7 +72,7 @@ uv run pytest tests/unit/test_project_rules.py -v
 See the difference yourself — the distinction FR-012a exists for:
 
 ```bash
-uv run python -c "from pathlib import Path; from hermes_memory.classification import load_project_rules; load_project_rules(Path('data/projects.toml'), required=False)"
+uv run python -c "from pathlib import Path; from engineering_memory.classification import load_project_rules; load_project_rules(Path('data/projects.toml'), required=False)"
 ```
 
 Expected: a JSON warning record on standard error naming `data/projects.toml`, stating that this
@@ -80,7 +80,7 @@ run will classify everything as `project:unknown`, and stating that a re-import 
 conversation so those tags stay. Nothing raised, and an empty rule set returned.
 
 ```bash
-uv run python -c "from pathlib import Path; from hermes_memory.classification import load_project_rules; load_project_rules(Path('nowhere.toml'), required=True)"
+uv run python -c "from pathlib import Path; from engineering_memory.classification import load_project_rules; load_project_rules(Path('nowhere.toml'), required=True)"
 ```
 
 Expected: `ProjectRulesError` naming `nowhere.toml` and telling the reader they may unset the
@@ -136,4 +136,4 @@ uv run ruff format --check .
 ```
 
 Expected: all green. The structure test that keeps `.env.example` and the settings object in step
-(#5) is what fails if `HERMES_PROJECT_RULES_PATH` was added to one and not the other.
+(#5) is what fails if `ENGINEERING_MEMORY_PROJECT_RULES_PATH` was added to one and not the other.

@@ -15,15 +15,15 @@ from collections.abc import Iterator
 
 import pytest
 
-from hermes_memory.archive import OriginalPayload
-from hermes_memory.errors import BoundaryError
-from hermes_memory.ingestion import (
+from engineering_memory.archive import OriginalPayload
+from engineering_memory.errors import BoundaryError
+from engineering_memory.ingestion import (
     ConversationSource,
     SourceConversation,
     SourceFormatError,
     SourceUnavailable,
 )
-from hermes_memory.normalization import Conversation
+from engineering_memory.normalization import Conversation
 from tests.contracts import conversations
 
 

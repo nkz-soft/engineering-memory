@@ -27,7 +27,7 @@ cannot be observed passing cannot be observed failing either.
 
 ## Path Conventions
 
-Single project: `src/hermes_memory/`, `tests/` at repository root, per
+Single project: `src/engineering_memory/`, `tests/` at repository root, per
 [plan.md](plan.md) § Project Structure.
 
 ---
@@ -165,7 +165,7 @@ container exits 0.
 ### Tests for User Story 4 ⚠️ write first, observe failing
 
 - [ ] T026 [P] [US4] Write check P1 in `tests/structure/test_packaging.py`: `pyproject.toml`
-      declares the console script `hermes-memory` pointing into `hermes_memory.cli`
+      declares the console script `engineering-memory` pointing into `engineering_memory.cli`
 - [ ] T027 [P] [US4] Write checks P2 and P3 in `tests/unit/test_cli.py`: invoking the application
       with `--help` exits 0 and prints usage text naming the application; and the application
       registers **no** behavioural command — the command list is empty (FR-022)
@@ -185,14 +185,14 @@ container exits 0.
 ### Implementation for User Story 4
 
 - [ ] T032 [US4] Add `typer` to the runtime dependencies in `pyproject.toml`, declare
-      `[project.scripts] hermes-memory = "hermes_memory.cli:main"`, and re-resolve `uv.lock` with
+      `[project.scripts] engineering-memory = "engineering_memory.cli:main"`, and re-resolve `uv.lock` with
       `uv lock`
 - [ ] T033 [US4] Update `test_runtime_dependencies_are_exactly_the_declared_set` in
       `tests/structure/test_packaging.py` to guard six dependencies, naming the stack table's CLI
       row in the docstring as the authority for `typer` (check P4, research R14)
 - [ ] T034 [US4] Record `cli` in `FILLED_BOUNDARIES` in `tests/structure/test_module_layout.py`,
       with the one-line note naming this feature, so the remaining boundaries stay guarded
-- [ ] T035 [US4] Implement the Typer application in `src/hermes_memory/cli/__init__.py`: an app with
+- [ ] T035 [US4] Implement the Typer application in `src/engineering_memory/cli/__init__.py`: an app with
       a help description, a `--version` option and `main()` as the console-script target. No
       behavioural command — FR-022, enforced by check P3
 - [ ] T036 [P] [US4] Create `.dockerignore` excluding `.git`, `tests/`, `specs/`, `data/`,
@@ -200,7 +200,7 @@ container exits 0.
 - [ ] T037 [US4] Create `Dockerfile`: a builder stage running
       `uv sync --locked --no-dev --no-editable`, and a `python:3.13-slim-bookworm` runtime stage
       copying the virtual environment, creating and switching to a non-root user, with
-      `ENTRYPOINT ["hermes-memory"]` and `CMD ["--help"]` (research R9, R10)
+      `ENTRYPOINT ["engineering-memory"]` and `CMD ["--help"]` (research R9, R10)
 - [ ] T038 [US4] Add the `image` job to `.github/workflows/ci.yml`: build, then run the image and
       assert the usage text appears in its output. No registry login, no push
 - [ ] T039 [US4] Extend `test_runs_every_check_in_the_contract` with C6 and C7 (check X1)

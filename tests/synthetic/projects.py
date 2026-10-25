@@ -10,7 +10,7 @@ boundary table of US5 and the matcher's own mechanism tests — and a second cop
 
 from __future__ import annotations
 
-from hermes_memory.classification import ProjectRule, ProjectRuleSet
+from engineering_memory.classification import ProjectRule, ProjectRuleSet
 
 ALIAS = "orchard-pipeline"
 """A hyphenated alias. The hyphen is the interesting part: it is a word character here, which is

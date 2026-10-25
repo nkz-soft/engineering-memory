@@ -11,9 +11,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from hermes_memory.ingestion import ImportStatus, SourceConversation
-from hermes_memory.memory.interface import MemoryStore, RecallResult
-from hermes_memory.normalization import (
+from engineering_memory.ingestion import ImportStatus, SourceConversation
+from engineering_memory.memory.interface import MemoryStore, RecallResult
+from engineering_memory.normalization import (
     AnyTag,
     Conversation,
     EnrichedConversation,
@@ -23,7 +23,7 @@ from hermes_memory.normalization import (
     Source,
     ToolActivity,
 )
-from hermes_memory.sanitization import (
+from engineering_memory.sanitization import (
     PatternSecretSanitizer,
     RedactionReport,
     SecretSanitizer,
@@ -53,7 +53,7 @@ def assemble(
     return Pipeline(
         source=InMemoryConversationSource(conversations_read, unreadable=unreadable),
         sanitizer=InMemorySecretSanitizer(conversations.FAKE_SECRET),
-        classifier=InMemoryProjectClassifier({"wolverine": "hermes-memory"}),
+        classifier=InMemoryProjectClassifier({"wolverine": "engineering-memory"}),
         archive=archive or InMemoryRawArchive(),
         store=store or InMemoryMemoryStore(),
         state=state or InMemoryImportState(),
@@ -386,7 +386,7 @@ def run_with(sanitizer: SecretSanitizer, store: RecordingMemoryStore) -> None:
     Pipeline(
         source=InMemoryConversationSource(read(a_conversation_carrying_a_real_shaped_secret())),
         sanitizer=sanitizer,
-        classifier=InMemoryProjectClassifier({"gitlab": "hermes-memory"}),
+        classifier=InMemoryProjectClassifier({"gitlab": "engineering-memory"}),
         archive=InMemoryRawArchive(),
         store=store,
         state=InMemoryImportState(),

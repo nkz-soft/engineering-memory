@@ -21,7 +21,7 @@ branch is in.
 
 ## Path Conventions
 
-Single project: `src/hermes_memory/`, `tests/` at repository root, per
+Single project: `src/engineering_memory/`, `tests/` at repository root, per
 [plan.md](./plan.md#source-code-repository-root).
 
 ---
@@ -54,7 +54,7 @@ or `memory/interface/`.
       that no constructor accepts and no instance can rebind (E3, FR-014); an error carries
       `boundary`, `subject` and `message` and nothing else (E4, FR-015); no error timestamps itself
       (E6)
-- [x] T005 Create `src/hermes_memory/errors.py` with `BoundaryError`, `TransientBoundaryError` and
+- [x] T005 Create `src/engineering_memory/errors.py` with `BoundaryError`, `TransientBoundaryError` and
       `PermanentBoundaryError` per [data-model.md](./data-model.md#the-errors--errorspy-and-the-boundary-modules),
       making T004 pass (research R3, R4)
 - [x] T006 Narrow the behaviour guard in `tests/structure/test_module_layout.py`: `FILLED_BOUNDARIES`
@@ -90,29 +90,29 @@ declaration alone and have it type-check and run — which US2 then does six tim
       with none redacted is absent rather than zero; `is_empty` and `total` behave; `ImportRecord.error`
       is present only for `failed`; `OriginalPayload.media_type` is non-empty; `RecallResult.score`
       is optional (data-model.md)
-- [x] T010 [P] [US1] Create `src/hermes_memory/ingestion/source.py`: `ConversationSource` protocol
+- [x] T010 [P] [US1] Create `src/engineering_memory/ingestion/source.py`: `ConversationSource` protocol
       (`source: Source`, `read() -> Iterator[SourceConversation]`), `SourceFormatError` (permanent) and
       `SourceUnavailable` (transient), documented against §8 and §18
-- [x] T011 [P] [US1] Create `src/hermes_memory/sanitization/sanitizer.py`: `SecretSanitizer`
+- [x] T011 [P] [US1] Create `src/engineering_memory/sanitization/sanitizer.py`: `SecretSanitizer`
       protocol (`sanitize(conversation) -> tuple[Conversation, RedactionReport]`), `RedactionReport`,
       `RedactionCategory` seeded with §13's minimum list — `api-key`, `bearer-token`, `jwt`,
       `github-token`, `gitlab-token`, `anthropic-key`, `openai-key`, `aws-access-key`,
       `private-key`, `password`, `connection-string`, `dotenv-value`, `kubernetes-secret` — and
       `SanitizationError` (permanent). The report carries counts only, never a value or an offset
       (research R6, Principle V)
-- [x] T012 [P] [US1] Create `src/hermes_memory/classification/classifier.py`: `ProjectClassifier`
+- [x] T012 [P] [US1] Create `src/engineering_memory/classification/classifier.py`: `ProjectClassifier`
       protocol (`classify(conversation) -> ProjectTag`) and `UNKNOWN_PROJECT`. No error type is
       declared, and the docstring says why (E8, §15, research R7)
-- [x] T013 [P] [US1] Create `src/hermes_memory/archive/interface.py`: `RawArchive` protocol
+- [x] T013 [P] [US1] Create `src/engineering_memory/archive/interface.py`: `RawArchive` protocol
       (`store(enriched, original)`, `load(document_id)`, `load_original(document_id)`),
       `OriginalPayload` (`content: bytes`, `media_type`), `ArchiveDocumentNotFound` and
       `ArchiveRejected` (permanent), `ArchiveUnavailable` (transient) (research R8, Principle I)
-- [x] T014 [P] [US1] Create `src/hermes_memory/memory/interface/store.py`: `MemoryStore` protocol
+- [x] T014 [P] [US1] Create `src/engineering_memory/memory/interface/store.py`: `MemoryStore` protocol
       (`retain(enriched)`, `recall(query, tags=(), limit=None)`), `RecallResult`
       (`content`, `provenance`, `score: float | None`), `MemoryStoreRejected` (permanent) and
       `MemoryStoreUnavailable` (transient). No name in the module is a Hindsight term (FR-009,
       research R9)
-- [x] T015 [P] [US1] Create `src/hermes_memory/ingestion/state.py`: `ImportState` protocol
+- [x] T015 [P] [US1] Create `src/engineering_memory/ingestion/state.py`: `ImportState` protocol
       (`record(record)`, `find(source, source_id) -> ImportRecord | None`), `ImportRecord`,
       `ImportStatus` (`imported`/`skipped`/`failed`), `may_skip`, `ImportStateCorrupt` (permanent)
       and `ImportStateUnavailable` (transient), making T008 pass (research R10)
@@ -315,12 +315,12 @@ been red (Principle III).
 
 ```bash
 # The six declarations, once T005 and T006 are in place:
-Task: "Create src/hermes_memory/ingestion/source.py"
-Task: "Create src/hermes_memory/sanitization/sanitizer.py"
-Task: "Create src/hermes_memory/classification/classifier.py"
-Task: "Create src/hermes_memory/archive/interface.py"
-Task: "Create src/hermes_memory/memory/interface/store.py"
-Task: "Create src/hermes_memory/ingestion/state.py"
+Task: "Create src/engineering_memory/ingestion/source.py"
+Task: "Create src/engineering_memory/sanitization/sanitizer.py"
+Task: "Create src/engineering_memory/classification/classifier.py"
+Task: "Create src/engineering_memory/archive/interface.py"
+Task: "Create src/engineering_memory/memory/interface/store.py"
+Task: "Create src/engineering_memory/ingestion/state.py"
 ```
 
 ---

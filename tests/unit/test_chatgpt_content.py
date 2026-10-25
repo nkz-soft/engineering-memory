@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.ingestion.chatgpt.content import fold_tool_calls, read_message
-from hermes_memory.normalization import NonTextKind, NonTextPart, Role, ToolActivity
+from engineering_memory.ingestion.chatgpt.content import fold_tool_calls, read_message
+from engineering_memory.normalization import NonTextKind, NonTextPart, Role, ToolActivity
 from tests.synthetic import chatgpt_export as synth
 
 

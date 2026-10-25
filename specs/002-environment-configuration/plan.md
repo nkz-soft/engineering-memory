@@ -8,7 +8,7 @@ GitHub issue #5 (Phase 1, wave 2; depends on #4, merged as PR #33).
 ## Summary
 
 Give the project exactly one place a configured value comes from: a `Settings` object built on
-Pydantic v2 through `pydantic-settings`, populated from `HERMES_`-prefixed environment variables and
+Pydantic v2 through `pydantic-settings`, populated from `ENGINEERING_MEMORY_`-prefixed environment variables and
 an optional untracked `.env`, covering the Hindsight endpoint and credential, the bank id, the
 OpenAI-compatible LLM endpoint and credential, the raw archive root and the import-state location.
 Credentials are `SecretStr`, so a value cannot reach a log, a `repr` or a serialized payload by
@@ -152,7 +152,7 @@ uv.lock                            # Re-resolved, committed
 README.md                          # + a Configuration section
 
 src/
-└── hermes_memory/
+└── engineering_memory/
     └── settings.py                # Settings, HindsightSettings, LlmSettings, load_settings()
 
 tests/
@@ -168,7 +168,7 @@ tests/
     └── test_settings_example.py   # .env.example agrees with the class, both directions
 ```
 
-**Structure Decision**: the settings are a top-level module, `src/hermes_memory/settings.py`, not a
+**Structure Decision**: the settings are a top-level module, `src/engineering_memory/settings.py`, not a
 package (R1). The constitution's module tree records the boundaries of ARCHITECTURE.md §8;
 configuration is consumed by all of them and owned by none, so adding a sixteenth package would
 misrepresent it and would require amending a binding document. The existing layout check already

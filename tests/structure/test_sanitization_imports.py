@@ -6,7 +6,8 @@ So the allowlist here is the interface's, widened by nothing at all — a saniti
 rewrites, the error taxonomy, `re`, and its own siblings.
 
 It is deliberately narrower than the ChatGPT source's sibling guard: this package does not log
-(specs/009-secret-sanitizer/research.md R8), so `hermes_memory.observability` is absent from the
+(specs/009-secret-sanitizer/research.md R8), so `engineering_memory.observability` is absent from
+the
 list, and an import of it fails this test rather than passing unnoticed.
 """
 
@@ -18,14 +19,14 @@ from pathlib import Path
 from tests.structure.test_boundary_interfaces import FORBIDDEN_AT_RUNTIME, imported_roots
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE = REPO_ROOT / "src" / "hermes_memory" / "sanitization"
+PACKAGE = REPO_ROOT / "src" / "engineering_memory" / "sanitization"
 
 ALLOWED_THIRD_PARTY = frozenset({"pydantic"})
 
 ALLOWED_INTERNAL = (
-    "hermes_memory.errors",
-    "hermes_memory.normalization",
-    "hermes_memory.sanitization",
+    "engineering_memory.errors",
+    "engineering_memory.normalization",
+    "engineering_memory.sanitization",
 )
 
 
@@ -71,10 +72,10 @@ def test_the_sanitizer_imports_only_what_it_may() -> None:
 
 def test_the_guard_still_bites(tmp_path: Path) -> None:
     (tmp_path / "leak.py").write_text(
-        "import httpx\nimport hermes_memory.observability\n", encoding="utf-8"
+        "import httpx\nimport engineering_memory.observability\n", encoding="utf-8"
     )
 
     assert _offenders(tmp_path) == [
-        "leak.py: hermes_memory.observability",
+        "leak.py: engineering_memory.observability",
         "leak.py: httpx",
     ]

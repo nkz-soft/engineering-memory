@@ -33,10 +33,10 @@ input is a conversation in the normalized model of #8, and the rules are fixture
 
 ### User Story 1 - Conversations about a known project are found under that project (Priority: P1)
 
-Someone who has worked on `hermes-memory` for a year calls it, across their history, by its
+Someone who has worked on `engineering-memory` for a year calls it, across their history, by its
 repository name, by the path they keep it at, and by the two shorthand names they actually type.
 They configure those names once. From then on every conversation that mentions any of them is
-retained under `project:hermes-memory`, and a recall narrowed to that project returns them.
+retained under `project:engineering-memory`, and a recall narrowed to that project returns them.
 
 **Why this priority**: It is the whole value of the feature and the only thing that makes the
 shared bank of ADR-002 narrowable. Without it, `project:` is a tag with one value.
@@ -47,15 +47,15 @@ them come back as that project's tag.
 
 **Acceptance Scenarios**:
 
-1. **Given** a rule set in which `hermes-memory` declares the aliases `hermes-memory`,
-   `nkz-soft/hermes-memory` and `engineering memory`, **When** a conversation whose title contains
-   `nkz-soft/hermes-memory` is classified, **Then** the result is `project:hermes-memory`.
+1. **Given** a rule set in which `engineering-memory` declares the aliases `engineering-memory`,
+   `nkz-soft/engineering-memory` and `engineering memory`, **When** a conversation whose title contains
+   `nkz-soft/engineering-memory` is classified, **Then** the result is `project:engineering-memory`.
 2. **Given** the same rule set, **When** the alias appears in a message's text rather than the
    title, **Then** the result is the same.
 3. **Given** the same rule set, **When** the alias appears in a tool activity's request or result,
    or in an attachment's name, **Then** the result is the same.
-4. **Given** an alias written in a different case to the rule — `Hermes-Memory` against
-   `hermes-memory` — **When** the conversation is classified, **Then** it still matches.
+4. **Given** an alias written in a different case to the rule — `engineering-memory` against
+   `engineering-memory` — **When** the conversation is classified, **Then** it still matches.
 
 ---
 
@@ -184,9 +184,9 @@ does not match when it is embedded in a longer word.
 **Acceptance Scenarios**:
 
 1. **Given** the alias `nz`, **When** a conversation mentions `nzxt`, **Then** it does not match.
-2. **Given** the alias `nz`, **When** a conversation mentions `nz/hermes-memory` or `the nz repo`,
+2. **Given** the alias `nz`, **When** a conversation mentions `nz/engineering-memory` or `the nz repo`,
    **Then** it matches.
-3. **Given** the alias `hermes-memory`, **When** a conversation mentions `hermes-memory-ui`,
+3. **Given** the alias `engineering-memory`, **When** a conversation mentions `engineering-memory-ui`,
    **Then** it does not match that alias.
 4. **Given** a multi-word alias such as `engineering memory`, **When** a conversation contains those
    words separated by a line break or by repeated spaces, **Then** it matches.
@@ -242,7 +242,7 @@ and assert the second is consulted only for the conversations the first resolved
 - **A very long conversation** — a dumped manifest, a pasted log of tens of thousands of lines.
   Classification is proportional to the text and does not degrade the run.
 - **A conversation whose only evidence is in a non-text part's name**, such as an attached
-  `hermes-memory-architecture.pdf`.
+  `engineering-memory-architecture.pdf`.
 - **Unicode in aliases and in content** — a project named with non-ASCII characters, or content in
   which the alias is adjacent to a non-ASCII character. Case folding and boundaries behave for text
   that is not ASCII.

@@ -92,7 +92,7 @@ The token is assembled rather than written out, so that no line of this reposito
 credential-shaped literal for a scanner — or a reader — to mistake for one.
 
 ```bash
-uv run python -c "from hermes_memory.sanitization import PatternSecretSanitizer as S; t='glpat-'+'0'*19+'A'; print(S().redact_text(f'GitLab request using token {t} returned HTTP 401 Unauthorized')[0])"
+uv run python -c "from engineering_memory.sanitization import PatternSecretSanitizer as S; t='glpat-'+'0'*19+'A'; print(S().redact_text(f'GitLab request using token {t} returned HTTP 401 Unauthorized')[0])"
 ```
 
 Expected: `GitLab request using token [REDACTED] returned HTTP 401 Unauthorized` — §13's example,

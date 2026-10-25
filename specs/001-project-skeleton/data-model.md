@@ -16,12 +16,12 @@ The declaration of the project and its tooling. Single instance, at the reposito
 
 | Field | Value for this feature | Constraint |
 |---|---|---|
-| `project.name` | `hermes-memory` | Matches the repository name (R1) |
+| `project.name` | `engineering-memory` | Matches the repository name (R1) |
 | `project.requires-python` | `==3.13.*` | Fixed by the constitution's Technology Stack table |
 | `project.version` | `0.1.0` | Placeholder; nothing consumes it yet |
 | `project.dependencies` | empty | The skeleton adds no runtime dependency (FR-011) |
 | dependency group `dev` | `pytest`, `ruff` | The only tools the checks need |
-| build backend | one entry, `src/` layout | Makes `src/hermes_memory` the installed package |
+| build backend | one entry, `src/` layout | Makes `src/engineering_memory` the installed package |
 | `[tool.ruff]` | line length, target version, rule selection | Single configuration for lint and format |
 | `[tool.pytest.ini_options]` | test paths, strict markers, strict config | Keeps a mistyped marker or option an error |
 
@@ -42,7 +42,7 @@ mechanism behind the spec's second edge case.
 
 ### Module
 
-A package directory under `src/hermes_memory/`, one per entry in the recorded module layout.
+A package directory under `src/engineering_memory/`, one per entry in the recorded module layout.
 
 | Attribute | Description |
 |---|---|

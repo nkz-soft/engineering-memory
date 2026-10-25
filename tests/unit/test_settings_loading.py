@@ -15,11 +15,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from hermes_memory.settings import Settings, SettingsError, load_settings
+from engineering_memory.settings import Settings, SettingsError, load_settings
 
 COMPLETE_ENV_FILE = """\
-HERMES_HINDSIGHT__BASE_URL=http://from-file:8088
-HERMES_LLM__BASE_URL=http://from-file:4000/v1
+ENGINEERING_MEMORY_HINDSIGHT__BASE_URL=http://from-file:8088
+ENGINEERING_MEMORY_LLM__BASE_URL=http://from-file:4000/v1
 """
 
 
@@ -52,7 +52,7 @@ def test_the_environment_beats_the_env_file(complete_environment: dict[str, str]
 
 def test_the_env_file_beats_a_default(env_file) -> None:
     """A defaulted setting is still settable from the file (FR-003)."""
-    contents = COMPLETE_ENV_FILE + "HERMES_HINDSIGHT__BANK_ID=scratch\n"
+    contents = COMPLETE_ENV_FILE + "ENGINEERING_MEMORY_HINDSIGHT__BANK_ID=scratch\n"
 
     assert load_settings(env_file=env_file(contents)).hindsight.bank_id == "scratch"
 
@@ -68,14 +68,14 @@ def test_a_malformed_env_file_fails_loudly(complete_environment: dict[str, str],
     """A typo in the file must not be indistinguishable from the file being absent.
 
     The dotenv parser underneath is lenient and skips a line it cannot read, which would let
-    ``HERMES_HINDSIGHT__BANK_ID scratch`` — a missing equals sign — silently do nothing.
+    ``ENGINEERING_MEMORY_HINDSIGHT__BANK_ID scratch`` — a missing equals sign — silently do nothing.
     """
-    contents = COMPLETE_ENV_FILE + "HERMES_HINDSIGHT__BANK_ID scratch\n"
+    contents = COMPLETE_ENV_FILE + "ENGINEERING_MEMORY_HINDSIGHT__BANK_ID scratch\n"
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=env_file(contents))
 
-    assert "HERMES_HINDSIGHT__BANK_ID scratch" in str(failure.value)
+    assert "ENGINEERING_MEMORY_HINDSIGHT__BANK_ID scratch" in str(failure.value)
 
 
 def test_comments_and_blank_lines_in_the_env_file_are_fine(env_file) -> None:
@@ -90,7 +90,7 @@ def test_unrelated_environment_variables_are_ignored(
 ) -> None:
     """An environment shared with other tools must not break this one (US2 scenario 5)."""
     monkeypatch.setenv("PATH_TO_SOMETHING_ELSE", "whatever")
-    monkeypatch.setenv("HERMES_SOMETHING_WE_DO_NOT_READ", "whatever")
+    monkeypatch.setenv("ENGINEERING_MEMORY_SOMETHING_WE_DO_NOT_READ", "whatever")
 
     assert load_settings(env_file=None).hindsight.bank_id == "engineering-global"
 
@@ -106,9 +106,9 @@ def test_defaults_are_the_recorded_ones(complete_environment: dict[str, str]) ->
 
 def test_an_unset_secret_is_none_not_an_empty_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     """An empty credential is not a credential — it is an absent one (spec edge case)."""
-    monkeypatch.setenv("HERMES_HINDSIGHT__BASE_URL", "http://localhost:8088")
-    monkeypatch.setenv("HERMES_LLM__BASE_URL", "http://localhost:4000/v1")
-    monkeypatch.setenv("HERMES_HINDSIGHT__TOKEN", "   ")
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL", "http://localhost:8088")
+    monkeypatch.setenv("ENGINEERING_MEMORY_LLM__BASE_URL", "http://localhost:4000/v1")
+    monkeypatch.setenv("ENGINEERING_MEMORY_HINDSIGHT__TOKEN", "   ")
 
     settings = load_settings(env_file=None)
 
@@ -137,7 +137,7 @@ def test_an_unreadable_env_file_raises_the_boundary_error(tmp_path) -> None:
     frames hold the contents of a file full of credentials.
     """
     path = tmp_path / ".env"
-    path.write_bytes(b"HERMES_HINDSIGHT__BASE_URL=\xff\xfe\x00binary\n")
+    path.write_bytes(b"ENGINEERING_MEMORY_HINDSIGHT__BASE_URL=\xff\xfe\x00binary\n")
 
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=path)

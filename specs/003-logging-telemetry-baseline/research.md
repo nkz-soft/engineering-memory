@@ -9,7 +9,7 @@ rules a caller has to remember.
 ## R1 — Where the baseline lives
 
 **Decision**: inside the existing `observability` package, as
-`src/hermes_memory/observability/`, with the public surface re-exported from its `__init__.py`:
+`src/engineering_memory/observability/`, with the public surface re-exported from its `__init__.py`:
 
 ```text
 observability/
@@ -252,8 +252,8 @@ introduce the SDK anyway.
 
 | Variable | Type | Default |
 |---|---|---|
-| `HERMES_LOGGING__LEVEL` | one of the standard level names | `INFO` |
-| `HERMES_LOGGING__INCLUDE_CONVERSATION_CONTENT` | boolean | `false` |
+| `ENGINEERING_MEMORY_LOGGING__LEVEL` | one of the standard level names | `INFO` |
+| `ENGINEERING_MEMORY_LOGGING__INCLUDE_CONVERSATION_CONTENT` | boolean | `false` |
 
 Both are added to `.env.example`, which 002's check compares against the declared settings in both
 directions, so omitting them fails the suite (FR-022).
@@ -264,7 +264,7 @@ with no change to `settings.py` beyond the group itself. The group needs no entr
 `_always_descend_into_the_groups`, because every field has a default and an absent group is
 therefore valid — unlike `hindsight` and `llm`, where the descent exists to name a missing leaf.
 
-**Alternatives considered**: a `HERMES_LOG_LEVEL` flat variable — rejected, it breaks the grouping
+**Alternatives considered**: a `ENGINEERING_MEMORY_LOG_LEVEL` flat variable — rejected, it breaks the grouping
 convention 002 set. Naming the flag `DEBUG` — rejected: it reads as a level and would be set by
 someone wanting verbosity, not by someone consenting to conversation text in their terminal. The
 name has to say what it does.

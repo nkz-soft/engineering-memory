@@ -12,14 +12,14 @@ from pathlib import Path
 
 import pytest
 
-from hermes_memory.settings import PROJECT_ROOT, SettingsError, load_settings
+from engineering_memory.settings import PROJECT_ROOT, SettingsError, load_settings
 
 
 def test_relative_paths_resolve_against_the_project_root(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """FR-013 — the default `data/archive` means one directory, not one per caller."""
-    monkeypatch.setenv("HERMES_ARCHIVE_ROOT", "data/archive")
+    monkeypatch.setenv("ENGINEERING_MEMORY_ARCHIVE_ROOT", "data/archive")
 
     settings = load_settings(env_file=None)
 
@@ -31,7 +31,7 @@ def test_resolution_does_not_depend_on_the_working_directory(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """The same configuration means the same location wherever the command was started."""
-    monkeypatch.setenv("HERMES_ARCHIVE_ROOT", "data/archive")
+    monkeypatch.setenv("ENGINEERING_MEMORY_ARCHIVE_ROOT", "data/archive")
 
     from_here = load_settings(env_file=None).archive_root
 
@@ -50,7 +50,7 @@ def test_absolute_paths_are_preserved(
     nothing.
     """
     elsewhere = tmp_path / "archives"
-    monkeypatch.setenv("HERMES_ARCHIVE_ROOT", str(elsewhere))
+    monkeypatch.setenv("ENGINEERING_MEMORY_ARCHIVE_ROOT", str(elsewhere))
 
     assert load_settings(env_file=None).archive_root == elsewhere
 
@@ -59,7 +59,7 @@ def test_both_path_settings_are_resolved(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The import-state location gets the same treatment as the archive root."""
-    monkeypatch.setenv("HERMES_IMPORT_STATE_PATH", "data/import-state.db")
+    monkeypatch.setenv("ENGINEERING_MEMORY_IMPORT_STATE_PATH", "data/import-state.db")
 
     settings = load_settings(env_file=None)
 
@@ -71,8 +71,8 @@ def test_loading_creates_nothing(
     complete_environment: dict[str, str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """FR-012, SC-007 — the call has no side effects, so it is safe behind `--help`."""
-    monkeypatch.setenv("HERMES_ARCHIVE_ROOT", str(tmp_path / "archive"))
-    monkeypatch.setenv("HERMES_IMPORT_STATE_PATH", str(tmp_path / "state.db"))
+    monkeypatch.setenv("ENGINEERING_MEMORY_ARCHIVE_ROOT", str(tmp_path / "archive"))
+    monkeypatch.setenv("ENGINEERING_MEMORY_IMPORT_STATE_PATH", str(tmp_path / "state.db"))
     before = set(os.listdir(tmp_path))
 
     settings = load_settings(env_file=None)
@@ -98,7 +98,9 @@ def test_loading_opens_no_socket(complete_environment: dict[str, str]) -> None:
 
 
 @pytest.mark.parametrize("blank", ["", "   "])
-@pytest.mark.parametrize("variable", ["HERMES_ARCHIVE_ROOT", "HERMES_IMPORT_STATE_PATH"])
+@pytest.mark.parametrize(
+    "variable", ["ENGINEERING_MEMORY_ARCHIVE_ROOT", "ENGINEERING_MEMORY_IMPORT_STATE_PATH"]
+)
 def test_a_blank_path_is_rejected_not_resolved_to_the_project_root(
     variable: str,
     blank: str,

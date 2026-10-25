@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE_ROOT = REPO_ROOT / "src" / "hermes_memory"
+PACKAGE_ROOT = REPO_ROOT / "src" / "engineering_memory"
 OBSERVABILITY = PACKAGE_ROOT / "observability"
 
 FORBIDDEN_CALLS = {
@@ -76,7 +76,8 @@ def test_nothing_outside_observability_configures_logging() -> None:
 
     assert not offences, (
         f"These modules reach around the logging boundary: {offences}. "
-        "Use hermes_memory.observability.get_logger(); a record that does not pass through the "
+        "Use engineering_memory.observability.get_logger(); "
+        "a record that does not pass through the "
         "pipeline is neither structured nor redacted."
     )
 
@@ -89,7 +90,7 @@ def test_the_check_would_notice_a_violation(
     Builds a package root holding one offending module outside `observability/` and insists it is
     reported — the same pattern `test_module_layout.py` uses for its behaviour guard.
     """
-    fake_root = tmp_path / "hermes_memory"
+    fake_root = tmp_path / "engineering_memory"
     (fake_root / "ingestion").mkdir(parents=True)
     (fake_root / "ingestion" / "chatgpt.py").write_text(
         "import logging\n\n\ndef setup():\n    logging.basicConfig()\n",

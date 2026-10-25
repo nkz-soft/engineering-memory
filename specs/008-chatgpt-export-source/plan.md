@@ -21,7 +21,7 @@ exports written by a test-only writer, and by unit tests for each branch of the 
 
 **Language/Version**: Python 3.13
 
-**Primary Dependencies**: Pydantic v2 (#8's model), structlog through `hermes_memory.observability`
+**Primary Dependencies**: Pydantic v2 (#8's model), structlog through `engineering_memory.observability`
 (#6). Standard library `json`, `zipfile`, `io`, `datetime`. **No new dependency** (research R3).
 
 **Storage**: None written. Reads the export read-only, as a `.zip` in place or as a directory.
@@ -31,7 +31,7 @@ synthesized into `tmp_path`; `tracemalloc` for the memory bound.
 
 **Target Platform**: The developer machine and the container image (#7), Linux and Windows.
 
-**Project Type**: A module of the modular monolith — `hermes_memory.ingestion.chatgpt`.
+**Project Type**: A module of the modular monolith — `engineering_memory.ingestion.chatgpt`.
 
 **Performance Goals**: Reads a synthesized 10,000-conversation export in one pass. No latency
 target: a person runs an import rarely (ADR-006), and extraction dominates the pipeline's cost.
@@ -106,7 +106,7 @@ specs/008-chatgpt-export-source/
 ### Source Code (repository root)
 
 ```text
-src/hermes_memory/ingestion/chatgpt/
+src/engineering_memory/ingestion/chatgpt/
 ├── __init__.py          # public surface: ChatGPTExportSource only
 ├── export.py            # locate conversation files in an archive/directory/file; open as text streams (R2)
 ├── records.py           # incremental array scanner → ExportRecord with exact raw slice (R3)

@@ -4,15 +4,15 @@
 
 This feature adds no type that crosses a boundary. What crosses is #9's: a `Conversation` in, a
 `Conversation` and a `RedactionReport` out. The types below are internal to
-`hermes_memory.sanitization`, and are described here because they are where the rules of
+`engineering_memory.sanitization`, and are described here because they are where the rules of
 contracts/redaction-rules.md live.
 
 ## Types that already exist and are used unchanged
 
 | Type | Declared in | Role here |
 |---|---|---|
-| `Conversation`, `Message`, `ToolActivity`, `NonTextPart` | `hermes_memory.normalization` (#8) | the input, and the shape the rewriter rebuilds |
-| `SecretSanitizer` | `hermes_memory.sanitization.sanitizer` (#9) | the protocol this feature satisfies |
+| `Conversation`, `Message`, `ToolActivity`, `NonTextPart` | `engineering_memory.normalization` (#8) | the input, and the shape the rewriter rebuilds |
+| `SecretSanitizer` | `engineering_memory.sanitization.sanitizer` (#9) | the protocol this feature satisfies |
 | `RedactionCategory` | same | the closed §13 vocabulary a pattern reports in |
 | `RedactionReport` | same | counts by category; the only thing besides the conversation that leaves |
 | `SanitizationError` | same | raised when a conversation cannot be rewritten |

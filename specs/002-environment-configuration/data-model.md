@@ -19,16 +19,16 @@ validated as a whole, and immutable thereafter.
 
 Sources, in precedence order (R8): environment variable → `.env` → declared default.
 
-Environment names carry the `HERMES_` prefix, with `__` separating a group from its field (R4):
+Environment names carry the `ENGINEERING_MEMORY_` prefix, with `__` separating a group from its field (R4):
 
 ```text
-HERMES_HINDSIGHT__BASE_URL
-HERMES_HINDSIGHT__TOKEN
-HERMES_HINDSIGHT__BANK_ID
-HERMES_LLM__BASE_URL
-HERMES_LLM__API_KEY
-HERMES_ARCHIVE_ROOT
-HERMES_IMPORT_STATE_PATH
+ENGINEERING_MEMORY_HINDSIGHT__BASE_URL
+ENGINEERING_MEMORY_HINDSIGHT__TOKEN
+ENGINEERING_MEMORY_HINDSIGHT__BANK_ID
+ENGINEERING_MEMORY_LLM__BASE_URL
+ENGINEERING_MEMORY_LLM__API_KEY
+ENGINEERING_MEMORY_ARCHIVE_ROOT
+ENGINEERING_MEMORY_IMPORT_STATE_PATH
 ```
 
 ### `HindsightSettings`

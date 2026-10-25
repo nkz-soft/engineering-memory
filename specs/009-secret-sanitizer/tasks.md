@@ -20,7 +20,7 @@ foundational: every category's pattern is found and replaced through it.
 
 ## Path Conventions
 
-Single project: `src/hermes_memory/sanitization/`, `tests/` at repository root, per
+Single project: `src/engineering_memory/sanitization/`, `tests/` at repository root, per
 [plan.md](./plan.md#source-code-repository-root).
 
 **Every credential in every fixture is synthesized** (research R11). CLAUDE.md forbids real
@@ -33,8 +33,8 @@ credentials in this repository, and Gitleaks in CI (#7) rejects them.
 **Purpose**: the static guard for the module, before anything is written into it.
 
 - [X] T001 [P] Write `tests/structure/test_sanitization_imports.py`: every `.py` under
-      `src/hermes_memory/sanitization/` imports only the standard library, `pydantic`,
-      `hermes_memory.errors`, `hermes_memory.normalization` and `hermes_memory.sanitization.*`.
+      `src/engineering_memory/sanitization/` imports only the standard library, `pydantic`,
+      `engineering_memory.errors`, `engineering_memory.normalization` and `engineering_memory.sanitization.*`.
       Nothing on `FORBIDDEN_AT_RUNTIME` of `tests/structure/test_boundary_interfaces.py` is allowed;
       reuse that list by import rather than copying it. Include a "still bites" test against a
       `tmp_path` package holding `import httpx`, so the guard is proved able to fail
@@ -56,12 +56,12 @@ No category can be added until a span can be found and replaced.
       `{{ var }}`, `<your-api-key>`, `xxx`, `***`, `changeme`, `...`, empty, `[REDACTED]`, or
       shorter than the pattern's `minimum_length` is left alone (RR-7); and a string with no match
       comes back identical with an empty report
-- [X] T003 Implement `src/hermes_memory/sanitization/patterns.py`: the frozen `Pattern` record with
+- [X] T003 Implement `src/engineering_memory/sanitization/patterns.py`: the frozen `Pattern` record with
       `category`, `expression`, `value_group`, `precedence` and `minimum_length` per
       [data-model.md](./data-model.md), and `is_placeholder(value)` holding RR-7's rejection list.
       The real table is declared empty here and filled per category in Phase 3, so that T002's
       mechanism tests do not depend on it
-- [X] T004 Implement `src/hermes_memory/sanitization/scanner.py`: `Span` (half-open bounds,
+- [X] T004 Implement `src/engineering_memory/sanitization/scanner.py`: `Span` (half-open bounds,
       category, precedence — internal, never exported from the package, per
       [data-model.md](./data-model.md)); `find_spans(text, patterns)`; `resolve(spans)`, which sorts
       by start and drops a span overlapping one already kept (RR-6); and
@@ -115,7 +115,7 @@ message text, tool request, tool result and attachment name comes back with none
 
 ### Implementation for User Story 1
 
-- [X] T010 [US1] Fill the value-shaped patterns in `src/hermes_memory/sanitization/patterns.py`:
+- [X] T010 [US1] Fill the value-shaped patterns in `src/engineering_memory/sanitization/patterns.py`:
       Anthropic `sk-ant-` before OpenAI `sk-`/`sk-proj-` (RC-6, RC-7); GitHub `ghp_`, `gho_`,
       `ghu_`, `ghs_`, `ghr_`, `github_pat_` (RC-4); GitLab `glpat-` and siblings (RC-5); the AWS
       access key id prefixes `AKIA`, `ASIA`, `AGPA`, `AIDA`, `AROA`, `ANPA`, `ANVA`, `AIPA` plus
@@ -133,14 +133,14 @@ message text, tool request, tool result and attachment name comes back with none
       KEY-----` to `-----END … PRIVATE KEY-----`, including the `OPENSSH`, `RSA`, `EC`, `DSA` and
       `PGP` variants, replacing the body in one span across its line breaks and keeping both
       markers (RC-9). Set the table's precedence order to research R4's, most specific first
-- [X] T013 [US1] Implement `src/hermes_memory/sanitization/pattern_sanitizer.py`:
+- [X] T013 [US1] Implement `src/engineering_memory/sanitization/pattern_sanitizer.py`:
       `PatternSecretSanitizer` with `sanitize(conversation)` walking the scanned fields of RR-3 in
       order and rebuilding with the model's own copy semantics, summing the per-string counts into
       one `RedactionReport`; plus `redact_text(text)` for the one-string case, documented as a
       convenience on the implementation and not part of the boundary
       ([data-model.md](./data-model.md))
 - [X] T014 [US1] Export `PatternSecretSanitizer` from
-      `src/hermes_memory/sanitization/__init__.py` and extend that module's docstring from "the
+      `src/engineering_memory/sanitization/__init__.py` and extend that module's docstring from "the
       patterns arrive with #11" to what now lives there. `sanitizer.py` is **not** edited
 
 **Checkpoint**: US1 complete. `pytest tests/unit/test_redaction_patterns.py
@@ -310,7 +310,7 @@ honest stopping point is the end of Phase 4.
   its implementation.
 - Every fixture value is synthesized. If Gitleaks fails the build, the fixture is the defect, not
   the scanner.
-- Do not edit `src/hermes_memory/sanitization/sanitizer.py`. It is #9's declaration, and this feature
+- Do not edit `src/engineering_memory/sanitization/sanitizer.py`. It is #9's declaration, and this feature
   is one implementation of it.
 
 ---

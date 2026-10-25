@@ -20,14 +20,14 @@ constructs, and the matcher, which is the mechanism every story's behaviour is o
 
 ## Path Conventions
 
-Single project: `src/hermes_memory/classification/`, `tests/` at repository root, per
+Single project: `src/engineering_memory/classification/`, `tests/` at repository root, per
 [plan.md](./plan.md#source-code-repository-root).
 
 **Every conversation and every rule set in the suite is synthesized** (research R12). CLAUDE.md
 forbids conversation content in this repository, and a real rule set is a list of someone's
 repositories and local paths.
 
-Each implementation task extends `src/hermes_memory/classification/__init__.py` with what it makes
+Each implementation task extends `src/engineering_memory/classification/__init__.py` with what it makes
 public; T030 is what asserts the finished surface. `classifier.py` is **not edited by any task** —
 it is #9's declaration, and this feature implements it rather than amending it.
 
@@ -38,15 +38,15 @@ it is #9's declaration, and this feature implements it rather than amending it.
 **Purpose**: the static guards, before anything is written into the module.
 
 - [X] T001 [P] Write `tests/structure/test_classification_imports.py`: every `.py` under
-      `src/hermes_memory/classification/` imports only the standard library, `pydantic`,
-      `structlog`, `hermes_memory.errors`, `hermes_memory.normalization`,
-      `hermes_memory.observability` and `hermes_memory.classification.*`. Nothing on
+      `src/engineering_memory/classification/` imports only the standard library, `pydantic`,
+      `structlog`, `engineering_memory.errors`, `engineering_memory.normalization`,
+      `engineering_memory.observability` and `engineering_memory.classification.*`. Nothing on
       `FORBIDDEN_AT_RUNTIME` of `tests/structure/test_boundary_interfaces.py` is allowed; reuse that
       list by import rather than copying it. Include a "still bites" test against a `tmp_path`
       package holding `import httpx`, so the guard is proved able to fail (Principle IV)
 - [X] T002 [P] Write `tests/synthetic/projects.py`: helpers that build a `ProjectRuleSet` and a
       TOML document from synthesized project names and aliases, plus the near-miss pairs AM-2
-      needs (`nz`/`nzxt`, `hermes-memory`/`hermes-memory-ui`). No real repository name, no real
+      needs (`nz`/`nzxt`, `engineering-memory`/`engineering-memory-ui`). No real repository name, no real
       path, no real conversation (research R12)
 
 ---
@@ -63,12 +63,12 @@ rule set can be built and a string can be asked which projects it names.
       `unknown` is refused (RS-7); a project declared twice is refused naming it (RS-8); an alias
       that is empty or holds no letter and no digit is refused naming it and its project (RS-9);
       one alias declared by two projects is refused naming the alias and both projects, compared
-      case-insensitively so that `Hermes-Memory` and `hermes-memory` collide (RS-10); a `priority`
+      case-insensitively so that `engineering-memory` and `engineering-memory` collide (RS-10); a `priority`
       that is not an integer is refused (RS-5); an unknown key at either level is refused naming
       the key (RS-5); an **empty** rule set is valid and refused by nothing (RS-11); every refusal
       is a `ProjectRulesError` and `issubclass(ProjectRulesError, BoundaryError)` is **False**
       (RS-12)
-- [X] T004 Implement `src/hermes_memory/classification/rules.py`: frozen `ProjectRule` with
+- [X] T004 Implement `src/engineering_memory/classification/rules.py`: frozen `ProjectRule` with
       `project: Slug`, `aliases: tuple[str, ...]` (at least one, each containing a letter or a
       digit) and `priority: int = 0`; frozen `ProjectRuleSet` with `rules: tuple[ProjectRule, ...]`
       carrying the cross-rule refusals; `ProjectRulesError(RuntimeError)`. `extra="forbid"` on both
@@ -82,7 +82,7 @@ rule set can be built and a string can be asked which projects it names.
       including a line break (AM-4); the count of occurrences is not reported and repeating an
       alias changes nothing (AM-10); a matcher built from an empty rule set reports nothing for any
       string
-- [X] T006 Implement `src/hermes_memory/classification/matcher.py`: compile every alias of every
+- [X] T006 Implement `src/engineering_memory/classification/matcher.py`: compile every alias of every
       rule into one alternation, longest alias first, with the per-edge boundary of AM-2 and AM-3
       and the whitespace rule of AM-4; keep the map from casefolded alias to project; expose one
       method that scans a string once and returns the set of projects named (research R4)
@@ -112,7 +112,7 @@ project's tag.
       placements, six hits (SC-001); a different case in the text still matches (AM-1); a
       multi-word alias split across a line break still matches (AM-4); and exactly one project
       matched yields its tag whatever its priority (AR-2)
-- [X] T009 [US1] Implement `src/hermes_memory/classification/alias_classifier.py`:
+- [X] T009 [US1] Implement `src/engineering_memory/classification/alias_classifier.py`:
       `AliasProjectClassifier`, built from a `ProjectRuleSet`, holding a matcher; `classify`
       gathers the six text-bearing fields, joins them with `\n`, asks the matcher, and returns the
       single matched project's `ProjectTag`. Resolution of several matches lands in T014; until
@@ -185,8 +185,8 @@ asked for and is missing and get a failure.
       resolves against the repository root and an absolute one is left alone (#5's FR-013), and the
       settings object can say whether the field was explicitly set
 - [X] T017 [US4] Implement `project_rules_path: Path = Path("data/projects.toml")` in
-      `src/hermes_memory/settings.py`, reusing the existing path-resolution validator, and add
-      `HERMES_PROJECT_RULES_PATH` to `.env.example` under Local storage with a comment saying what
+      `src/engineering_memory/settings.py`, reusing the existing path-resolution validator, and add
+      `ENGINEERING_MEMORY_PROJECT_RULES_PATH` to `.env.example` under Local storage with a comment saying what
       it holds and that the default sits under the ignored `data/`. The sync test of #5 fails if
       one is added without the other
 - [X] T018 [US4] Write `tests/unit/test_project_rules_loading.py` first and observe it fail: a
@@ -201,7 +201,7 @@ asked for and is missing and get a failure.
       record naming the path, the project count and the alias count (RS-13); no record carries
       conversation content. Capture records with the structlog harness #6 left in
       `tests/unit/conftest.py`
-- [X] T019 [US4] Implement `src/hermes_memory/classification/loader.py`: resolve the path from
+- [X] T019 [US4] Implement `src/engineering_memory/classification/loader.py`: resolve the path from
       `Settings` or an explicit argument, read it with `tomllib`, validate into a `ProjectRuleSet`,
       translate every failure into `ProjectRulesError` naming the file and the entry, and emit the
       two records of RS-13 and RS-3. The absent-default case is distinguished by whether the
@@ -227,9 +227,9 @@ embedded in a longer one.
 
 - [X] T021 [US5] Write `tests/unit/test_alias_boundaries.py` first and observe it fail, as one
       table of hits and misses so the rule is pinned by examples: `nz` misses `nzxt` and hits
-      `nz/hermes-memory`, `the nz repo`, `(nz)` and a line ending in `nz` (AM-2); `hermes-memory`
-      misses `hermes-memory-ui` and `my-hermes-memory` and hits `nkz-soft/hermes-memory`,
-      `D:/Projects/nz/hermes-memory` and `hermes-memory.md` (AM-2); an alias whose own edge is not
+      `nz/engineering-memory`, `the nz repo`, `(nz)` and a line ending in `nz` (AM-2); `engineering-memory`
+      misses `engineering-memory-ui` and `my-engineering-memory` and hits `nkz-soft/engineering-memory`,
+      `D:/Projects/nz/engineering-memory` and `engineering-memory.md` (AM-2); an alias whose own edge is not
       a word character, such as `nkz-soft/`, imposes no constraint on that side and hits
       `nkz-soft/anything` (AM-3); and no alias matches across the `\n` join between two fields —
       a title ending `herm` beside a message beginning `es-memory` is a miss (AM-7)
@@ -256,7 +256,7 @@ stand-in is consulted only where the first resolved nothing.
       chain whose elements all resolve nothing returns `UNKNOWN_PROJECT` (CH-3); an empty chain
       returns `UNKNOWN_PROJECT` (CH-4); and a chain is itself a `ProjectClassifier` passing PC-1 to
       PC-5 (CH-5)
-- [X] T024 [US6] Implement `src/hermes_memory/classification/chain.py`:
+- [X] T024 [US6] Implement `src/engineering_memory/classification/chain.py`:
       `ChainedProjectClassifier` over an ordered sequence of `ProjectClassifier`, returning the
       first resolved answer and `UNKNOWN_PROJECT` otherwise (research R8)
 - [X] T025 [P] [US6] Add a case to `tests/structure/test_classification_imports.py` asserting no
@@ -278,7 +278,7 @@ stand-in is consulted only where the first resolved nothing.
       hundreds of kilobytes of text against a rule set of many projects classifies within a bounded
       time, and the bound does not change materially when the project count doubles — cost is
       bounded by the text, not by the rule count (research R4, plan Performance Goals)
-- [X] T028 Update `src/hermes_memory/classification/__init__.py`: export `AliasProjectClassifier`,
+- [X] T028 Update `src/engineering_memory/classification/__init__.py`: export `AliasProjectClassifier`,
       `ChainedProjectClassifier`, `ProjectRule`, `ProjectRuleSet`, `ProjectRulesError` and the
       loader entry point beside #9's `ProjectClassifier` and `UNKNOWN_PROJECT`, and rewrite the
       module docstring — it currently ends "The alias rules that decide the rest arrive with #12",
@@ -287,7 +287,7 @@ stand-in is consulted only where the first resolved nothing.
       documents configuration files; otherwise skip this task and say so in the pull request rather
       than inventing a documentation surface this feature does not have
 - [X] T030 Assert the public surface in `tests/structure/test_module_layout.py` (extend it): the
-      names T028 exports are importable from `hermes_memory.classification`, and `classifier.py` is
+      names T028 exports are importable from `engineering_memory.classification`, and `classifier.py` is
       unchanged against `origin/main`
 - [X] T031 Run [quickstart.md](./quickstart.md) end to end — every numbered section, including the
       two one-liners that show the warning and the failure apart — and reconcile any expectation it
@@ -347,7 +347,7 @@ it work.
 ### Notes
 
 - Commit after each task or logical pair, with the test commit observable before its implementation
-- `src/hermes_memory/classification/classifier.py` is not edited by any task
+- `src/engineering_memory/classification/classifier.py` is not edited by any task
 - No fixture contains a real credential, a real conversation or a real project list
 
 ---

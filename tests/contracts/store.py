@@ -26,14 +26,14 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.errors import BoundaryError
-from hermes_memory.memory.interface import (
+from engineering_memory.errors import BoundaryError
+from engineering_memory.memory.interface import (
     MemoryStore,
     MemoryStoreRejected,
     MemoryStoreUnavailable,
     RecallResult,
 )
-from hermes_memory.normalization import ProjectTag
+from engineering_memory.normalization import ProjectTag
 from tests.contracts import conversations
 
 
@@ -143,7 +143,9 @@ class MemoryStoreContract:
     def test_ms6_tags_narrow_the_results(self) -> None:
         """ADR-002 — scoping is by `project:` tags, never by a bank per project."""
         store = self.make_store()
-        mine = conversations.enrich(conversations.conversation("mine"), project="hermes-memory")
+        mine = conversations.enrich(
+            conversations.conversation("mine"), project="engineering-memory"
+        )
         theirs = conversations.enrich(conversations.conversation("theirs"), project="miratorg")
         store.retain(mine)
         store.retain(theirs)

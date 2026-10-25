@@ -24,7 +24,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONSTITUTION = REPO_ROOT / ".specify" / "memory" / "constitution.md"
-PACKAGE_ROOT = REPO_ROOT / "src" / "hermes_memory"
+PACKAGE_ROOT = REPO_ROOT / "src" / "engineering_memory"
 
 _FENCE = re.compile(r"^```text\n(.*?)^```", re.MULTILINE | re.DOTALL)
 _BRANCH = re.compile(r"^((?:│   |    )*)(?:├── |└── )(\S+)$")
@@ -167,7 +167,7 @@ def test_every_recorded_module_exists() -> None:
     missing = sorted(recorded_modules() - present_modules())
 
     assert not missing, (
-        f"Recorded in the constitution but missing under src/hermes_memory/: {missing}. "
+        f"Recorded in the constitution but missing under src/engineering_memory/: {missing}. "
         "The boundaries of ADR-004 exist before anything fills them, not after."
     )
 
@@ -181,7 +181,7 @@ def test_no_unrecorded_modules_exist() -> None:
     surplus = sorted(present_modules() - recorded_modules())
 
     assert not surplus, (
-        f"Present under src/hermes_memory/ but recorded nowhere: {surplus}. "
+        f"Present under src/engineering_memory/ but recorded nowhere: {surplus}. "
         "Amend the constitution's module tree, or remove the package."
     )
 
@@ -245,7 +245,7 @@ FILLED_BOUNDARIES = frozenset(
 * ``ingestion.chatgpt`` — 008-chatgpt-export-source, the first implementation of a boundary: the
   ChatGPT conversation source. No entry is added, because ``ingestion`` already fills it by dotted
   prefix; ``tests/structure/test_chatgpt_source_imports.py`` holds it to the same forbidden list
-  and keeps ``hermes_memory.ingestion`` from re-exporting it.
+  and keeps ``engineering_memory.ingestion`` from re-exporting it.
 
 Entries are matched by **dotted prefix**, so ``memory.interface`` fills that module and leaves
 ``memory.hindsight`` guarded. Matching on the first segment — as this set did until
@@ -345,7 +345,7 @@ def test_the_behaviour_guard_still_bites(tmp_path, monkeypatch) -> None:
     ``evaluation`` now — a boundary no feature has reached — because a guard demonstrated against a
     module that is exempt demonstrates nothing.
     """
-    fake_root = tmp_path / "hermes_memory"
+    fake_root = tmp_path / "engineering_memory"
     (fake_root / "evaluation").mkdir(parents=True)
     (fake_root / "evaluation" / "__init__.py").write_text('"""A boundary."""\n', encoding="utf-8")
     (fake_root / "evaluation" / "score.py").write_text("VALUE = 1\n", encoding="utf-8")
@@ -370,7 +370,7 @@ def test_filling_a_submodule_does_not_exempt_its_sibling(tmp_path, monkeypatch) 
     The match is by dotted prefix instead, and this is the case that proves the difference: code in
     the filled module is allowed, code in its sibling is reported.
     """
-    fake_root = tmp_path / "hermes_memory"
+    fake_root = tmp_path / "engineering_memory"
     for module in ("memory", "memory/interface", "memory/hindsight"):
         (fake_root / module).mkdir(parents=True, exist_ok=True)
         (fake_root / module / "__init__.py").write_text('"""A boundary."""\n', encoding="utf-8")
