@@ -4,7 +4,7 @@ The list this check *enforces* is not written down here. It is parsed out of
 `.specify/memory/constitution.md`, so the constitution stays the single record of that decision
 and amending it is what moves this check (research.md R3, FR-005).
 
-There is a literal list of the fifteen modules further down, in
+There is a literal list of the sixteen modules further down, in
 `test_constitution_tree_parses_to_the_recorded_modules`. It exists to pin the *parser*, not to
 enforce the layout — nothing else compares against it — so that a parser bug cannot quietly
 turn the real check into a weaker one. Amending the constitution's tree means updating that
@@ -106,6 +106,7 @@ def present_modules() -> frozenset[str]:
 def test_constitution_tree_parses_to_the_recorded_modules() -> None:
     """Pin the parser itself, so a parser bug cannot quietly weaken the layout check."""
     expected = {
+        "access",
         "api",
         "cli",
         "ingestion",

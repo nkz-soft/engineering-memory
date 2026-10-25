@@ -64,6 +64,14 @@ endpoint: each is reached through an interface, so local storage, an
 OpenAI-compatible proxy or the memory engine itself can be swapped without
 touching ingestion.
 
+Consumers MUST reach memory only through the memory access surface — the MCP
+server in the `access` module (ARCHITECTURE.md §16.1, ADR-008). No consumer may
+be configured against Hindsight, and the access surface MUST NOT reference
+Hindsight any more than the pipeline may: it reads through `memory/interface`,
+the raw archive and the import state. The surface is read-only; memory is
+written by importers alone, so that everything retrievable has an original in
+the raw archive (Principle I).
+
 Pipeline stages (parse → normalize → sanitize → classify → enrich) MUST be
 independently testable and composable, and the pipeline MUST run conversation by
 conversation so that one failure cannot abort a run.
@@ -77,6 +85,11 @@ Sanitization runs before any content leaves the process for Hindsight. The
 minimum redaction categories of §13 MUST be covered, and a redaction MUST
 replace the secret value while preserving the surrounding context rather than
 dropping the enclosing text.
+
+The access surface MUST serve sanitized content only: the normalized form of a
+conversation, never its original. It runs over the stdio transport as a local
+process, and MUST NOT listen on a network port without a decision record that
+gives it authentication.
 
 Credentials MUST come from environment variables or a secret store, never from
 files in the repository. Conversation contents are not logged by default;
@@ -108,6 +121,7 @@ stack is selected to answer that question cheaply.
 | Runtime | Python 3.13 |
 | Dependency management | uv |
 | API | FastAPI |
+| Agent access | MCP, through the official MCP Python SDK, stdio transport |
 | CLI | Typer |
 | Models and contracts | Pydantic v2 |
 | HTTP client | httpx |
@@ -134,13 +148,15 @@ The MVP runs on SQLite and local archive storage; PostgreSQL and S3/MinIO are
 the production targets behind the same interfaces required by Principle IV, and
 adopting them MUST NOT change ingestion code. FastAPI is the choice for an HTTP
 surface when one is introduced — it is not a mandate to build one; the MVP is
-driven by the Typer CLI.
+driven by the Typer CLI. The MCP server of the access surface is built on the
+MCP SDK rather than on FastAPI, and is how consumers reach memory (ADR-008).
 
 The system is a modular monolith with Hindsight as an external service reached
 over HTTP/MCP. Microservices are not introduced for the MVP. Module layout:
 
 ```text
 engineering-memory
+├── access
 ├── api
 ├── cli
 ├── ingestion
@@ -160,7 +176,7 @@ engineering-memory
 
 The boundaries of Principle IV map onto these modules: `memory/hindsight` is the
 only module permitted to know about Hindsight, and `memory/interface` is what
-every other module depends on.
+every other module depends on — `access` included.
 
 ## Additional Constraints
 
@@ -230,7 +246,9 @@ wording.
 Compliance is reviewed at two gates: when a plan is produced, against the
 principles above; and before a branch is merged, against the tests the plan
 promised. Reviewers MUST reject work that adds a second source of truth for
-history, an unstable document id, an unsanitized path to Hindsight, or a
-Hindsight reference outside the memory store.
+history, an unstable document id, an unsanitized path to Hindsight, a Hindsight
+reference outside the memory store, a consumer configured against Hindsight
+rather than the access surface, or a path that serves an original or writes
+memory through the access surface.
 
-**Version**: 1.2.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-09-12
+**Version**: 1.3.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-25
