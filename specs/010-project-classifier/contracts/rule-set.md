@@ -96,7 +96,7 @@ Applied to the text-bearing fields of #8's model: `Conversation.title`, each `Me
 | CH-3 | A chain in which every element resolves nothing returns `UNKNOWN_PROJECT`. |
 | CH-4 | An empty chain returns `UNKNOWN_PROJECT`. |
 | CH-5 | A chain satisfies `ProjectClassifier` and passes PC-1 to PC-5 itself. |
-| CH-6 | Nothing in the MVP's assembled pipeline places a model-based classifier in a chain (§21). |
+| CH-6 | Nothing in the MVP's assembled pipeline places a model-based classifier in a chain (§21). **Deferred to #19**: no pipeline is assembled yet, so what stands here instead is a static guard — `tests/structure/test_classification_imports.py` refuses an import of any model SDK from this package. #19 inherits the rule. |
 
 ## What a conforming implementation must also do
 

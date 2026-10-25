@@ -119,6 +119,38 @@ def test_the_duplicate_alias_check_folds_case() -> None:
     assert "orchard-pipeline" in str(refusal.value)
 
 
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [("foo bar", "foo  bar"), ("foo", " foo"), ("foo bar", "foo\tbar"), ("foo", "foo ")],
+)
+def test_the_duplicate_alias_check_normalizes_whitespace(first: str, second: str) -> None:
+    """RS-10, against the pair that used to slip through.
+
+    The refusal compared `casefold()` while the matcher keyed aliases by casefold *plus*
+    whitespace normalization. Anything differing only in whitespace passed validation and then
+    collided in the matcher's dictionary, where the last declaration won and the other project's
+    alias silently ceased to exist — one alias identifying one of two projects, which is the
+    outcome RS-10 exists to forbid. Both now ask `alias_key`.
+    """
+    with pytest.raises(ProjectRulesError) as refusal:
+        ProjectRuleSet(
+            rules=(
+                ProjectRule(project="orchard-pipeline", aliases=(first,)),
+                ProjectRule(project="lantern", aliases=(second,)),
+            )
+        )
+
+    assert "lantern" in str(refusal.value)
+
+
+def test_the_rule_set_and_the_matcher_agree_on_what_an_alias_is() -> None:
+    """The general form of the defect above: one normalization, asked by both."""
+    from hermes_memory.classification import matcher as matcher_module
+    from hermes_memory.classification.rules import alias_key
+
+    assert matcher_module.alias_key is alias_key
+
+
 def test_one_project_may_repeat_an_alias_spelling() -> None:
     """Not RS-10: the collision rule is about two projects, and one project is one answer."""
     built = ProjectRuleSet(

@@ -16,11 +16,18 @@ project name would leak into every longer hyphenated name that contains it.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
+from hermes_memory.classification import UNKNOWN_PROJECT
+from hermes_memory.classification.alias_classifier import AliasProjectClassifier
 from hermes_memory.classification.matcher import AliasMatcher
 from hermes_memory.classification.rules import ProjectRule, ProjectRuleSet
+from hermes_memory.normalization import Conversation, Message, ProjectTag, Role, Source
 from tests.synthetic import projects
+
+STARTED_AT = datetime(2026, 3, 4, 9, 30, tzinfo=UTC)
 
 MATCHER = AliasMatcher(projects.rule_set())
 SHORT = AliasMatcher(ProjectRuleSet(rules=(ProjectRule(project="op", aliases=("op",)),)))
@@ -86,13 +93,61 @@ def test_a_digit_is_a_word_character() -> None:
     assert matcher.projects_named("api 2") == frozenset({"numbered"})
 
 
-def test_no_alias_matches_across_the_join_between_two_fields() -> None:
-    """AM-7. The fields are joined with a line break, which is a boundary character.
+def test_a_single_word_alias_does_not_match_across_a_line_break() -> None:
+    """AM-2, and the weaker half of what AM-7 needs.
 
-    Asserted on the matcher rather than through a conversation, because what is being proved is
-    that the join cannot be straddled — the classifier's own sweep is tested in
-    `test_alias_matching.py`.
+    This case is carried by the literal and boundary rules alone: `orchard-pipe` and `line-run`
+    are not the alias however they are joined. It was written as the AM-7 test first, and it was
+    the wrong test — it would pass with no join logic at all. The real one is below.
     """
-    straddling = "orchard-pipe\nline-run"
+    assert MATCHER.projects_named("orchard-pipe\nline-run") == frozenset()
 
-    assert MATCHER.projects_named(straddling) == frozenset()
+
+def test_no_multi_word_alias_matches_across_the_join_between_two_fields() -> None:
+    """AM-7, through the classifier, with the alias shape that can actually straddle a join.
+
+    The failure this pins is a composition of two rules that are each correct: AM-4 relaxes the
+    whitespace inside a multi-word alias, and the sweep concatenates fields. Join them with
+    anything whitespace matches and a title ending in the alias's first word, beside a message
+    beginning with its last, forges a match present in neither field. That is the direction the
+    specification calls the costly one — a conversation filed under a project it never named, and
+    §17 never revisits it.
+
+    The alias shape here is the one `projects.example.toml` ships, so this is reachable from the
+    configuration a user is told to copy.
+    """
+    classifier = AliasProjectClassifier(
+        ProjectRuleSet(
+            rules=(
+                ProjectRule(
+                    project="two-words",
+                    aliases=("orchard pipeline",),
+                ),
+            )
+        )
+    )
+    straddling = Conversation(
+        source=Source.CHATGPT,
+        source_id="straddle1",
+        title="we discussed orchard",
+        started_at=STARTED_AT,
+        messages=(Message(role=Role.USER, text="pipeline layouts today", sent_at=STARTED_AT),),
+    )
+
+    assert classifier.classify(straddling) == UNKNOWN_PROJECT
+
+
+def test_the_same_alias_wrapped_inside_one_field_still_matches() -> None:
+    """The other half: fixing AM-7 must not cost AM-4, which prose wrapping depends on."""
+    classifier = AliasProjectClassifier(
+        ProjectRuleSet(rules=(ProjectRule(project="two-words", aliases=("orchard pipeline",)),))
+    )
+    wrapped = Conversation(
+        source=Source.CHATGPT,
+        source_id="wrapped1",
+        title=None,
+        started_at=STARTED_AT,
+        messages=(Message(role=Role.USER, text="the orchard\npipeline run", sent_at=STARTED_AT),),
+    )
+
+    assert classifier.classify(wrapped) == ProjectTag(value="two-words")

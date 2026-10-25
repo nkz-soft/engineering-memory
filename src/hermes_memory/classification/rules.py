@@ -17,6 +17,7 @@ it started.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Self
 
 from pydantic import ValidationError, model_validator
@@ -24,7 +25,26 @@ from pydantic import ValidationError, model_validator
 from hermes_memory.classification.classifier import UNKNOWN_PROJECT
 from hermes_memory.normalization.base import FrozenModel, Slug
 
-__all__ = ["ProjectRule", "ProjectRuleSet", "ProjectRulesError"]
+__all__ = ["ProjectRule", "ProjectRuleSet", "ProjectRulesError", "alias_key"]
+
+_WHITESPACE = re.compile(r"\s+")
+
+
+def alias_key(alias: str) -> str:
+    """The identity of an alias: case-folded, whitespace runs collapsed, ends trimmed.
+
+    One function because two places need the same answer and disagreeing was a defect rather
+    than a possibility. `ProjectRuleSet` uses it to refuse an alias claimed by two projects
+    (RS-10), and the matcher uses it to map a matched span back to its project. When the two
+    normalizations differed by so much as a stripped space, a pair like `foo bar` and
+    `foo  bar` passed validation and then collided in the matcher, where the last declaration
+    won and the other project's alias silently stopped existing — the exact outcome RS-10 says
+    is unacceptable.
+
+    Case folding rather than lowercasing, for the reason the matcher gives: `ß` and `ss` are
+    one alias to a reader, and only folding agrees.
+    """
+    return _WHITESPACE.sub(" ", alias.casefold()).strip()
 
 
 class ProjectRulesError(RuntimeError):
@@ -48,8 +68,11 @@ def _describe(invalid: ValidationError) -> str:
 class _RefusesLoudly(FrozenModel):
     """Translates Pydantic's failure into this module's, so callers catch one kind of error.
 
-    Both entry points are covered because both are used: the loader validates whole documents with
-    `model_validate`, while tests and composition code construct rules directly.
+    Three entry points rather than two, and the third is the one worth naming: the loader
+    validates whole documents with `model_validate`, tests and composition code construct rules
+    directly, and nothing yet calls `model_validate_json` — which is exactly why it is covered. An
+    uncovered constructor is a `ValidationError` escaping as soon as someone reaches for the
+    obvious method, in a module whose whole claim is that it raises one kind of error.
     """
 
     def __init__(self, **data: Any) -> None:
@@ -62,6 +85,13 @@ class _RefusesLoudly(FrozenModel):
     def model_validate(cls, obj: Any, **kwargs: Any) -> Self:
         try:
             return super().model_validate(obj, **kwargs)
+        except ValidationError as invalid:
+            raise ProjectRulesError(_describe(invalid)) from invalid
+
+    @classmethod
+    def model_validate_json(cls, json_data: Any, **kwargs: Any) -> Self:
+        try:
+            return super().model_validate_json(json_data, **kwargs)
         except ValidationError as invalid:
             raise ProjectRulesError(_describe(invalid)) from invalid
 
@@ -126,7 +156,7 @@ class ProjectRuleSet(_RefusesLoudly):
             seen_projects.add(rule.project)
 
             for alias in rule.aliases:
-                folded = alias.casefold()
+                folded = alias_key(alias)
                 owner = claimed_by.get(folded)
                 if owner is not None and owner != rule.project:
                     raise ValueError(

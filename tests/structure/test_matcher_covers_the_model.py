@@ -65,6 +65,12 @@ def test_the_classifier_reads_exactly_what_the_sanitizer_scans(model: type[BaseM
 
 
 def test_identity_is_on_the_ignored_side() -> None:
-    """AM-8. An alias coinciding with a native id is a coincidence, not evidence."""
+    """AM-8. An alias coinciding with a native id is a coincidence, not evidence.
+
+    AM-8 also names the derived `document_id`, which these tests do not reach: they walk
+    `model_fields`, and a property is not a field. It is covered by consequence rather than by
+    assertion — `document_id` is derived from `source` and `source_id`, both of which are on the
+    ignored side, so nothing swept can contain it that was not swept already.
+    """
     assert {"source", "source_id", "started_at"} <= IGNORED_FIELDS["Conversation"]
     assert "title" in SWEPT_FIELDS["Conversation"]

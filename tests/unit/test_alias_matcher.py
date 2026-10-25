@@ -160,9 +160,42 @@ def test_a_large_conversation_is_scanned_quickly() -> None:
     assert elapsed < 2.0, f"scanning {len(text)} characters took {elapsed:.2f}s"
 
 
-def test_doubling_the_rule_count_does_not_double_the_scan() -> None:
-    """One compiled alternation, one pass: the project count is a build cost, not a scan cost."""
+def test_a_realistic_rule_set_scans_a_realistic_conversation_quickly() -> None:
+    """The honest claim, with a bound that is about the rule set a person actually writes.
+
+    An earlier version of this test asserted that doubling the alias count does not double the
+    scan, and it passed — while the scan was in fact exactly linear in the alias count, because
+    `re` does not build a trie from a literal alternation. The assertion had been written loosely
+    enough (`large < small * 4`) that perfectly linear growth satisfied it: a test passing for
+    the wrong reason, guarding a claim the code did not honour.
+
+    What is true, and what is worth holding, is narrower: one compiled expression and one pass
+    over the text, fast enough at the scale a personal rule set reaches. A corpus-sized import at
+    150 aliases spends tenths of a second per very large conversation, which is nothing beside
+    the extraction it precedes (ADR-006). If a rule set ever reached thousands of aliases, this
+    is where it would be felt, and indexing would become the answer research R4 declined.
+    """
     text = "some ordinary engineering prose about nothing in particular. " * 2_000
+    built = AliasMatcher(_many_projects(150))
+
+    started = time.perf_counter()
+    built.projects_named(text)
+    elapsed = time.perf_counter() - started
+
+    assert elapsed < 1.5, (
+        f"150 aliases over {len(text)} characters took {elapsed:.2f}s. The cost is linear in "
+        "both, so this is the scale at which that stops being acceptable."
+    )
+
+
+def test_the_scan_is_linear_in_the_alias_count_and_the_claim_says_so() -> None:
+    """Measured rather than assumed, so the documentation cannot drift back.
+
+    The bound is one-sided and generous — the point is not to pin a constant on a shared CI
+    runner, but to fail if someone adds an index and forgets to correct the research, or asserts
+    sublinearity again without measuring it.
+    """
+    text = "some ordinary engineering prose about nothing in particular. " * 1_000
 
     def scan(count: int) -> float:
         built = AliasMatcher(_many_projects(count))
@@ -170,12 +203,12 @@ def test_doubling_the_rule_count_does_not_double_the_scan() -> None:
         built.projects_named(text)
         return time.perf_counter() - started
 
-    small = scan(200)
+    small = scan(100)
     large = scan(400)
 
-    assert large < max(small * 4, 1.0), (
-        f"400 projects scanned in {large:.3f}s against {small:.3f}s for 200; cost should be "
-        "bounded by the text, not by the rules"
+    assert large > small, (
+        "four times the aliases scanned no slower than a quarter of them; if the matcher now "
+        "indexes rather than alternates, research R4 and plan.md say otherwise and must be fixed"
     )
 
 

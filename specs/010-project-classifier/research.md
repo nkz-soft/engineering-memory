@@ -77,27 +77,47 @@ positions meaningless if a later feature ever wants them.
 ## R4 — One compiled alternation, one pass over the text
 
 **Decision**: all aliases of all projects are compiled into a single alternation, longest alias
-first, and the conversation's text-bearing fields are joined with a line break and scanned once.
-Each match is mapped back to its project through a dictionary keyed by the casefolded alias.
+first, and the conversation's text-bearing fields are joined with a NUL and scanned once. Each
+match is mapped back to its project through a dictionary keyed by `alias_key` — the one
+normalization both this and the rule set's duplicate check ask.
 
-**Rationale**: the corpus is a decade of history and the scan runs per conversation, so cost should
-be bounded by the text rather than by the number of projects. One pass over the text with one
-compiled expression gives that; a loop of "for each rule, search the text" gives the opposite, and
-the spec's assumptions already promise the first.
+**Rationale**: the corpus is a decade of history and the scan runs per conversation, so the text is
+read once rather than once per rule. One pass over the text with one compiled expression gives
+that; a loop of "for each rule, search the text" reads the whole text as many times as there are
+rules.
+
+**What this does not buy**, stated because an earlier draft of this document claimed it did: the
+scan is **not** independent of the alias count. CPython's `re` does not build a trie from a literal
+alternation, so a scan over a fixed text grows linearly with the number of aliases — measured at
+roughly 0.26s, 1.04s, 2.11s and 4.11s for 100, 400, 800 and 1600 aliases over 120 KB. At the scale
+a personal rule set reaches — tens of projects, a few hundred aliases — that is tenths of a second
+for a very large conversation, against an extraction step that dominates an import a person runs
+rarely (ADR-006). The claim this research is entitled to make is "one pass over the text", not
+"independent of the rules", and `tests/unit/test_alias_matcher.py` now measures the linearity
+rather than asserting it away. A rule set in the thousands would be the moment to index, which is
+the alternative below.
 
 Longest-first ordering matters because `re`'s alternation is leftmost-first rather than
 leftmost-longest: without it, at a position where both `nz` and `nz/hermes-memory` could match, the
 shorter alias would win and the match would be attributed to the wrong project. The mapping back is
 unambiguous because FR-010 refuses a rule set in which two projects declare the same alias.
 
-Joining the fields with `\n` rather than concatenating them is what keeps a title ending in `herm`
-and a first message beginning `es-memory` from forging a match: `\n` is a boundary character, so no
-alias can straddle the join.
+**The join is a NUL, and a line break was wrong.** Joining the fields rather than concatenating
+them is what stops a title ending in `herm` and a first message beginning `es-memory` from forging
+a match, and the first draft used `\n` on the grounds that a newline is a boundary character. It
+is — but AM-4 relaxes the whitespace inside a multi-word alias, and that relaxation consumes a
+newline. The two rules composed into exactly what AM-7 forbids: the alias `engineering memory`
+matched a title ending "we discussed engineering" beside a message beginning "memory layouts",
+which `projects.example.toml`'s own multi-word alias makes reachable from the shipped
+configuration. NUL is a boundary character that no whitespace class matches, so it separates for
+AM-2 and blocks for AM-4.
 
 **Alternatives considered**: named groups, one per project — rejected: the slugs would have to be
 mangled into Python identifiers and back, for no gain over a dictionary. Scanning each field
-separately — equivalent in result and marginally slower; the join is simpler to reason about and
-makes the "no straddling" property one assertion rather than one per field. Aho–Corasick via a new
+separately — equivalent in result and marginally slower; it is also the fix that would have
+avoided the straddling defect above by construction rather than by choosing the right separator,
+and it remains the better answer if a third rule ever has to compose with AM-2 and AM-4.
+Aho–Corasick via a new
 dependency — rejected: a decision record for a scale this feature does not have.
 
 ## R5 — Ambiguity: declared priority decides, a tie at the top does not

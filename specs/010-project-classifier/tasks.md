@@ -379,3 +379,44 @@ One test written earlier had to change when a later rule arrived: a tool activit
 `orchard-pipeline-deploy` was a hit in **T008** and is a miss under **T021**'s boundary rule. The
 boundary rule is the more specific requirement, so the fixture moved to `orchard-pipeline/deploy`
 and the former case is now asserted as a miss.
+
+---
+
+## Review findings, and what was done about them
+
+A code review of the finished branch found three substantive defects. Each was reproduced before
+being fixed, and each fix was mutation-checked where a test was involved.
+
+- **AM-7 was broken, and its test passed vacuously.** The sweep joined fields with `\n` while AM-4
+  relaxes the whitespace inside a multi-word alias — and `\s+` consumes a newline. With the alias
+  `engineering memory`, a title ending "we discussed engineering" beside a message beginning
+  "memory layouts" forged a match present in neither field, reachable from the multi-word alias
+  `projects.example.toml` ships. The old test split a *single-word* alias across a line break,
+  which the literal rule already refuses, so it would have passed with no join logic at all. The
+  join is now `\x00` — a boundary character no whitespace class matches — the test uses a
+  multi-word alias across a title and a message, and restoring the old join was confirmed to make
+  it fail. `research.md` R4 stated the false premise outright and is corrected.
+- **RS-10 and the matcher disagreed about what an alias is.** Validation compared `casefold()`
+  while the matcher keyed on casefold plus whitespace normalization, so `foo bar` and `foo  bar`
+  passed the duplicate check and then collided in the matcher, where the last declaration won and
+  the other project's alias silently ceased to exist. Both now call one `alias_key`, and a test
+  asserts they are literally the same function.
+- **The documented performance property was not the one the code has.** `plan.md`, `research.md`
+  and the spec's assumptions all claimed cost was independent of the rule count; `re` does not
+  build a trie from a literal alternation, and the scan is linear in the alias count. The guard
+  was toothless too — `large < small * 4` on a doubling passes for exactly linear growth, under a
+  test named "does not double the scan". The claim is corrected everywhere to "one pass over the
+  text rather than one per rule", the measurements are recorded in R4, and the test now measures
+  the linearity instead of asserting it away.
+
+Five smaller findings were also taken: SC-008 now states the loader suite as its exception, CH-6
+is recorded as deferred to #19 with the static guard that stands in for it, `model_validate_json`
+joins the two constructors that translate Pydantic's error, a hostile-alias and hostile-text table
+exercises PC-5 where it is load-bearing, and the model-coverage test says in one line why AM-8's
+derived `document_id` is outside its reach.
+
+Two of the reviewer's observations were noted rather than acted on. Commits bundle tests with
+their implementation, so test-first is visible in this document and in the session rather than in
+the history — the repository's existing commits are feature-sized for the same reason. And nine
+items the reviewer listed as out of scope are out of scope: pipeline wiring, level 1, and
+model-based classification all belong to #19, #27, #28 and a decision §21 has not made.

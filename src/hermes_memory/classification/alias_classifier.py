@@ -40,8 +40,20 @@ IGNORED_FIELDS: dict[str, frozenset[str]] = {
 }
 """Identity, time and closed vocabularies. Never swept (AM-8)."""
 
-_JOIN = "\n"
-"""A boundary character, which is what keeps an alias from straddling two fields (AM-7)."""
+_JOIN = "\x00"
+"""What separates two fields in the swept text, and the reason AM-7 holds.
+
+A line break was the obvious choice and was wrong, which is worth recording where the choice is
+made rather than only in the research. A newline is a boundary character, so it satisfies AM-2 —
+but AM-4 relaxes the whitespace inside a multi-word alias to one-or-more whitespace, and that
+consumes a newline happily. Composed, the two rules produced exactly what AM-7 forbids: with the
+alias `engineering memory`, a title ending "we discussed engineering" beside a message beginning
+"memory layouts" forged a match that existed in neither field.
+
+NUL is a boundary character that no whitespace class matches, so it separates fields for AM-2 and
+blocks them for AM-4. A NUL occurring in a conversation's own text is harmless in the direction
+that matters: it can only stop a match, never forge one.
+"""
 
 
 class AliasProjectClassifier:

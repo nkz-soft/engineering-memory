@@ -15,8 +15,10 @@ The rules are the user's, in a TOML file read with `tomllib`: one entry per proj
 slug that becomes its `project:` tag, the literal aliases that identify it, and an integer priority.
 Loading validates and may fail loudly; classifying cannot fail at all. All aliases compile into one
 alternation, longest first, and a conversation's text-bearing fields — the same six #11's sanitizer
-rewrites — are joined with a line break and scanned once, so cost is bounded by the text rather
-than by the number of projects. A match requires a boundary at each of the alias's own word-character
+rewrites — are joined with a NUL and scanned once, so the text is read once rather than once per
+rule. The NUL is not decoration: a line break is a boundary character, but the relaxed whitespace
+of a multi-word alias consumes one, and the two rules together let an alias straddle the join
+between two fields. A match requires a boundary at each of the alias's own word-character
 edges under a word alphabet that includes `-`, so `nz` misses `nzxt` while `hermes-memory` misses
 `hermes-memory-ui` and still hits `nkz-soft/hermes-memory`.
 
@@ -46,9 +48,11 @@ Hindsight, HTTP client or storage.
 **Target Platform**: The developer machine and the container image (#7), Linux and Windows. The
 path resolution of #5 is what makes `data/projects.toml` mean the same place on both.
 
-**Performance Goals**: One compiled expression, one pass over the conversation's text, linear in
-the text and independent of the project count (research R4). No latency target: extraction
-dominates an import, which a person runs rarely (ADR-006).
+**Performance Goals**: One compiled expression and one pass over the conversation's text, rather
+than one pass per rule. Linear in the text **and** in the alias count — `re` does not build a trie
+from a literal alternation, and research R4 records the measurements. At the scale a personal rule
+set reaches this is tenths of a second for a very large conversation; no latency target, because
+extraction dominates an import a person runs rarely (ADR-006).
 
 **Constraints**: `classify` is deterministic, pure and total — no file, no socket, no clock, no
 mutation, no exception (FR-008, FR-009, PC-5). No conversation content in a log record or an error

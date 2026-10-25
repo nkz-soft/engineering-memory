@@ -20,6 +20,11 @@ import pytest
 
 from hermes_memory.classification import UNKNOWN_PROJECT, alias_classifier, chain, matcher
 from hermes_memory.classification.alias_classifier import AliasProjectClassifier
+from hermes_memory.classification.rules import (
+    ProjectRule,
+    ProjectRulesError,
+    ProjectRuleSet,
+)
 from hermes_memory.normalization import Conversation, Message, ProjectTag, Role, Source
 from tests.contracts import conversations
 from tests.synthetic import projects
@@ -144,3 +149,66 @@ def test_a_classifier_answers_every_conversation_the_fixtures_have() -> None:
         conversations.conversation_with_a_secret(),
     ):
         assert built.classify(original) == UNKNOWN_PROJECT
+
+
+HOSTILE_ALIASES = (
+    "a+b",
+    "[unclosed",
+    "x{2,3}",
+    "a" * 400,
+    "0",
+    "項目",
+    "a\u200db",
+    "C:\\Projects\thing",
+)
+"""Aliases a *valid* rule set can contain and a careless matcher would compile as a pattern."""
+
+REFUSED_ALIASES = ("(((", ".*", "$^", "\\", "   ")
+"""The rest are refused at load by RS-9 — they hold no letter and no digit. Asserted below, so
+that "the classifier survives them" is not quietly standing in for "they never arrive"."""
+
+HOSTILE_TEXT = (
+    "",
+    "\x00",
+    "a" * 50_000,
+    "\u202e\u202d reversed",
+    "   \n\t\r   ",
+    "項目 について",
+    "\\" * 500,
+    "a+b [unclosed x{2,3}",
+)
+"""Text a conversation could carry. None of it may make `classify` raise.
+
+An unpaired surrogate is deliberately absent: #8's `Text` refuses one when the `Message` is built,
+so it cannot reach a classifier, and including it here would test the model rather than this
+boundary.
+"""
+
+
+@pytest.mark.parametrize("alias", HOSTILE_ALIASES)
+def test_a_hostile_alias_classifies_without_raising(alias: str) -> None:
+    """PC-5 where it is genuinely load-bearing: the regex is built from user-supplied strings.
+
+    An alias reaches `re` through `re.escape`, so none of these is metasyntax — but that is a
+    property of the implementation, and PC-5 is a property of the boundary. Asserting it over
+    inputs a rule set can actually contain keeps the two from drifting apart.
+    """
+    built = AliasProjectClassifier(
+        ProjectRuleSet(rules=(ProjectRule(project="hostile", aliases=(alias,)),))
+    )
+
+    for text in HOSTILE_TEXT:
+        assert built.classify(about(text)) is not None
+
+
+@pytest.mark.parametrize("alias", REFUSED_ALIASES)
+def test_an_alias_of_pure_metasyntax_is_refused_at_load(alias: str) -> None:
+    """RS-9, from the angle that matters here: it never becomes a pattern because it never loads."""
+    with pytest.raises(ProjectRulesError):
+        ProjectRuleSet(rules=(ProjectRule(project="hostile", aliases=(alias,)),))
+
+
+@pytest.mark.parametrize("text", HOSTILE_TEXT, ids=lambda text: repr(text[:24]))
+def test_hostile_text_classifies_without_raising(text: str) -> None:
+    """AR-8. A conversation is whatever the export contained, and it still gets an answer."""
+    assert classifier().classify(about(text)) is not None

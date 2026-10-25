@@ -350,8 +350,10 @@ and assert the second is consulted only for the conversations the first resolved
 - **SC-006**: Removing the fallback from the composed classifier changes the result only for
   conversations that resolved to `project:unknown`.
 - **SC-007**: The implementation passes the contract suite of #9 without a change to the suite.
-- **SC-008**: No test in the feature performs a network call or a filesystem write, blocked rather
-  than merely unobserved.
+- **SC-008**: No classification test performs a network call or a filesystem write, blocked rather
+  than merely unobserved. The loader's own suite is the stated exception: reading a file is what it
+  does, so its tests write TOML into a temporary directory and the blocking applies to `classify`,
+  where the property is load-bearing.
 
 ## Assumptions
 
@@ -384,9 +386,11 @@ and assert the second is consulted only for the conversations the first resolved
   derives the provenance's project from it rather than classifying twice.
 - **Fixtures are synthesized.** No real conversation and no real project list enters the repository,
   per CLAUDE.md.
-- **Performance is bounded by the text, not by the rule count.** The corpus is large enough that a
-  per-rule scan of every conversation would be felt; the suite asserts the outcome, not the
-  strategy, so the implementation is free to index.
+- **The text is read once per conversation, not once per rule.** The corpus is large enough that
+  re-reading every conversation for every project would be felt. Cost still grows with the number
+  of aliases, which is acceptable at the scale a personal rule set reaches and is measured rather
+  than assumed; the suite asserts the outcome, not the strategy, so an implementation that needs
+  to index later may.
 
 ## Dependencies
 

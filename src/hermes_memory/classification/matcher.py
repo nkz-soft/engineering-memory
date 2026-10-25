@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import re
 
-from hermes_memory.classification.rules import ProjectRuleSet
+from hermes_memory.classification.rules import ProjectRuleSet, alias_key
 
 __all__ = ["AliasMatcher"]
 
@@ -39,11 +39,6 @@ either, and a user who wants both spellings writes both (research R2).
 
 _NOT_PRECEDED = f"(?<!{_WORD_CHARACTER})"
 _NOT_FOLLOWED = f"(?!{_WORD_CHARACTER})"
-
-
-def _key(text: str) -> str:
-    """The form an alias and a matched span are compared in: folded, whitespace normalized."""
-    return _WHITESPACE.sub(" ", text.casefold()).strip()
 
 
 def _is_word_character(character: str) -> bool:
@@ -70,7 +65,7 @@ class AliasMatcher:
 
     def __init__(self, rules: ProjectRuleSet) -> None:
         self._project_of: dict[str, str] = {
-            _key(alias): rule.project for rule in rules.rules for alias in rule.aliases
+            alias_key(alias): rule.project for rule in rules.rules for alias in rule.aliases
         }
 
         # Longest first, then alphabetically, so that the compiled form of a rule set is itself
@@ -92,6 +87,6 @@ class AliasMatcher:
             return frozenset()
 
         return frozenset(
-            self._project_of[_key(found.group())]
+            self._project_of[alias_key(found.group())]
             for found in self._expression.finditer(text.casefold())
         )
