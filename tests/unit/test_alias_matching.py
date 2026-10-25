@@ -64,10 +64,19 @@ def test_the_alias_in_a_message_is_found() -> None:
 
 def test_the_alias_in_a_tool_name_is_found() -> None:
     found = CLASSIFIER.classify(
-        conversation(tool_activity=(ToolActivity(name=f"{projects.ALIAS}-deploy"),))
+        conversation(tool_activity=(ToolActivity(name=f"{projects.ALIAS}/deploy"),))
     )
 
     assert found == EXPECTED
+
+
+def test_a_tool_name_that_merely_contains_the_alias_is_not_a_match() -> None:
+    """The boundary rule reaches every swept field, not only prose (AM-2)."""
+    found = CLASSIFIER.classify(
+        conversation(tool_activity=(ToolActivity(name=f"{projects.ALIAS}-deploy"),))
+    )
+
+    assert found == UNKNOWN_PROJECT
 
 
 def test_the_alias_in_a_tool_request_is_found() -> None:

@@ -27,15 +27,42 @@ __all__ = ["AliasMatcher"]
 
 _WHITESPACE = re.compile(r"\s+")
 
+_WORD_CHARACTER = r"[\w-]"
+"""A letter, a digit, `_` — `\\w` under Unicode — or a hyphen.
+
+The hyphen is the whole reason this is written out rather than using `\\b`. `\\b` is defined over
+`\\w`, which treats `-` as a boundary, so the alias `orchard-pipeline` would match inside
+`orchard-pipeline-ui` and every hyphenated project name would leak into every longer one. The
+cost of fixing it is symmetric and intended: `orchard` alone no longer matches `orchard-pipeline`
+either, and a user who wants both spellings writes both (research R2).
+"""
+
+_NOT_PRECEDED = f"(?<!{_WORD_CHARACTER})"
+_NOT_FOLLOWED = f"(?!{_WORD_CHARACTER})"
+
 
 def _key(text: str) -> str:
     """The form an alias and a matched span are compared in: folded, whitespace normalized."""
     return _WHITESPACE.sub(" ", text.casefold()).strip()
 
 
+def _is_word_character(character: str) -> bool:
+    return character.isalnum() or character in "_-"
+
+
 def _as_literal(alias: str) -> str:
-    """The alias as an expression: literal everywhere, except that its spaces are generous."""
-    return r"\s+".join(re.escape(part) for part in _WHITESPACE.split(alias) if part)
+    """The alias as an expression: a literal, spaces relaxed, each word edge held to a boundary.
+
+    The boundary is required only where the alias's own edge is a word character. An alias that
+    ends in a boundary character of its own — `nkz-soft/` — would otherwise demand two of them in
+    a row and never match anything (AM-3).
+    """
+    literal = r"\s+".join(re.escape(part) for part in _WHITESPACE.split(alias) if part)
+
+    before = _NOT_PRECEDED if _is_word_character(alias[0]) else ""
+    after = _NOT_FOLLOWED if _is_word_character(alias[-1]) else ""
+
+    return f"{before}{literal}{after}"
 
 
 class AliasMatcher:
