@@ -5,6 +5,7 @@ rule matches. The alias rules that decide the rest arrive with #12.
 """
 
 from hermes_memory.classification.classifier import UNKNOWN_PROJECT, ProjectClassifier
+from hermes_memory.classification.loader import load_project_rules
 from hermes_memory.classification.rules import ProjectRule, ProjectRuleSet, ProjectRulesError
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "ProjectRule",
     "ProjectRuleSet",
     "ProjectRulesError",
+    "load_project_rules",
 ]
