@@ -16,6 +16,10 @@ both plain chats and coding-agent sessions.**
 Everything else — Claude Code and Codex reading the same memory, mental models,
 evaluation — follows from that, and is sequenced after it.
 
+hermes-memory is the store of that history, not only its importer. Hermes and
+every other consumer reach it through the MCP server hermes-memory exposes, and
+never through Hindsight directly (ADR-008).
+
 Hindsight is the memory engine. We do not build our own RAG, and we do not add a
 vector database, a search engine or a custom knowledge graph. Hindsight owns
 fact extraction, entity resolution, the knowledge graph, temporal relationships,
@@ -41,6 +45,9 @@ Consumers of memory:
 * Claude Code;
 * Codex;
 * other coding agents later.
+
+Every consumer reaches memory through the memory access surface (§16), and none
+is configured against Hindsight itself — not for reads, and not for writes.
 
 ## 3. Principles
 
@@ -85,6 +92,15 @@ the importer that produced it.
 
 Hindsight stores metadata alongside memory units and returns it on retrieval.
 
+### 3.4. Consumers depend on hermes-memory, not on the engine
+
+A consumer is configured against hermes-memory's MCP server and sees its tools,
+never Hindsight's endpoints, banks or vocabulary. The memory engine is then
+replaceable for consumers as well as for ingestion: swapping it changes one
+implementation behind `memory/interface`, and no agent is reconfigured. The
+same surface is what lets a consumer read a whole archived conversation behind a
+recalled fact, which extracted memory alone cannot give back (ADR-008).
+
 ## 4. Overall architecture
 
 ```text
@@ -114,19 +130,30 @@ Hindsight stores metadata alongside memory units and returns it on retrieval.
            │             │          │              │
            │ originals   │          │ facts        │
            │ normalized  │          │ entities     │
-           └─────────────┘          │ graph        │
-                                    │ observations │
-                                    └──────┬───────┘
-                                           │
-                         ┌─────────────────┼─────────────────┐
-                         ▼                 ▼                 ▼
-                      Hermes          Claude Code          Codex
-                    (primary)           (later)            (later)
+           └──────┬──────┘          │ graph        │
+                  │                 │ observations │
+                  │                 └──────┬───────┘
+                  │ normalized only        │ recall / reflect
+                  │                        │ (memory/interface)
+                  └────────────┬───────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │ Memory access       │
+                    │ surface (MCP)       │
+                    └──────────┬──────────┘
+                               │
+                 ┌─────────────┼─────────────┐
+                 ▼             ▼             ▼
+              Hermes      Claude Code      Codex
+            (primary)       (later)       (later)
 ```
 
-A self-hosted Hindsight instance is deployed separately and shared by all
-consumers. The instance embedded in Hermes is not used as the primary store,
-because memory must be reachable by more than one consumer.
+A self-hosted Hindsight instance is deployed separately, and only hermes-memory
+talks to it. Consumers reach memory through the access surface (§16, ADR-008).
+Neither the Hindsight instance embedded in Hermes nor Hermes's native Hindsight
+memory provider is used: memory must be reachable by more than one consumer, and
+a consumer that wrote to Hindsight directly would create memory with no original
+in the raw archive (§3.1).
 
 ## 5. Memory bank strategy
 
@@ -201,9 +228,12 @@ disturbing the rest — in particular Hindsight itself (ADR-001, exit strategy):
 | Raw archive | Persist originals and normalized forms |
 | Memory store | `retain` / `recall` — the only component aware of Hindsight |
 | Import state | Track what has already been imported |
+| Memory access surface | Serve memory and archived conversations to consumers over MCP |
 
-Neither the domain model nor the pipeline references Hindsight. Only the memory
-store implementation does.
+Neither the domain model, the pipeline nor the access surface references
+Hindsight. Only the memory store implementation does. The access surface reads
+through `memory/interface` and the raw archive's interface, exactly as ingestion
+writes through them.
 
 ## 9. Hindsight contract
 
@@ -323,6 +353,31 @@ retrieval, and must return facts regardless of which system they originated in.
 approach evolved, what the overall shape of a decision is. Not for every query;
 it is slower and reasons over accumulated memory rather than fetching it.
 
+### 16.1. Memory access surface
+
+Consumers retrieve through an MCP server that hermes-memory exposes, not through
+Hindsight (ADR-008). It is a module of the monolith, `access`, and depends only
+on `memory/interface`, the raw archive and the import state.
+
+| Tool | Backed by | Returns |
+|---|---|---|
+| `search_memory` | `recall` | Matching memories with their provenance and `document_id`; filters for project, source and time are expressed as tags (§6) |
+| `get_conversation` | raw archive | The normalized form of one conversation by `document_id`, in pages of messages |
+| `reflect` | `reflect` | A synthesized answer over accumulated memory |
+| `list_conversations` | import state | Conversations by project, source and time, with titles and document ids |
+
+`search_memory` and `get_conversation` are the first two; `reflect` and
+`list_conversations` arrive with the features that need them, as does any method
+they require behind the boundaries.
+
+`get_conversation` serves the normalized form only. The original is never
+served, because it is the one form that has not been sanitized (§13, §19).
+
+The surface is read-only. Memory is written by importers alone, so everything a
+consumer can find has an original in the raw archive (§3.1). A consumer's own
+conversations — Hermes's included — enter memory as a history source of their
+own (§2), not through a write tool.
+
 ## 17. Idempotency and import state
 
 Re-running an import must be safe and must not create duplicate documents.
@@ -366,6 +421,10 @@ logged.
    actual model is proxy configuration rather than anything hardcoded here.
 5. Credentials come from environment variables or a secret store, never from
    configuration files in the repository.
+6. The access surface runs over the stdio transport, as a process the consumer
+   starts on the same machine: it opens no port and needs no credential of its
+   own. It serves sanitized content only, and logs what it serves under the
+   same rules as §18.
 
 ## 20. Technology stack
 
@@ -387,7 +446,8 @@ than free choices, and are fixed by the first specification that needs them.
 Custom vector database, embeddings, reranker, knowledge graph or RAG pipeline;
 web frontend; multi-user authorization; distributed ingestion; message queues;
 background workers; model-based project classification; cross-bank
-synchronization; Confluence, Jira and GitLab importers; mental model management.
+synchronization; Confluence, Jira and GitLab importers; mental model management;
+write tools on the access surface; an access surface reachable over the network.
 
 ## 22. Phases
 
@@ -406,17 +466,20 @@ synchronization; Confluence, Jira and GitLab importers; mental model management.
 9. A dry run reports what would happen without contacting Hindsight.
 10. Parser and sanitizer are covered by tests.
 11. An end-to-end test imports a conversation and retrieves a fact from it.
-12. **Hermes is configured against the same bank and finds that fact.**
+12. The access surface serves `search_memory` and `get_conversation` (§16.1).
+13. **Hermes, connected to the access surface over MCP, finds that fact and
+    opens the conversation it came from.**
 
-Item 12 is what makes the phase meaningful; the rest is the means.
+Item 13 is what makes the phase meaningful; the rest is the means.
 
 ### Phase 2 — coding agents
 
-Claude Code and Codex read and write the same bank through the official
-integration, including tool calls, so that the chain command → error →
-investigation → solution is preserved. Acceptance: a decision discussed in
-ChatGPT and imported is found by Claude Code; a refinement made in Claude Code
-is visible to Codex.
+Claude Code and Codex connect to the same access surface. Their sessions enter
+memory through importers of their own, including tool calls, so that the chain
+command → error → investigation → solution is preserved and every session has
+an original in the raw archive. Acceptance: a decision discussed in ChatGPT and
+imported is found by Claude Code; a refinement made in Claude Code, once its
+session is imported, is visible to Codex.
 
 ### Phase 3 — synthesis
 
@@ -446,6 +509,10 @@ separate raw archive.
 independent of Hindsight, so the backend can be replaced later without
 re-exporting anything from the original services.
 
+*Revisited by ADR-008:* consumers no longer use the native Hermes provider or the
+coding-agent integrations; they reach memory through hermes-memory's own MCP
+server, which extends the exit strategy from ingestion to consumers.
+
 ### ADR-002 — One shared bank, projects separated by tags
 
 **Decision.** Use a single bank, `engineering-global`, with `project:` tags for
@@ -465,6 +532,12 @@ quality degrades, the alternative is per-project banks plus a duplicate write
 into a global bank — which costs extraction twice and requires cross-bank
 synchronization that is currently out of scope. Because the bank is a
 configuration value, that change would not alter the importer.
+
+*Revisited by ADR-008:* the single-bank limit of the Hermes provider no longer
+binds, because Hermes no longer uses that provider. The decision stands on its
+remaining grounds — one place for conversations that resolve to no project, and
+extraction paid once — and splitting banks later would change only the memory
+store implementation, not any consumer.
 
 ### ADR-003 — Retain mission is bank configuration
 
@@ -645,3 +718,83 @@ that source's own record (§2).
 Memory ages between refreshes and nothing forces one, which is why the age of
 the last import belongs in whatever the command surface reports: the decay is
 made visible rather than prevented.
+
+### ADR-008 — Consumers reach memory through hermes-memory's MCP server
+
+ADR-007 is reserved for automated export acquisition (#40).
+
+**Decision.** hermes-memory is the store of the user's AI history, and the only
+component that talks to Hindsight. Consumers — Hermes first, then Claude Code
+and Codex — connect to an MCP server that hermes-memory exposes, the memory
+access surface of §16.1, and are not configured against Hindsight at all.
+Settled together, because they are one policy:
+
+1. **One surface, one module.** The server lives in a new module, `access`,
+   which depends on `memory/interface`, the raw archive and the import state,
+   and on nothing that knows Hindsight. It is a new §8 boundary, held to
+   Principle IV like the others.
+2. **Read-only.** The surface retrieves; it does not retain. Memory is written
+   by importers only, and a consumer's own conversations reach memory as a
+   history source with its own specification and record (§2). Hermes's native
+   Hindsight provider is therefore used neither to read nor to write.
+3. **Archive behind the facts.** Next to `recall`, the surface serves whole
+   conversations from the raw archive by `document_id`, paged by message so a
+   long one fits an agent's context. It serves the normalized form only; the
+   original is the one unsanitized form and never leaves the process.
+4. **Transport is stdio.** The consumer starts the server as a local process.
+   It opens no port and holds no credential of its own, and several consumers
+   may each run one against the same archive and Hindsight instance. A network
+   transport is out of scope until a consumer cannot start a local process, and
+   then needs authentication of its own and a record of its own.
+5. **Grown by need.** The surface starts with `search_memory` and
+   `get_conversation`. `reflect` and `list_conversations` arrive with the
+   features that use them, and so does any method they need behind the
+   boundaries — `memory/interface` holds no `reflect` until then.
+6. **The SDK.** The server is built on the official MCP Python SDK, added to
+   the stack in the constitution. FastAPI remains the choice for a non-MCP HTTP
+   surface, which this decision does not introduce.
+
+**Rationale.** ADR-001's exit strategy covered ingestion only. A consumer
+configured against Hindsight — its native provider, its MCP endpoint or a
+coding-agent integration — is coupled to the engine, its banks and its
+vocabulary, and replacing the engine would mean reconfiguring every agent. With
+one surface in front of it, the engine sits behind `memory/interface` for
+consumers as well, and Principle IV holds on both sides of the system.
+
+The surface also gives consumers what extracted memory cannot. `retain` is
+lossy; a recalled fact is a pointer into a conversation, and only the raw
+archive can return that conversation whole. Hindsight's own MCP endpoint would
+be cheaper to adopt and would give neither of these.
+
+Reads only, because a write path through a tool would break Principle I: a
+memory written by a consumer straight into Hindsight has no original in the
+archive, and cannot be re-extracted when the parser, the sanitizer or the
+retain mission changes. A write tool that went through the pipeline would not
+break it, but it would depend on the agent deciding to call it, and history that
+is captured only when a model remembers to is history with holes. Importing a
+consumer's sessions from where it keeps them is the reliable path, and is the
+one §2 already prescribes for every source.
+
+Stdio, because the consumers are local and single-user (§21): it needs no
+authentication to get right, which a port on a machine holding years of private
+history would.
+
+**Consequences.** Recall stops being automatic. Hermes's native provider can
+bring recalled memory into each turn by itself; through MCP, memory arrives only
+when the agent calls a tool. How much of that the agent's own instructions
+recover, and whether a thin automatic path is worth adding later, is for the
+specification of the first surface to measure, not to assume.
+
+Memory lags behind live work. A Hermes, Claude Code or Codex session is not
+retrievable until its importer has run, so a refinement made in one agent
+reaches another on the next import, not the next turn. Phase 2's acceptance is
+worded accordingly.
+
+There is one more component to run and test: the surface needs contract tests
+like every §8 boundary, and an end-to-end test from a consumer's tool call to an
+archived conversation. Phase 1 gains an item for it.
+
+Each consumer starts its own server process, so archive and import-state access
+is concurrent from the first day. Reads against SQLite and local files tolerate
+that; it is a constraint on the production stores of ADR-004, which must allow
+concurrent readers alongside a running import.
