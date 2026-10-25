@@ -37,14 +37,14 @@ it is #9's declaration, and this feature implements it rather than amending it.
 
 **Purpose**: the static guards, before anything is written into the module.
 
-- [ ] T001 [P] Write `tests/structure/test_classification_imports.py`: every `.py` under
+- [X] T001 [P] Write `tests/structure/test_classification_imports.py`: every `.py` under
       `src/hermes_memory/classification/` imports only the standard library, `pydantic`,
       `structlog`, `hermes_memory.errors`, `hermes_memory.normalization`,
       `hermes_memory.observability` and `hermes_memory.classification.*`. Nothing on
       `FORBIDDEN_AT_RUNTIME` of `tests/structure/test_boundary_interfaces.py` is allowed; reuse that
       list by import rather than copying it. Include a "still bites" test against a `tmp_path`
       package holding `import httpx`, so the guard is proved able to fail (Principle IV)
-- [ ] T002 [P] Write `tests/synthetic/projects.py`: helpers that build a `ProjectRuleSet` and a
+- [X] T002 [P] Write `tests/synthetic/projects.py`: helpers that build a `ProjectRuleSet` and a
       TOML document from synthesized project names and aliases, plus the near-miss pairs AM-2
       needs (`nz`/`nzxt`, `hermes-memory`/`hermes-memory-ui`). No real repository name, no real
       path, no real conversation (research R12)
@@ -58,7 +58,7 @@ rule set can be built and a string can be asked which projects it names.
 
 **⚠️ CRITICAL**: no user story work begins until this phase is complete.
 
-- [ ] T003 Write `tests/unit/test_project_rules.py` first and observe it fail: a well-formed rule
+- [X] T003 Write `tests/unit/test_project_rules.py` first and observe it fail: a well-formed rule
       set builds; a `project` that is not a valid §6 slug is refused naming it (RS-6); the slug
       `unknown` is refused (RS-7); a project declared twice is refused naming it (RS-8); an alias
       that is empty or holds no letter and no digit is refused naming it and its project (RS-9);
@@ -68,12 +68,12 @@ rule set can be built and a string can be asked which projects it names.
       the key (RS-5); an **empty** rule set is valid and refused by nothing (RS-11); every refusal
       is a `ProjectRulesError` and `issubclass(ProjectRulesError, BoundaryError)` is **False**
       (RS-12)
-- [ ] T004 Implement `src/hermes_memory/classification/rules.py`: frozen `ProjectRule` with
+- [X] T004 Implement `src/hermes_memory/classification/rules.py`: frozen `ProjectRule` with
       `project: Slug`, `aliases: tuple[str, ...]` (at least one, each containing a letter or a
       digit) and `priority: int = 0`; frozen `ProjectRuleSet` with `rules: tuple[ProjectRule, ...]`
       carrying the cross-rule refusals; `ProjectRulesError(RuntimeError)`. `extra="forbid"` on both
       models, per the `FrozenModel` base of #8
-- [ ] T005 Write `tests/unit/test_alias_matcher.py` first and observe it fail — the mechanism, not
+- [X] T005 Write `tests/unit/test_alias_matcher.py` first and observe it fail — the mechanism, not
       yet the stories: a matcher built from a rule set reports which projects a string names;
       matching is case-insensitive by case folding, including a non-ASCII alias (AM-1); an alias is
       a literal, so `a.b` does not match `axb` and `(` in an alias is not metasyntax (AM-5); where
@@ -82,7 +82,7 @@ rule set can be built and a string can be asked which projects it names.
       including a line break (AM-4); the count of occurrences is not reported and repeating an
       alias changes nothing (AM-10); a matcher built from an empty rule set reports nothing for any
       string
-- [ ] T006 Implement `src/hermes_memory/classification/matcher.py`: compile every alias of every
+- [X] T006 Implement `src/hermes_memory/classification/matcher.py`: compile every alias of every
       rule into one alternation, longest alias first, with the per-edge boundary of AM-2 and AM-3
       and the whitespace rule of AM-4; keep the map from casefolded alias to project; expose one
       method that scans a string once and returns the set of projects named (research R4)
@@ -101,18 +101,18 @@ conversation the name appears.
 mention an alias in each of the six text-bearing fields, and assert all come back as that
 project's tag.
 
-- [ ] T007 [P] [US1] Write `tests/structure/test_matcher_covers_the_model.py` first and observe it
+- [X] T007 [P] [US1] Write `tests/structure/test_matcher_covers_the_model.py` first and observe it
       fail: enumerate the fields of #8's model and assert each text-bearing one is swept and each
       other one is not. Reuse the enumeration of `tests/structure/test_sanitizer_covers_the_model.py`
       rather than copying it, so the two stages cannot drift apart (research R10). Identity fields
       and timestamps are asserted **not** scanned (AM-8)
-- [ ] T008 [US1] Write `tests/unit/test_alias_matching.py` first and observe it fail: an alias
+- [X] T008 [US1] Write `tests/unit/test_alias_matching.py` first and observe it fail: an alias
       found in `Conversation.title`, in a `Message.text`, in a `ToolActivity.name`, in its
       `.request`, in its `.result` and in a `NonTextPart.name` each yields that project's tag — six
       placements, six hits (SC-001); a different case in the text still matches (AM-1); a
       multi-word alias split across a line break still matches (AM-4); and exactly one project
       matched yields its tag whatever its priority (AR-2)
-- [ ] T009 [US1] Implement `src/hermes_memory/classification/alias_classifier.py`:
+- [X] T009 [US1] Implement `src/hermes_memory/classification/alias_classifier.py`:
       `AliasProjectClassifier`, built from a `ProjectRuleSet`, holding a matcher; `classify`
       gathers the six text-bearing fields, joins them with `\n`, asks the matcher, and returns the
       single matched project's `ProjectTag`. Resolution of several matches lands in T014; until
@@ -129,17 +129,17 @@ project's tag.
 **Independent Test**: classify a conversation matching no rule; assert `project:unknown`, that
 nothing was raised, and that the conversation is unchanged.
 
-- [ ] T010 [P] [US2] Write `tests/contracts/test_alias_classifier_passes_the_contract.py` first
+- [X] T010 [P] [US2] Write `tests/contracts/test_alias_classifier_passes_the_contract.py` first
       and observe it fail: subclass `ProjectClassifierContract` from `tests/contracts/classifier.py`,
       with `make_classifier` returning an `AliasProjectClassifier` over a **non-empty** rule set
       whose aliases the suite's conversations do not contain — so PC-2 is meaningful rather than
       accidental. Do not edit the suite (SC-007)
-- [ ] T011 [US2] Write the no-match cases into `tests/unit/test_project_resolution.py` first and
+- [X] T011 [US2] Write the no-match cases into `tests/unit/test_project_resolution.py` first and
       observe them fail: no project matched yields `UNKNOWN_PROJECT` and `str(tag)` is
       `project:unknown` (AR-1); a classifier over an empty rule set yields it for every
       conversation; a conversation with no title and no messages yields it (AM-9); none of these
       raises (AR-8)
-- [ ] T012 [US2] Extend `alias_classifier.py` so that no match returns `UNKNOWN_PROJECT` rather
+- [X] T012 [US2] Extend `alias_classifier.py` so that no match returns `UNKNOWN_PROJECT` rather
       than `None` or an exception, and confirm PC-1 to PC-5 now pass
 
 **Checkpoint**: every conversation gets a tag, and the unresolved case is an ordinary one.
@@ -153,15 +153,15 @@ nothing was raised, and that the conversation is unchanged.
 **Independent Test**: two projects at different priorities — the higher wins; level the
 priorities — `project:unknown`; repeat and reorder — unchanged.
 
-- [ ] T013 [US3] Extend `tests/unit/test_project_resolution.py` first and observe the new cases
+- [X] T013 [US3] Extend `tests/unit/test_project_resolution.py` first and observe the new cases
       fail: two matching projects at different priorities yield the higher (AR-3); two sharing the
       highest yield `UNKNOWN_PROJECT` (AR-4); three matching with two tied at the top yield
       `UNKNOWN_PROJECT`; a rule set in which no rule declares a priority makes any two-project
       conversation `UNKNOWN_PROJECT`, because the documented default gives them all `0`; two
       aliases of the **same** project are not ambiguity and yield that project (AR-5)
-- [ ] T014 [US3] Implement the resolution in `alias_classifier.py`: several matches resolve to the
+- [X] T014 [US3] Implement the resolution in `alias_classifier.py`: several matches resolve to the
       highest `priority`, or to `UNKNOWN_PROJECT` when the highest is shared (research R5)
-- [ ] T015 [US3] Extend `tests/unit/test_project_resolution.py` with the determinism cases and
+- [X] T015 [US3] Extend `tests/unit/test_project_resolution.py` with the determinism cases and
       observe them fail: a hundred repeated classifications of one conversation agree; the same
       rules written in a different order give the same answer; two separately constructed
       classifiers over equal rule sets agree (AR-6, SC-003). Fix whatever ordering dependence they
@@ -180,16 +180,16 @@ wrong and warns loudly when it is absent — while `classify` keeps raising noth
 nothing from the default location and get a warning and an empty rule set; load a path that was
 asked for and is missing and get a failure.
 
-- [ ] T016 [P] [US4] Write `tests/unit/test_settings_project_rules.py` first and observe it fail:
+- [X] T016 [P] [US4] Write `tests/unit/test_settings_project_rules.py` first and observe it fail:
       `Settings` exposes `project_rules_path` defaulting to `data/projects.toml`, a relative value
       resolves against the repository root and an absolute one is left alone (#5's FR-013), and the
       settings object can say whether the field was explicitly set
-- [ ] T017 [US4] Implement `project_rules_path: Path = Path("data/projects.toml")` in
+- [X] T017 [US4] Implement `project_rules_path: Path = Path("data/projects.toml")` in
       `src/hermes_memory/settings.py`, reusing the existing path-resolution validator, and add
       `HERMES_PROJECT_RULES_PATH` to `.env.example` under Local storage with a comment saying what
       it holds and that the default sits under the ignored `data/`. The sync test of #5 fails if
       one is added without the other
-- [ ] T018 [US4] Write `tests/unit/test_project_rules_loading.py` first and observe it fail: a
+- [X] T018 [US4] Write `tests/unit/test_project_rules_loading.py` first and observe it fail: a
       valid TOML document loads into the expected rule set (RS-1); a path given explicitly with
       nothing at it raises naming that path (RS-2); no path given and nothing at the default
       location returns an **empty** rule set, raises nothing, and emits exactly one `warning`
@@ -201,12 +201,12 @@ asked for and is missing and get a failure.
       record naming the path, the project count and the alias count (RS-13); no record carries
       conversation content. Capture records with the structlog harness #6 left in
       `tests/unit/conftest.py`
-- [ ] T019 [US4] Implement `src/hermes_memory/classification/loader.py`: resolve the path from
+- [X] T019 [US4] Implement `src/hermes_memory/classification/loader.py`: resolve the path from
       `Settings` or an explicit argument, read it with `tomllib`, validate into a `ProjectRuleSet`,
       translate every failure into `ProjectRulesError` naming the file and the entry, and emit the
       two records of RS-13 and RS-3. The absent-default case is distinguished by whether the
       setting was explicitly set, not by comparing the value to the default (data-model.md)
-- [ ] T020 [P] [US4] Write `projects.example.toml` at the repository root in the shape
+- [X] T020 [P] [US4] Write `projects.example.toml` at the repository root in the shape
       [contracts/rule-set.md](./contracts/rule-set.md#the-configuration-file) fixes — two
       `[[project]]` entries, one with `priority` and one without, with comments explaining aliases
       and priority and ties — using invented project names only. Add a case to
@@ -225,7 +225,7 @@ itself.
 **Independent Test**: a configured alias matches when it stands as a term and misses when it is
 embedded in a longer one.
 
-- [ ] T021 [US5] Write `tests/unit/test_alias_boundaries.py` first and observe it fail, as one
+- [X] T021 [US5] Write `tests/unit/test_alias_boundaries.py` first and observe it fail, as one
       table of hits and misses so the rule is pinned by examples: `nz` misses `nzxt` and hits
       `nz/hermes-memory`, `the nz repo`, `(nz)` and a line ending in `nz` (AM-2); `hermes-memory`
       misses `hermes-memory-ui` and `my-hermes-memory` and hits `nkz-soft/hermes-memory`,
@@ -233,7 +233,7 @@ embedded in a longer one.
       a word character, such as `nkz-soft/`, imposes no constraint on that side and hits
       `nkz-soft/anything` (AM-3); and no alias matches across the `\n` join between two fields —
       a title ending `herm` beside a message beginning `es-memory` is a miss (AM-7)
-- [ ] T022 [US5] Fix whatever T021 exposes in `matcher.py`. If T006 already satisfies the table,
+- [X] T022 [US5] Fix whatever T021 exposes in `matcher.py`. If T006 already satisfies the table,
       record that in the task's commit message rather than inventing a change — a test that passes
       first time is evidence, not a failure of the process, provided it was written first and seen
       to fail against the absent behaviour
@@ -250,16 +250,16 @@ MVP.
 **Independent Test**: compose the alias classifier with a stand-in for level 3 and assert the
 stand-in is consulted only where the first resolved nothing.
 
-- [ ] T023 [P] [US6] Write `tests/unit/test_classifier_chain.py` first and observe it fail: a chain
+- [X] T023 [P] [US6] Write `tests/unit/test_classifier_chain.py` first and observe it fail: a chain
       returns the first answer that is not `UNKNOWN_PROJECT` (CH-1); an element after that answer
       is **not** consulted, asserted by a stand-in that records whether it was called (CH-2); a
       chain whose elements all resolve nothing returns `UNKNOWN_PROJECT` (CH-3); an empty chain
       returns `UNKNOWN_PROJECT` (CH-4); and a chain is itself a `ProjectClassifier` passing PC-1 to
       PC-5 (CH-5)
-- [ ] T024 [US6] Implement `src/hermes_memory/classification/chain.py`:
+- [X] T024 [US6] Implement `src/hermes_memory/classification/chain.py`:
       `ChainedProjectClassifier` over an ordered sequence of `ProjectClassifier`, returning the
       first resolved answer and `UNKNOWN_PROJECT` otherwise (research R8)
-- [ ] T025 [P] [US6] Add a case to `tests/structure/test_classification_imports.py` asserting no
+- [X] T025 [P] [US6] Add a case to `tests/structure/test_classification_imports.py` asserting no
       module in `classification` imports an HTTP client or a model SDK, so CH-6 — no model-based
       classifier in the MVP — is enforced statically rather than remembered (§21)
 
@@ -269,30 +269,30 @@ stand-in is consulted only where the first resolved nothing.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T026 [P] Write `tests/unit/test_classification_is_pure.py` and observe it fail where it must:
+- [X] T026 [P] Write `tests/unit/test_classification_is_pure.py` and observe it fail where it must:
       `classify` performs no file read, no socket call and no clock read — **blocked** by
       monkeypatching the relevant entry points to raise, so the test passes because the call could
       not happen rather than because nobody looked (SC-008, AR-7); the conversation handed in is
       unchanged (PC-4); and `classify` emits no log record at all (AR-9, research R11)
-- [ ] T027 [P] Add a cost case to `tests/unit/test_alias_matcher.py`: a conversation carrying
+- [X] T027 [P] Add a cost case to `tests/unit/test_alias_matcher.py`: a conversation carrying
       hundreds of kilobytes of text against a rule set of many projects classifies within a bounded
       time, and the bound does not change materially when the project count doubles — cost is
       bounded by the text, not by the rule count (research R4, plan Performance Goals)
-- [ ] T028 Update `src/hermes_memory/classification/__init__.py`: export `AliasProjectClassifier`,
+- [X] T028 Update `src/hermes_memory/classification/__init__.py`: export `AliasProjectClassifier`,
       `ChainedProjectClassifier`, `ProjectRule`, `ProjectRuleSet`, `ProjectRulesError` and the
       loader entry point beside #9's `ProjectClassifier` and `UNKNOWN_PROJECT`, and rewrite the
       module docstring — it currently ends "The alias rules that decide the rest arrive with #12",
       which this feature makes untrue
-- [ ] T029 [P] Add the `project:` row to the quickstart of #5 or to `README.md` only if one already
+- [X] T029 [P] Add the `project:` row to the quickstart of #5 or to `README.md` only if one already
       documents configuration files; otherwise skip this task and say so in the pull request rather
       than inventing a documentation surface this feature does not have
-- [ ] T030 Assert the public surface in `tests/structure/test_module_layout.py` (extend it): the
+- [X] T030 Assert the public surface in `tests/structure/test_module_layout.py` (extend it): the
       names T028 exports are importable from `hermes_memory.classification`, and `classifier.py` is
       unchanged against `origin/main`
-- [ ] T031 Run [quickstart.md](./quickstart.md) end to end — every numbered section, including the
+- [X] T031 Run [quickstart.md](./quickstart.md) end to end — every numbered section, including the
       two one-liners that show the warning and the failure apart — and reconcile any expectation it
       states with what actually happens
-- [ ] T032 Run `uv run pytest`, `uv run ruff check .` and `uv run ruff format --check .`, and quote
+- [X] T032 Run `uv run pytest`, `uv run ruff check .` and `uv run ruff format --check .`, and quote
       the output in the pull request's verification section (superpowers:verification-before-completion)
 
 ---
@@ -349,3 +349,33 @@ it work.
 - Commit after each task or logical pair, with the test commit observable before its implementation
 - `src/hermes_memory/classification/classifier.py` is not edited by any task
 - No fixture contains a real credential, a real conversation or a real project list
+
+---
+
+## What was done differently, and why
+
+Four tasks did not land exactly as written. Each is a change of placement, not of scope.
+
+- **T025** was already satisfied by **T001**. The import guard was written with a `MODEL_CLIENTS`
+  list from the start, because the reason to forbid an HTTP client (Principle IV) and the reason to
+  forbid a model SDK (§21, CH-6) produce the same check and a second test would have duplicated it.
+- **T030** asserts the public surface and the untouched boundary in
+  `tests/structure/test_classification_imports.py` rather than in `test_module_layout.py`, whose
+  subject is the constitution's module tree rather than one package's exports. The "unchanged
+  against `origin/main`" half is asserted as the *shape* of `classifier.py` — its public names —
+  rather than as a diff: a test that shells out to git fails inside the container image of #7,
+  where there is no repository.
+- **T029** was performed rather than skipped. `README.md` already had a Configuration section, so
+  the project rules are documented there, with the `projects.example.toml` pointer and the
+  asymmetry between a configured and a default path.
+- **T031** found three expectations in `quickstart.md` that did not match what the code does: the
+  two `load_project_rules` one-liners used a signature invented before the loader existed, section
+  3 described the boundary table with real project names where the fixtures use invented ones
+  (research R12), and section 8 claimed the clock was blocked where it is in fact asserted
+  statically. All three are corrected in `quickstart.md`, and the reason the clock is asserted
+  differently is in the test's own docstring.
+
+One test written earlier had to change when a later rule arrived: a tool activity named
+`orchard-pipeline-deploy` was a hit in **T008** and is a miss under **T021**'s boundary rule. The
+boundary rule is the more specific requirement, so the fixture moved to `orchard-pipeline/deploy`
+and the former case is now asserted as a miss.

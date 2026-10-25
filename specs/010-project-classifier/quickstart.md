@@ -36,9 +36,11 @@ multi-word cases of AM-1 and AM-4.
 uv run pytest tests/unit/test_alias_boundaries.py -v
 ```
 
-Expected: `nz` misses `nzxt` and hits `nz/hermes-memory` and `the nz repo`; `hermes-memory` misses
-`hermes-memory-ui` and hits `nkz-soft/hermes-memory`; no alias matches across the join between two
-fields (AM-7).
+Expected: the short alias `op` misses `option` and `op-code` and hits `the op repo` and
+`op/service`; `orchard-pipeline` misses `orchard-pipeline-ui`, `my-orchard-pipeline` and `orchard`
+alone, and hits `example-org/orchard-pipeline`, `orchard-pipeline.md` and `(orchard-pipeline)`; no
+alias matches across the join between two fields (AM-7). The project names are invented, per
+research R12 — a fixture that happens to be real invites the next one that is.
 
 ## 4. Ambiguity resolves by priority, and a tie does not resolve (SC-003)
 
@@ -56,26 +58,35 @@ different file order give the same answer.
 uv run pytest tests/unit/test_project_rules_loading.py -v
 ```
 
-Expected: RS-2 and RS-4 to RS-10 each fail with a message naming the offending entry, and each
-raises `ProjectRulesError` rather than a `BoundaryError` (RS-12). RS-3 is the opposite case: no
-failure, one warning, an empty rule set.
+Expected: RS-2, RS-4 and RS-5 each fail with a message naming the file and the offending entry,
+and each raises `ProjectRulesError`. RS-3 is the opposite case: no failure, one warning, an empty
+rule set. RS-11 is the third: an empty file is a choice, so it loads quietly.
+
+The refusals that belong to the rule set rather than to the file — RS-6 to RS-10, and RS-12's
+`not issubclass(ProjectRulesError, BoundaryError)` — are next door:
+
+```bash
+uv run pytest tests/unit/test_project_rules.py -v
+```
 
 See the difference yourself — the distinction FR-012a exists for:
 
 ```bash
-uv run python -c "from hermes_memory.classification import load_project_rules; load_project_rules(path=None)"
+uv run python -c "from pathlib import Path; from hermes_memory.classification import load_project_rules; load_project_rules(Path('data/projects.toml'), required=False)"
 ```
 
 Expected: a JSON warning record on standard error naming `data/projects.toml`, stating that this
-run will classify everything as `project:unknown`, and stating that re-importing will not revisit
-those conversations. Nothing raised.
+run will classify everything as `project:unknown`, and stating that a re-import skips an unchanged
+conversation so those tags stay. Nothing raised, and an empty rule set returned.
 
 ```bash
-uv run python -c "from hermes_memory.classification import load_project_rules; load_project_rules(path='nowhere.toml')"
+uv run python -c "from pathlib import Path; from hermes_memory.classification import load_project_rules; load_project_rules(Path('nowhere.toml'), required=True)"
 ```
 
-Expected: `ProjectRulesError` naming `nowhere.toml`. The first command asked for nothing in
-particular; the second asked for a file.
+Expected: `ProjectRulesError` naming `nowhere.toml` and telling the reader they may unset the
+setting to run without rules. The first command was not asking for a particular file; the second
+was — `required` is the caller's statement of which, and `Settings.model_fields_set` is where it
+comes from in the real composition.
 
 ## 6. Try it on a rule set of your own
 
@@ -108,9 +119,13 @@ passes the boundary contract.
 uv run pytest tests/unit/test_classification_is_pure.py tests/structure/test_classification_imports.py -v
 ```
 
-Expected: `classify` performs no file read, no socket call and no clock read — blocked, so that a
-test passes because the call could not happen rather than because it was not noticed — and the
-module imports no Hindsight, no HTTP client and no storage (Principle IV).
+Expected: `classify` opens no file and no socket, with both blocked so that the test passes
+because the call could not happen rather than because nobody looked; it emits no log record; and
+the conversation handed in comes back unchanged. The clock is asserted differently and the
+docstring says why — `from datetime import datetime` binds the class at import, so patching it
+afterwards would not bite, and what is asserted instead is that the three modules which decide a
+project import nothing that tells the time. The package also imports no Hindsight, no HTTP client,
+no storage and no model SDK (Principle IV, §21).
 
 ## 9. The whole suite
 

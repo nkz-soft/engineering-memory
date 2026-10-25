@@ -8,6 +8,8 @@ the project that declared the alias (research R4).
 
 from __future__ import annotations
 
+import time
+
 from hermes_memory.classification.matcher import AliasMatcher
 from hermes_memory.classification.rules import ProjectRule, ProjectRuleSet
 from tests.synthetic import projects
@@ -129,3 +131,56 @@ def test_the_rarer_project_is_not_outvoted() -> None:
     )
 
     assert found == frozenset({"orchard-pipeline", "lantern"})
+
+
+# --- cost: bounded by the text, not by the rule count (research R4) ------------------------------
+
+
+def _many_projects(count: int) -> ProjectRuleSet:
+    return ProjectRuleSet(
+        rules=tuple(
+            ProjectRule(project=f"project-{index}", aliases=(f"alias-{index}", f"a{index}-long"))
+            for index in range(count)
+        )
+    )
+
+
+def test_a_large_conversation_is_scanned_quickly() -> None:
+    """A dumped manifest or a pasted log is ordinary content in this corpus."""
+    text = ("some ordinary engineering prose about nothing in particular. " * 4_000) + (
+        f"and finally {projects.ALIAS}"
+    )
+    built = AliasMatcher(projects.rule_set())
+
+    started = time.perf_counter()
+    found = built.projects_named(text)
+    elapsed = time.perf_counter() - started
+
+    assert found == frozenset({"orchard-pipeline"})
+    assert elapsed < 2.0, f"scanning {len(text)} characters took {elapsed:.2f}s"
+
+
+def test_doubling_the_rule_count_does_not_double_the_scan() -> None:
+    """One compiled alternation, one pass: the project count is a build cost, not a scan cost."""
+    text = "some ordinary engineering prose about nothing in particular. " * 2_000
+
+    def scan(count: int) -> float:
+        built = AliasMatcher(_many_projects(count))
+        started = time.perf_counter()
+        built.projects_named(text)
+        return time.perf_counter() - started
+
+    small = scan(200)
+    large = scan(400)
+
+    assert large < max(small * 4, 1.0), (
+        f"400 projects scanned in {large:.3f}s against {small:.3f}s for 200; cost should be "
+        "bounded by the text, not by the rules"
+    )
+
+
+def test_hundreds_of_aliases_compile_at_all() -> None:
+    """A single alternation of this size is the shape research R4 chose; it must be buildable."""
+    built = AliasMatcher(_many_projects(500))
+
+    assert built.projects_named("alias-499 turned up") == frozenset({"project-499"})

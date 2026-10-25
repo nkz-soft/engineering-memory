@@ -108,6 +108,33 @@ for a single run.
 A missing or malformed setting fails at startup, naming every variable at fault,
 rather than partway through an import.
 
+### Project rules
+
+Memory lives in one shared bank, and `project:` tags are how you narrow a recall
+to one project (ARCHITECTURE.md §15, ADR-002). Which conversation belongs to
+which project is decided by alias rules you write —
+[`projects.example.toml`](projects.example.toml) documents the format:
+
+```bash
+cp projects.example.toml data/projects.toml
+```
+
+Each entry gives a project slug, the literal terms that identify it — repository
+names, paths, the shorthand you actually type — and an optional priority that
+decides a conversation naming several projects. An alias is matched whole and
+case-insensitively, so `lantern` finds `example-org/lantern` but not
+`lantern-api`; list both spellings when you want both. A conversation matching
+no rule, or matching two projects of equal priority, is imported anyway and
+tagged `project:unknown`.
+
+The default location is under the ignored `data/` on purpose: these are your
+repository names and local paths, and this repository is public. Point elsewhere
+with `HERMES_PROJECT_RULES_PATH` — and note the asymmetry, because it is
+deliberate: a path you set and that does not exist is an error, while no rules
+at the default location is a warning and an import that tags everything
+`project:unknown`. Those tags do not fix themselves when the rules arrive: a
+re-import skips an unchanged conversation (§17).
+
 ## Logging
 
 Records are JSON, one object per line, on standard error. Each ingestion

@@ -99,3 +99,50 @@ def test_the_guard_still_bites(tmp_path: Path) -> None:
         "leak.py: httpx",
         "leak.py: openai",
     ]
+
+
+def test_the_package_exports_what_a_caller_needs() -> None:
+    """The surface #19 composes against, asserted so a rename cannot pass quietly."""
+    import hermes_memory.classification as package
+
+    assert set(package.__all__) == {
+        "UNKNOWN_PROJECT",
+        "AliasProjectClassifier",
+        "ChainedProjectClassifier",
+        "ProjectClassifier",
+        "ProjectRule",
+        "ProjectRuleSet",
+        "ProjectRulesError",
+        "load_project_rules",
+    }
+
+    for name in package.__all__:
+        assert hasattr(package, name), f"{name} is exported but absent"
+
+
+def test_the_boundary_module_still_declares_only_the_boundary() -> None:
+    """#9's `classifier.py` is a declaration, not the first implementation of one.
+
+    This feature implements the boundary beside it rather than inside it, which is what keeps the
+    file readable as a contract. The check is on the file's public names rather than on a diff
+    against `origin/main`: a test that shells out to git fails inside the container image (#7),
+    where there is no repository, and the property worth holding is the shape, not the bytes.
+    """
+    import hermes_memory.classification.classifier as boundary
+
+    assert set(boundary.__all__) == {"UNKNOWN_PROJECT", "ProjectClassifier"}
+
+    public = {
+        name
+        for name in vars(boundary)
+        if not name.startswith("_") and name not in {"annotations", "BOUNDARY"}
+    }
+    assert public <= {
+        "UNKNOWN_PROJECT",
+        "ProjectClassifier",
+        "Final",
+        "Protocol",
+        "Conversation",
+        "ProjectTag",
+        "runtime_checkable",
+    }, f"classifier.py gained {sorted(public)}; an implementation belongs beside it, not in it"

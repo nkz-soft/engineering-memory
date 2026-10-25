@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_memory.classification import ProjectRule, ProjectRuleSet, ProjectRulesError
+from hermes_memory.classification import ProjectRule, ProjectRulesError, ProjectRuleSet
 from hermes_memory.errors import BoundaryError
 
 

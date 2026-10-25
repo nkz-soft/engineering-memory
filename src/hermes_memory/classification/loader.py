@@ -18,7 +18,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from hermes_memory.classification.rules import ProjectRuleSet, ProjectRulesError
+from hermes_memory.classification.rules import ProjectRulesError, ProjectRuleSet
 
 __all__ = ["load_project_rules"]
 
