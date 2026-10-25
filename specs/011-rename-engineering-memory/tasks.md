@@ -22,8 +22,8 @@ Independent test: contextual identifier audit and repository URL verification.
 - [x] T008 [US3] Rename GitHub repository and update origin; verify old URL redirects to the canonical repository.
 
 ## Final Phase - Verification and delivery
-- [ ] T009 Run full tests, Ruff, wheel / clean-install CLI checks and Docker checks; record results in specs/011-rename-engineering-memory/verification.md.
-- [ ] T010 Review final diff, fix findings and create PR using .github/pull_request_template.md; move issue to in-review.
+- [x] T009 Run full tests, Ruff, wheel / clean-install CLI checks and Docker checks; record results in specs/011-rename-engineering-memory/verification.md.
+- [x] T010 Review final diff, fix findings and create PR using .github/pull_request_template.md; move issue to in-review.
 
 ## Dependencies and implementation strategy
 T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> T007 -> T009 -> T008 -> T010.

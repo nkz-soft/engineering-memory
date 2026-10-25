@@ -9,7 +9,7 @@
 ## Local final verification
 
 - `uv sync --locked`: passed; installed renamed project and removed the former editable distribution.
-- `uv run pytest -q`: 1455 passed, 2 skipped in 22.02s. The two pre-existing cost/streaming checks are intentionally opt-in.
+- `uv run pytest -q`: 1455 passed, 2 skipped in 22.02s. The two pre-existing skips are store-contract failure simulations unsupported by the in-memory implementation.
 - `uv run ruff check .`: all checks passed.
 - `uv run ruff format --check .`: 258 files already formatted.
 - `git diff --cached --check`: passed.
@@ -28,4 +28,10 @@ The GitHub repository rename succeeded. Canonical repository `nkz-soft/engineeri
 
 ## Container verification
 
-Local `docker version` and `docker --context desktop-linux version` could not reach their engine pipes. No local image build/run success is claimed. The existing CI Container image job builds, runs default help and checks non-root execution and artifact contents. Its result will be recorded after the PR run.
+Local `docker version` and `docker --context desktop-linux version` could not reach their engine pipes. No local image build/run success is claimed. The existing CI Container image job builds, runs default help and checks non-root execution and artifact contents. CI run [40201452833](https://github.com/nkz-soft/engineering-memory/actions/runs/40201452833) passed all three jobs: Lint, format and tests; Secret scan (including its negative control); and Container image. Image build, default help invocation, non-root execution and exclusion of development dependencies/tests/data all passed. CI pytest reported 1455 passed, 2 skipped in 8.71s.
+
+## Delivery
+
+PR: https://github.com/nkz-soft/engineering-memory/pull/50. Issue #48 is in review. All implementation tasks are complete; the worktree remains available.
+
+`uv run pytest -q -rs tests/contracts`: 89 passed, 2 skipped in 0.51s. The store adapter cannot simulate refused or unreachable calls, so those two generic contract cases skip for this implementation. These are unchanged skips.
