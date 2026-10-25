@@ -186,6 +186,18 @@ class Settings(BaseSettings):
     has a default, so an absent group is a valid group and there is no missing leaf to name."""
     archive_root: Path = Path("data/archive")
     import_state_path: Path = Path("data/import-state.db")
+    project_rules_path: Path = Path("data/projects.toml")
+    """The alias rules §15 level 2 classifies by (#12).
+
+    Defaulted under `data/` for a reason the other two paths do not share: this file holds one
+    person's project names, repository names and local paths, and `data/` is the directory
+    `.gitignore` excludes. A default under a tracked directory would put that list one `git add .`
+    away from a public repository.
+
+    Whether this was *set* matters as much as its value: an absent file at a location the operator
+    chose is an error, while an absent file at the default is a warning and an empty rule set
+    (specs/010-project-classifier/research.md R7). `model_fields_set` is what the caller asks.
+    """
 
     @model_validator(mode="before")
     @classmethod
@@ -202,7 +214,7 @@ class Settings(BaseSettings):
                 values.setdefault(group, {})
         return values
 
-    @field_validator("archive_root", "import_state_path", mode="before")
+    @field_validator("archive_root", "import_state_path", "project_rules_path", mode="before")
     @classmethod
     def _reject_a_blank_path(cls, value: Any) -> Any:
         """A blank value is not "use the default" — it is an unfinished edit.
@@ -219,7 +231,7 @@ class Settings(BaseSettings):
             )
         return value
 
-    @field_validator("archive_root", "import_state_path")
+    @field_validator("archive_root", "import_state_path", "project_rules_path")
     @classmethod
     def _resolve_against_the_project_root(cls, value: Path) -> Path:
         """Absolute in, absolute out; relative in, resolved against the repository (FR-013).

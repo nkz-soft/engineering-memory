@@ -1,0 +1,53 @@
+# hermes-memory — project rules
+#
+# Copy this file to `data/projects.toml` and make it yours:
+#
+#     cp projects.example.toml data/projects.toml
+#
+# `data/` is ignored by git and never committed, which is the point: your rules are your
+# repository names, your project names and your local paths, and this repository is public.
+#
+# Point somewhere else with HERMES_PROJECT_RULES_PATH. Setting that to a path that does not exist
+# is an error; leaving it unset with no file at the default is a warning, and the import then
+# tags every conversation `project:unknown`.
+#
+# These rules are ARCHITECTURE.md §15 level 2: deterministic matching of names you already use.
+# Nothing here asks a model, and the same conversation always classifies the same way — which is
+# what lets a re-import land where the first import did (§17).
+
+# --- One project per [[project]] block ------------------------------------------------------
+#
+#   project   the slug that becomes the `project:` tag you filter recall by. Lowercase, and
+#             `unknown` is reserved: it is the answer for a conversation no rule matched.
+#   aliases   the literal terms that identify the project. Repository names, paths, product
+#             names, the shorthand you actually type. Not patterns — a literal is matched whole,
+#             case-insensitively.
+#   priority  optional, defaults to 0. It only ever decides a conversation that names several
+#             projects: the highest priority wins, and a tie means `project:unknown`.
+
+[[project]]
+project = "orchard-pipeline"
+aliases = [
+    "orchard-pipeline",
+    "example-org/orchard-pipeline",
+    "D:/Projects/orchard-pipeline",
+    "the orchard pipeline",
+]
+priority = 10
+
+[[project]]
+project = "lantern"
+aliases = ["lantern", "lantern-api"]
+# No priority, so this is 0. A conversation naming both projects resolves to orchard-pipeline,
+# because 10 beats 0. Give two projects the same priority when you would rather such a
+# conversation came back `project:unknown` than be filed under a guess.
+
+# --- Two things worth knowing before you write your own --------------------------------------
+#
+# An alias is matched as a whole term, and `-` counts as part of a word. So `lantern` matches
+# "the lantern repo", "example-org/lantern" and "lantern.md", but not "lanterns" and not
+# "lantern-api" — which is why `lantern-api` is listed separately above. If you want both
+# spellings, write both.
+#
+# An alias may not be claimed by two projects: one that identifies two identifies neither, and
+# loading refuses it rather than picking.
