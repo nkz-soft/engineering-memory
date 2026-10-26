@@ -55,3 +55,15 @@ Research was based on the checked-in boundary, source/parser, model serializatio
 ## Clarification Review
 
 Zero questions required. Functional scope, identities, lifecycle, failure behavior, privacy, integration, completion criteria, and terminology are clear after recording assumptions in the spec. User interaction is an internal boundary rather than a UI. Performance is bounded by one conversation at a time; corpus-wide throughput targets await measurement. Platform durability details are a verification obligation, not an unresolved product choice.
+
+## Platform references
+
+Windows publication uses a private standard-library ctypes adapter for
+[MoveFileExW](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw)
+with replace-existing and write-through flags. Original reads use
+[CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
+with read/write/delete sharing so independent readers do not deliberately block
+replacement. Concurrent tests exposed transient access-denied/sharing failures;
+a bounded retry handles those statuses and persistent failures still cross as
+`ArchiveUnavailable`. These calls supplement file fsync; Windows directory fsync
+is not claimed. POSIX syncs newly created directory entries and publication.

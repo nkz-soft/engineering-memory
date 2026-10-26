@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft — awaiting planning review
+**Status**: Implemented — ready for PR review
 
 **Input**: [Issue #13](https://github.com/nkz-soft/engineering-memory/issues/13), "Persist originals and normalized forms in a local raw archive". Preserve both forms independently of extracted memory, enumerate by stable identity, and replay ingestion without the source export.
 

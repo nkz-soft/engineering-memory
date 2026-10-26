@@ -1,7 +1,7 @@
 """Persist originals and normalized forms, independently of any memory engine.
 
 The raw archive boundary of ARCHITECTURE.md §8 — the source of truth Principle I requires. The
-local store behind it, and its on-disk layout, arrive with #13.
+local implementation and format are in `archive.local` (feature 012).
 
 **This package re-exports the interface and nothing else.** `ingestion/source.py` names
 `OriginalPayload`, so every consumer of the source interface initializes this package — Python runs
