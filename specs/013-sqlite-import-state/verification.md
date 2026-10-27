@@ -42,3 +42,7 @@ Four existing skips cover two unsupported failure hooks on a fake memory adapter
 - `git diff --check`: exit 0; staged check repeated before commit.
 
 All code-review findings are resolved. No implementation deviations from the approved scope. Schema rejection is intentionally conservative for this owned versioned layout; database-specific validation remains inside its adapter.
+
+## Delivery
+
+Implementation commit: 791bed4. PR: https://github.com/nkz-soft/engineering-memory/pull/53. Issue #14 moved from in-progress to in-review. All 16 tasks completed; the isolated worktree remains for review. No merge was performed.

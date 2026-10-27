@@ -35,7 +35,7 @@
 
 - [x] T014 Update ARCHITECTURE.md §§17/20, specs/007-boundary-interfaces/contracts/interfaces.md and adapter usage in specs/013-sqlite-import-state/quickstart.md.
 - [x] T015 Run full pytest, Ruff lint/format, uv lock --check and git diff --check; record red/green evidence in specs/013-sqlite-import-state/verification.md.
-- [ ] T016 Request independent review, resolve findings, commit/push, compose PR from .github/pull_request_template.md, attach PR and move issue #14 to in-review.
+- [x] T016 Request independent review, resolve findings, commit/push, compose PR from .github/pull_request_template.md, attach PR and move issue #14 to in-review.
 
 ## Dependencies and independent checks
 
