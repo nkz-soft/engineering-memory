@@ -46,3 +46,7 @@ Image pull/platform runtime, actual readiness, real retain/recall, restart persi
 - `git diff --check`: exit 0; staged check repeated before commit.
 
 The four skips are existing fake-store unsupported failure hooks (two) and Windows symlink-permission tests (two). No offline failure is being hidden by the live-validation deferral. All code-review blockers are resolved. Task T012 remains explicitly deferred, not completed or replaced by mocks.
+
+## Delivery
+
+Implementation commit: dbda10b. Draft PR: https://github.com/nkz-soft/engineering-memory/pull/54. Issue #15 moved to in-review. T001–T011 and T013 are complete; T012 remains deferred at the operator's request. The isolated worktree is retained, and no merge or live startup was performed.

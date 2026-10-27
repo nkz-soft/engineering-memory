@@ -26,7 +26,7 @@
 
 - [x] T011 Run focused/full pytest, Ruff lint/format, uv lock --check and git diff --check; record test-first evidence in specs/014-local-hindsight-deployment/verification.md.
 - [ ] T012 **DEFERRED at operator request (2026-10-27):** Verify pinned image manifest, Compose config and live readiness/synthetic smoke/restart/proxy observation where the operator environment permits; record precise unverified prerequisites in specs/014-local-hindsight-deployment/verification.md rather than claiming mocked acceptance.
-- [ ] T013 Request independent read-only code review, fix findings, commit/push and open PR from .github/pull_request_template.md; attach PR and move #15 to in-review.
+- [x] T013 Request independent read-only code review, fix findings, commit/push and open PR from .github/pull_request_template.md; attach PR and move #15 to in-review.
 
 ## Dependencies and tests
 
