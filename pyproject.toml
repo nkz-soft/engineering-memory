@@ -10,6 +10,7 @@ dependencies = [
     "opentelemetry-sdk>=1.44.0",
     "pydantic>=2",
     "pydantic-settings>=2",
+    "sqlalchemy>=2,<3",
     "structlog>=26.1.0",
     "typer>=0.12",
 ]
@@ -35,6 +36,7 @@ engineering-memory = "engineering_memory.cli:main"
 #                              provides is a shell with no command: the container image's entry
 #                              point has to be an installed application, and commands arrive with
 #                              the features that specify them.
+# sqlalchemy                   the Database access row, added by 013-sqlite-import-state.
 # tests/structure/test_packaging.py holds this line.
 
 [dependency-groups]

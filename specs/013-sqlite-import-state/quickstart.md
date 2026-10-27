@@ -41,3 +41,22 @@ git diff --check
 ```
 
 Record actual commands and results in Phase 2 verification. Observe each new test fail before corresponding code. This issue validates memory-boundary calls with a fake; live retain/recall and production CLI remain separate work.
+
+## Concrete adapter usage
+
+The production importer in #19 composes this lifecycle (no CLI is introduced here):
+
+```python
+from engineering_memory.ingestion.sqlite_state import SQLiteImportState
+
+state = SQLiteImportState(settings.import_state_path)
+state.initialize()  # creates a new empty database, validates a compatible existing one
+try:
+    # Pass state through the ImportState protocol to the importer.
+    # Reader-only composition calls state.validate() instead of initialize().
+    ...
+finally:
+    state.close()
+```
+
+Reads and record writes open existing storage with SQLite URI mode=rw, preventing a missing database from being recreated by a reader. Construction is inert. A new adapter must explicitly initialize or validate before use. Keep one writer per local database; lock waits are bounded to five seconds. Persist safe errors only. Force bypasses the shared skip decision, while archive replay still uses original data and reapplies sanitization. Retain and local commit are separate operations, so partial failure can repeat extraction on a later run.

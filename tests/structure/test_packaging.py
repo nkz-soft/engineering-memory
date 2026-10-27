@@ -95,6 +95,7 @@ EXPECTED_RUNTIME_DEPENDENCIES = frozenset(
         "opentelemetry-api",
         "opentelemetry-sdk",
         "typer",
+        "sqlalchemy",
     }
 )
 """Every runtime dependency the project is allowed to declare, by distribution name.
@@ -106,6 +107,7 @@ that needed it, and with the row of the constitution's Technology Stack table th
   002-environment-configuration. `pydantic-settings` is the part of Pydantic v2 carrying
   `BaseSettings`, separated at the v1→v2 split for packaging reasons
   (specs/002-environment-configuration/research.md R2).
+* `sqlalchemy` — the Database access row, added by 013-sqlite-import-state.
 * `structlog` — the Logging row, added by 003-logging-telemetry-baseline.
 * `opentelemetry-api` and `opentelemetry-sdk` — the Telemetry row, added by the same feature.
   These are the two distributions OpenTelemetry-for-Python is packaged as, the API for callers and

@@ -149,7 +149,7 @@ class ImportState(Protocol):
 and, in the same module and outside the protocol:
 
 ```python
-def may_skip(record: ImportRecord | None, content_hash: str) -> bool: ...
+def may_skip(record: ImportRecord | None, content_hash: str, *, force: bool = False) -> bool: ...
 ```
 
 * `find` for a conversation never seen returns `None` — the state of everything on the first run
@@ -177,3 +177,5 @@ def may_skip(record: ImportRecord | None, content_hash: str) -> bool: ...
   library, directly or transitively — asserted over the import graph.
 * **Synchronous, single-writer** (R17): no interface promises concurrency, and none forbids an
   implementation that provides it.
+
+Explicit force declines the shared skip decision (ADR-006 decision 4). It does not bypass state lookup errors or sanitization; issue #14 settles the concrete local lifecycle in specs/013-sqlite-import-state/contracts/import-state.md.
