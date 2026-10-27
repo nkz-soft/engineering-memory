@@ -7,13 +7,15 @@ on exit — the opposite of what Principle I asks the archive to be. #13 writes 
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from engineering_memory.archive import (
     ArchiveDocumentNotFound,
     ArchiveRejected,
     ArchiveUnavailable,
     OriginalPayload,
 )
-from engineering_memory.normalization import EnrichedConversation
+from engineering_memory.normalization import EnrichedConversation, Source
 
 
 class InMemoryRawArchive:
@@ -35,6 +37,15 @@ class InMemoryRawArchive:
     def reopened(self) -> InMemoryRawArchive:
         """A new instance over the same backing — the archive after a restart."""
         return InMemoryRawArchive(backing=self._documents)
+
+    def iter_document_ids(self, *, source: Source | None = None) -> Iterator[str]:
+        if self._unavailable:
+            raise ArchiveUnavailable("the archive could not be reached")
+        return iter(
+            document_id
+            for document_id, (enriched, _) in tuple(self._documents.items())
+            if source is None or enriched.conversation.source == source
+        )
 
     @property
     def document_ids(self) -> frozenset[str]:

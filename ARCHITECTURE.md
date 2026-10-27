@@ -329,6 +329,33 @@ Originals and normalized forms are stored separately from Hindsight, behind an
 interface, so the backing store can change without touching ingestion. Local
 storage in the MVP; object storage is a later option.
 
+The local implementation is `archive.local.LocalRawArchive`, configured with
+`Settings.archive_root`. Format 1 stores one paired envelope at
+`v1/<sha256-of-full-document-id>.json`: the complete sanitized enriched model,
+its content hash, exact original bytes as base64, original media type and byte
+hash, and the stable identity. Native ids are never filesystem paths. Unknown
+versions, mismatched identities and invalid records fail explicitly.
+
+A flushed and synchronized temporary sibling is published as one replacement,
+so readers see a complete old or new pair. POSIX additionally synchronizes directory
+metadata; Windows uses write-through replacement and read handles that permit
+rename, with bounded retries for transient sharing failures. The guarantee is
+successful-store survival across process exit/reopening on supported local
+filesystems, not universal sudden-power-loss resilience. One writer per root
+and independent concurrent readers are supported; separate reads of the two
+forms can span a replacement and do not promise a shared revision.
+
+`RawArchive.iter_document_ids` enumerates current identities, optionally filtered
+by source, one envelope at a time without a second index. Ordering and a global
+snapshot across concurrent writes are not promised. Individual corrupt entries
+are reported and iteration can continue; a root-listing failure is terminal.
+`ingestion.chatgpt.archive_source.ChatGPTArchiveSource` reparses saved original
+records through the current ChatGPT parser, so a replay can apply new parser,
+sanitizer and classifier rules without an export. Deliberate reprocessing uses
+fresh import state; production orchestration belongs to the ingestion feature.
+Only the sanitized normalized form is available to consumer access; originals
+stay local. See `specs/012-local-raw-archive/` for the format and contracts.
+
 ## 15. Project detection
 
 1. **Explicit metadata** — use the repository or working directory when the
@@ -437,9 +464,9 @@ None of it changes anything above: the stack was chosen to fit the architecture,
 not the other way round.
 
 Still open, and deliberately so, are the details that only implementation can
-settle — the on-disk layout of the raw archive, the schema of the import-state
-store, and the exact command surface. They are constrained by ADR-004 rather
-than free choices, and are fixed by the first specification that needs them.
+settle — the schema of the import-state store and the exact command surface. They are constrained by ADR-004 rather
+than free choices, and are fixed by the first specification that needs them. The
+raw archive layout is now fixed by feature 012 (§14).
 
 ## 21. Out of scope for the MVP
 

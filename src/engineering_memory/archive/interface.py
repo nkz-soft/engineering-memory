@@ -13,20 +13,22 @@ that accepted only the normalized conversation would make Principle I unmeetable
 and no later feature could repair it without changing every caller
 (specs/007-boundary-interfaces/research.md R8).
 
-What the archive is *on disk* is #13's to settle (§20). This carries bytes and a media type so that
-#13 can choose.
+The local on-disk format is defined by feature 012 (§14). This boundary carries bytes and a
+media type independently of that storage representation.
 
-Contract: specs/007-boundary-interfaces/contracts/interfaces.md, rules RA-1 to RA-9.
+Contracts: specs/007-boundary-interfaces/contracts/interfaces.md (RA-1 to RA-9), and
+specs/012-local-raw-archive/contracts/raw-archive.md (enumeration, integrity and replay).
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Protocol, runtime_checkable
 
 from pydantic import Field
 
 from engineering_memory.errors import PermanentBoundaryError, TransientBoundaryError
-from engineering_memory.normalization import EnrichedConversation
+from engineering_memory.normalization import EnrichedConversation, Source
 from engineering_memory.normalization.base import FrozenModel, Text
 
 __all__ = [
@@ -85,6 +87,15 @@ class ArchiveUnavailable(TransientBoundaryError):
 class RawArchive(Protocol):
     """Holds the originals and the normalized forms, independently of any memory engine."""
 
+    def iter_document_ids(self, *, source: Source | None = None) -> Iterator[str]:
+        """Enumerate current identities once, optionally restricted to a source.
+
+        Ordering and a snapshot across concurrent writes are not promised. An absent root is
+        empty. Per-record failures advance the cursor and allow continuation; an unavailable
+        listing is terminal. Invalid data raises ArchiveRejected, IO raises ArchiveUnavailable.
+        """
+        ...
+
     def store(self, enriched: EnrichedConversation, original: OriginalPayload) -> None:
         """Persist both forms of one conversation, together.
 
@@ -114,6 +125,7 @@ class RawArchive(Protocol):
         Raises:
             ArchiveDocumentNotFound: no such document.
             ArchiveUnavailable: the archive could not be reached.
+            ArchiveRejected: the stored record is invalid or unsupported.
         """
         ...
 
@@ -123,5 +135,6 @@ class RawArchive(Protocol):
         Raises:
             ArchiveDocumentNotFound: no such document.
             ArchiveUnavailable: the archive could not be reached.
+            ArchiveRejected: the stored record is invalid or unsupported.
         """
         ...

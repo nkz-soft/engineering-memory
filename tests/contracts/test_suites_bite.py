@@ -23,6 +23,7 @@ from tests.contracts.source import ConversationSourceContract
 from tests.contracts.state import ImportStateContract
 from tests.contracts.store import MemoryStoreContract
 from tests.fakes import broken
+from tests.fakes.archive import InMemoryRawArchive
 
 
 class _BrokenSource(ConversationSourceContract):
@@ -105,3 +106,17 @@ def test_is4_catches_an_import_state_that_remembers_only_successes() -> None:
     """§18 — a failed import that looks like one never attempted strands the conversation."""
     with pytest.raises(AssertionError):
         _BrokenState().test_is4_a_failure_is_remembered_and_is_not_the_same_as_nothing()
+
+
+class _EmptyEnumerationArchive(InMemoryRawArchive):
+    def iter_document_ids(self, *, source=None):
+        return iter(())
+
+
+def test_ra11_catches_an_archive_that_hides_stored_documents():
+    class BrokenEnumerationContract(RawArchiveContract):
+        def make_archive(self):
+            return _EmptyEnumerationArchive()
+
+    with pytest.raises(AssertionError):
+        BrokenEnumerationContract().test_ra11_enumeration_is_unique_filterable_and_repeatable()

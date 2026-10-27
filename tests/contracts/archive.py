@@ -154,3 +154,27 @@ class RawArchiveContract:
 
         assert reopened.load(enriched.document_id) == enriched
         assert reopened.load_original(enriched.document_id).content == PAYLOAD.content
+
+    def test_ra10_empty_archive_has_no_ids(self) -> None:
+        assert list(self.make_archive().iter_document_ids()) == []
+
+    def test_ra11_enumeration_is_unique_filterable_and_repeatable(self) -> None:
+        from engineering_memory.normalization import Source
+
+        archive = self.make_archive()
+        first = conversations.enrich(conversations.conversation("one"))
+        second = conversations.enrich(conversations.conversation("two", source=Source.CODEX))
+        archive.store(first, PAYLOAD)
+        archive.store(second, PAYLOAD)
+        archive.store(first, SECOND_PAYLOAD)
+        assert set(archive.iter_document_ids()) == {"chatgpt:one", "codex:two"}
+        assert len(list(archive.iter_document_ids())) == 2
+        assert list(archive.iter_document_ids(source=Source.CHATGPT)) == ["chatgpt:one"]
+        assert list(archive.iter_document_ids(source=Source.HERMES)) == []
+
+    def test_ra12_unavailable_listing_is_a_declared_failure(self) -> None:
+        archive = self.make_unavailable_archive()
+        if archive is None:
+            pytest.skip("implementation cannot be made unavailable")
+        with pytest.raises(ArchiveUnavailable):
+            list(archive.iter_document_ids())
