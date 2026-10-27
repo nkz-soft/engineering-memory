@@ -223,10 +223,13 @@ FILLED_BOUNDARIES = frozenset(
         "classification",
         "archive",
         "memory.interface",
+        "memory.hindsight",
     }
 )
 """The recorded boundaries a feature has filled with an implementation, and when.
 
+* ``memory.hindsight`` — 014-local-hindsight-deployment adds the synthetic operational
+  smoke probe, not the production memory-store adapter.
 * ``observability`` — 003-logging-telemetry-baseline. The structured logging pipeline and the
   tracer provider live there because that is the boundary ARCHITECTURE.md §8 gives them.
 * ``cli`` — 004-ci-scanning-packaging, and barely. The container image's entry point must be an

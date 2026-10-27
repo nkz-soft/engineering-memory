@@ -96,6 +96,7 @@ EXPECTED_RUNTIME_DEPENDENCIES = frozenset(
         "opentelemetry-sdk",
         "typer",
         "sqlalchemy",
+        "httpx",
     }
 )
 """Every runtime dependency the project is allowed to declare, by distribution name.
@@ -107,6 +108,7 @@ that needed it, and with the row of the constitution's Technology Stack table th
   002-environment-configuration. `pydantic-settings` is the part of Pydantic v2 carrying
   `BaseSettings`, separated at the v1→v2 split for packaging reasons
   (specs/002-environment-configuration/research.md R2).
+* `httpx` — the HTTP client row, added by 014-local-hindsight-deployment.
 * `sqlalchemy` — the Database access row, added by 013-sqlite-import-state.
 * `structlog` — the Logging row, added by 003-logging-telemetry-baseline.
 * `opentelemetry-api` and `opentelemetry-sdk` — the Telemetry row, added by the same feature.
