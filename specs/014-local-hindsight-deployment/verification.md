@@ -50,3 +50,11 @@ The four skips are existing fake-store unsupported failure hooks (two) and Windo
 ## Delivery
 
 Implementation commit: dbda10b. Draft PR: https://github.com/nkz-soft/engineering-memory/pull/54. Issue #15 moved to in-review. T001–T011 and T013 are complete; T012 remains deferred at the operator's request. The isolated worktree is retained, and no merge or live startup was performed.
+
+## CI follow-up: ANSI-formatted CLI help
+
+The Linux job at https://github.com/nkz-soft/engineering-memory/actions/runs/40506851291/job/122198284775 failed because help-test assertions searched raw ANSI output for an uninterrupted option name. The CLI exited successfully. Reproduced the exact assertion failure locally using Typer's original theme/highlighter with Rich ANSI rendering forced: one colored case failed and the plain case passed. The test now normalizes text with Text.from_ansi and exercises both render modes, explicitly checking that the colored case really contains escapes. Runtime behavior and live-validation deferral are unchanged.
+
+`uv run pytest tests/unit/test_hindsight_smoke.py -q --tb=short`: 46 passed in 1.42s. Ruff lint/format and git diff --check passed. Full-suite results follow below.
+
+Full offline rerun: `uv run pytest -q --tb=short -rs` — **1622 passed, 4 skipped in 45.15s**. No live Hindsight/LiteLLM operations were executed.

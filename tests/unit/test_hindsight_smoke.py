@@ -8,6 +8,8 @@ from uuid import UUID
 import httpx
 import pytest
 from pydantic import SecretStr
+from rich.console import Console
+from rich.text import Text
 from typer.testing import CliRunner
 
 from engineering_memory.settings import HindsightSettings, LlmSettings, Settings, SettingsError
@@ -267,10 +269,25 @@ def test_cleanup_failure_preserves_primary_error():
     assert CANARY not in str(caught.value)
 
 
-def test_help_is_offline_and_does_not_allow_arbitrary_content_or_bank():
-    result = CliRunner().invoke(module().app, ["--help"])
-    assert result.exit_code == 0 and "--keep-scratch" in result.output
-    assert all(flag not in result.output for flag in ("--bank-id", "--content", "--input-file"))
+@pytest.mark.parametrize("force_color", [False, True])
+def test_help_is_offline_and_does_not_allow_arbitrary_content_or_bank(monkeypatch, force_color):
+    # Render real ANSI on every OS; CI can style parts of one option separately.
+    def console(*args, **kwargs):
+        kwargs.update(
+            force_terminal=force_color,
+            color_system="standard" if force_color else None,
+            legacy_windows=False,
+            width=80,
+        )
+        return Console(*args, **kwargs)
+
+    monkeypatch.setattr("typer.rich_utils.Console", console)
+    result = CliRunner().invoke(module().app, ["--help"], color=force_color)
+    if force_color:
+        assert "\x1b[" in result.output
+    output = Text.from_ansi(result.output).plain
+    assert result.exit_code == 0 and "--keep-scratch" in output
+    assert all(flag not in output for flag in ("--bank-id", "--content", "--input-file"))
 
 
 def test_cli_configuration_failure_is_safe(monkeypatch):
