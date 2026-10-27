@@ -41,7 +41,7 @@ Independent test: both implementations satisfy the same suite, broken enumeratio
 - [x] T013 [P] Document settled layout, replay and durability limits in ARCHITECTURE.md and specs/012-local-raw-archive/quickstart.md.
 - [x] T014 Run focused and full pytest suites, Ruff lint/format, diff checks; record evidence in specs/012-local-raw-archive/verification.md.
 - [x] T015 Request independent code review, resolve important findings, and record review in specs/012-local-raw-archive/verification.md.
-- [ ] T016 Commit/push, open PR from .github/pull_request_template.md, attach PR, and move issue #13 to in-review.
+- [x] T016 Commit/push, open PR from .github/pull_request_template.md, attach PR, and move issue #13 to in-review.
 
 ## Dependencies and execution
 

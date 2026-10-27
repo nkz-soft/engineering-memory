@@ -66,3 +66,12 @@ The reviewer explicitly excluded universal power-loss resilience, hostile concur
 ## Limits
 
 Durable paired records are tested across fresh instances/process exit semantics, not physical power interruption. One writer per root and independent readers are supported. Original content stays unsanitized locally; callers sanitize the normalized form before storing and before retention. Deliberate rule-change replay uses fresh import state. This feature adds neither production orchestration nor a replay CLI.
+
+## Workflow completion — 2026-10-27
+
+Implementation commit `60eb8f2` is published in
+[PR #52](https://github.com/nkz-soft/engineering-memory/pull/52), attached to the
+Codex chat. Issue #13 is labeled `in-review` and no longer `in-progress`.
+GitHub CI on that implementation commit passed all three checks: lint/format/tests,
+secret scan and container image. The PR is open and mergeable; merging remains
+outside the issue-to-pr workflow. The worktree is retained for review.
