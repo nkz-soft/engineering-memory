@@ -102,7 +102,7 @@ class ImportRecord(FrozenModel):
         return self
 
 
-def may_skip(record: ImportRecord | None, content_hash: str) -> bool:
+def may_skip(record: ImportRecord | None, content_hash: str, *, force: bool = False) -> bool:
     """Whether this conversation can be skipped before any call is made (§17).
 
     A function rather than a method on `ImportState`, and that is the decision this module exists to
@@ -115,10 +115,11 @@ def may_skip(record: ImportRecord | None, content_hash: str) -> bool:
     run, and a failed record is work to retry (§18). A skipped record cannot exist — see
     `ImportRecord` — which is what keeps this answer stable across any number of runs.
 
+    Explicit force bypasses the skip to reapply processing rules (ADR-006 decision 4).
     `content_hash` is the hash of the conversation as the source yields it, unsanitized, to match
     what `ImportRecord.content_hash` holds.
     """
-    if record is None:
+    if force or record is None:
         return False
     return record.status is ImportStatus.IMPORTED and record.content_hash == content_hash
 

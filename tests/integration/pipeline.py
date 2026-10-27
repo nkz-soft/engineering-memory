@@ -88,14 +88,14 @@ class Pipeline:
     state: ImportState
     importer_version: str = "1"
 
-    def run(self, *, now: datetime) -> ImportOutcome:
+    def run(self, *, now: datetime, force: bool = False) -> ImportOutcome:
         outcome = ImportOutcome()
 
         for read in self._read_each(outcome):
             conversation = read.conversation
             try:
                 remembered = self.state.find(conversation.source, conversation.source_id)
-                if may_skip(remembered, conversation.content_hash()):
+                if may_skip(remembered, conversation.content_hash(), force=force):
                     outcome.skipped.append(conversation.source_id)
                     continue
 

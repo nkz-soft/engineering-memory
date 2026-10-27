@@ -423,6 +423,17 @@ conversation.
 ADR-006 settles what that representation covers, and what a re-run does with a
 conversation that grew, disappeared or was renamed between two exports.
 
+The local implementation uses SQLAlchemy 2 Core over SQLite at
+`Settings.import_state_path`. The version-1 schema stores one current outcome per
+`(source, source_id)` with content hash, document id, UTC recorded time, imported
+or failed status, and a safe failure error. Skips are reported without replacing
+a successful record. Explicit force bypasses the shared skip decision and
+reprocesses originals through sanitization. No export-membership reconciliation
+or removal path exists. Schema initialization/validation is explicit, and an
+incompatible database is rejected without repair. The supported model is one
+writer and independent readers on local storage; details are in
+[`specs/013-sqlite-import-state/data-model.md`](specs/013-sqlite-import-state/data-model.md).
+
 ## 18. Error handling, retry and observability
 
 Import proceeds conversation by conversation; one failure must not abort the
@@ -463,10 +474,10 @@ configuration, the command-line surface and the testing framework.
 None of it changes anything above: the stack was chosen to fit the architecture,
 not the other way round.
 
-Still open, and deliberately so, are the details that only implementation can
-settle — the schema of the import-state store and the exact command surface. They are constrained by ADR-004 rather
-than free choices, and are fixed by the first specification that needs them. The
-raw archive layout is now fixed by feature 012 (§14).
+Still open, and deliberately so, is the exact command surface. It is constrained
+by ADR-004 and will be fixed by the first specification that needs it. The raw
+archive layout is fixed by feature 012 (§14), and the import-state schema by
+feature 013 (§17).
 
 ## 21. Out of scope for the MVP
 
