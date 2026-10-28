@@ -1,0 +1,35 @@
+# Development only. Keys/route aliases come from the operator's environment.
+name: engineering-memory-hindsight-dev
+services:
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:1.1.0@sha256:50311d02b4d5d2b7c5242bd336edf8735df8374eaad496a92f49c83b37d2aa06
+    shm_size: 1gb
+    ports:
+      - "127.0.0.1:${HINDSIGHT_DEV_PORT:-8888}:8888"
+    volumes:
+      - hindsight-data:/home/hindsight/.pg0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      HINDSIGHT_API_LLM_PROVIDER: openai
+      HINDSIGHT_API_LLM_BASE_URL: "${HINDSIGHT_API_LLM_BASE_URL:?Set the container-reachable proxy API URL}"
+      HINDSIGHT_API_LLM_MODEL: "${HINDSIGHT_API_LLM_MODEL:?Set the existing proxy model alias}"
+      HINDSIGHT_API_LLM_API_KEY: "${HINDSIGHT_API_LLM_API_KEY:?Set the proxy key or a nonsecret placeholder for a keyless proxy}"
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: local
+      HINDSIGHT_API_RERANKER_PROVIDER: local
+      HINDSIGHT_API_WORKER_ID: engineering-memory-dev
+      HINDSIGHT_API_LOG_LEVEL: warning
+      HINDSIGHT_API_LLM_HTTP_LOG_LEVEL: WARNING
+      HINDSIGHT_API_LLM_DEBUG_DUMP_4XX: "false"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8888/health/ready', timeout=5).close()"
+      interval: 5s
+      timeout: 6s
+      start_period: 30s
+      retries: 60
+volumes:
+  hindsight-data:

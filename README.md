@@ -44,11 +44,17 @@ conversation models, boundary interfaces, ChatGPT export parsing, secret
 sanitization and deterministic project classification. CI covers tests, lint,
 secret scanning and container packaging.
 
-Persistent archive and import-state adapters, the Hindsight adapter, a production
-import pipeline and the MCP server are not implemented yet. The CLI currently
+Persistent local archive and SQLite import-state adapters are implemented. The
+production Hindsight adapter, import pipeline and MCP server remain future work.
+The CLI currently
 provides `--help` and `--version` only; it cannot import or search conversations.
 Integration tests compose the existing stages with in-memory fakes, so they do
 not demonstrate a working Hindsight deployment.
+
+A [local Hindsight development setup](docs/development/local-hindsight.md) now
+provides a pinned Docker Compose profile and an opt-in synthetic scratch-bank
+smoke command. Extraction routes through an operator-managed LiteLLM proxy.
+Live deployment/proxy acceptance is deferred; no successful live run is claimed.
 
 The first milestone is to import ChatGPT history and have Hermes answer a
 question from it. Claude Code and Codex access, and additional history sources,
