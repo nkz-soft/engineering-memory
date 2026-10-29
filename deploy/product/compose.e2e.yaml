@@ -1,0 +1,15 @@
+x-test-environment: &test-environment
+  ENGINEERING_MEMORY_HINDSIGHT__BANK_ID: ${COMPOSE_PROJECT_NAME}
+services:
+  app:
+    environment: *test-environment
+  provision:
+    environment: *test-environment
+  import:
+    environment: *test-environment
+  status:
+    environment: *test-environment
+  mcp:
+    environment: *test-environment
+  e2e:
+    environment: *test-environment

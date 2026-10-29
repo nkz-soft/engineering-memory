@@ -1,0 +1,7 @@
+services:
+  hindsight:
+    depends_on: !reset {}
+    environment:
+      HINDSIGHT_API_LLM_BASE_URL: ${PRODUCT_PROXY_URL:?Set container-reachable PRODUCT_PROXY_URL}
+  litellm:
+    profiles: !override [disabled-internal-proxy]

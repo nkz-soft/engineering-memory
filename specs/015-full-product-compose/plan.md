@@ -43,7 +43,7 @@ Keep Python/uv, SQLAlchemy SQLite, fixed shared development bank and the existin
 
 - `deploy/hindsight/compose.yaml`: existing engine-only entry point, retained or refactored to reuse a shared engine definition.
 - `deploy/product/compose.yaml`, `compose.dev.yaml`, `compose.e2e.yaml`, `litellm.yaml`, `.env.example`: proposed shared stack, environment differences and nonsecret model route.
-- `src/engineering_memory/deployment/`: proposed Python lifecycle/preflight runner using subprocess argument arrays and bounded waits; no engine adapter implementation here.
+- `deploy/product/run.py`: checkout-only Python lifecycle/preflight runner using subprocess argument arrays and bounded waits; no engine adapter implementation here. Kept outside the installed package because deployment is not a domain boundary in the constitution module tree.
 - `Dockerfile`: retain installed application target; add an explicit test target if needed so pytest is absent from runtime.
 - `tests/unit/`, `tests/structure/`: offline lifecycle failure/ownership/configuration tests.
 - `tests/e2e/`: integrate scenario entry point owned by #23/#24 once available.
@@ -73,3 +73,7 @@ Keep Python/uv, SQLAlchemy SQLite, fixed shared development bank and the existin
 ## Complexity Tracking
 
 No constitution violations. One deployment runner and shared Compose definitions are the minimum orchestration needed for owned cleanup and cross-platform deadlines. No new service architecture or persistence model.
+
+## Implementation refinement (2026-10-29)
+
+The canonical service is extracted to `deploy/hindsight/service.yaml`; both engine-only and product entry points extend it. Compose interpolates required variables in an extends source before overrides, so route requirements remain at the entry points. The runner remains beside deployment files instead of adding an unrecorded domain package. LiteLLM main-stable was registry-resolved to digest `sha256:37e2dafb088a7723beb998590682957386dfc83ffea1848486f8e0e5cfac0b06`; release-tag variants were unavailable. Product integration and live tasks remain explicitly blocked, permitted by FR-013.

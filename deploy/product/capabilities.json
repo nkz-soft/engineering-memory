@@ -1,0 +1,5 @@
+{
+  "ready": false,
+  "blocked_by": ["16", "17", "19", "21", "23", "24"],
+  "note": "CLI provisioning/import/status/MCP and real product E2E are not available on main. Keep false until services bind actual product contracts and live assertions exist."
+}

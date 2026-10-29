@@ -17,6 +17,12 @@ def test_local_deployment_has_persistent_private_engine_and_proxy_route():
     config = yaml.safe_load(COMPOSE.read_text())
     assert set(config["services"]) == {"hindsight"}
     service = config["services"]["hindsight"]
+    shared = yaml.safe_load((COMPOSE.parent / "service.yaml").read_text())["services"]["hindsight"]
+    service = {
+        **shared,
+        **service,
+        "environment": {**shared["environment"], **service["environment"]},
+    }
     assert "@sha256:" in service["image"] and ":latest" not in service["image"]
     assert service["ports"] == ["127.0.0.1:${HINDSIGHT_DEV_PORT:-8888}:8888"]
     assert service["volumes"] == ["hindsight-data:/home/hindsight/.pg0"]
