@@ -41,7 +41,7 @@ Independent test: full offline suite and explicit live skipped status without se
 ## Phase 6 — Verification and review
 
 - [x] T015 Run full pytest, ruff and effective Compose checks; record exact evidence in specs/015-full-product-compose/validation.md.
-- [ ] T016 Request independent code review, fix findings, and open draft PR using .github/pull_request_template.md with upstream blockers explicit.
+- [x] T016 Request independent code review, fix findings, and open draft PR using .github/pull_request_template.md with upstream blockers explicit.
 
 ## Dependencies and execution
 
@@ -52,3 +52,5 @@ Tests must fail before implementation. Infrastructure first is the approved incr
 Parallel opportunities: documentation in T014 can proceed independently of lifecycle implementation; Compose structure and runner tests touch different files. Execution here is sequential; independent review occurs after implementation.
 
 Blocked task detail: T008/T011 require real product capabilities absent on main; their service roles currently fail closed. T012 requires those tasks plus a configured provider and platform runs. No live acceptance is marked done.
+
+Draft PR: https://github.com/nkz-soft/engineering-memory/pull/56. Independent review findings resolved; full verification is in validation.md. T008/T011/T012 remain pending.
