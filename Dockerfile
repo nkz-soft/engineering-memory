@@ -36,6 +36,10 @@ FROM python:3.13-slim-bookworm AS runtime
 # An unprivileged user, created before the copy so the virtual environment can be owned by it.
 RUN useradd --create-home --uid 10001 engineering-memory
 
+# Named volumes copy these directory permissions on first use.
+RUN mkdir -p /var/lib/engineering-memory/archive /var/lib/engineering-memory/state \
+    && chown -R engineering-memory:engineering-memory /var/lib/engineering-memory
+
 COPY --from=builder --chown=engineering-memory:engineering-memory /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
