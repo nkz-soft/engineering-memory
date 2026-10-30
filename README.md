@@ -44,8 +44,10 @@ conversation models, boundary interfaces, ChatGPT export parsing, secret
 sanitization and deterministic project classification. CI covers tests, lint,
 secret scanning and container packaging.
 
-Persistent local archive and SQLite import-state adapters are implemented. The
-production Hindsight adapter, import pipeline and MCP server remain future work.
+Persistent local archive, SQLite import-state and Hindsight memory adapters are
+implemented. The import pipeline and MCP server remain future work. The memory
+adapter uses bounded async extraction, strict tag scoping and complete provenance;
+see [adapter validation](specs/015-hindsight-memory-store/quickstart.md).
 The CLI currently
 provides `--help` and `--version` only; it cannot import or search conversations.
 Integration tests compose the existing stages with in-memory fakes, so they do

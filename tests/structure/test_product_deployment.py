@@ -53,6 +53,21 @@ def test_product_compose_exists():
     assert (DEPLOY / "compose.yaml").is_file(), "product orchestration is missing"
 
 
+def test_provider_proxy_environment_reaches_litellm(monkeypatch):
+    values = {
+        "HTTP_PROXY": "http://proxy.invalid:7890",
+        "HTTPS_PROXY": "http://proxy.invalid:7891",
+        "ALL_PROXY": "http://proxy.invalid:7892",
+        "NO_PROXY": "localhost,127.0.0.1,hindsight,litellm",
+    }
+    for name, value in values.items():
+        monkeypatch.setenv(name, value)
+    config = render()
+    actual = config["services"]["litellm"]["environment"]
+    for name, value in values.items():
+        assert actual.get(name) == value
+
+
 def test_engine_configuration_is_reused_with_private_e2e_resources():
     config = render("compose.e2e.yaml")
     engine = config["services"]["hindsight"]

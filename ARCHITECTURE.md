@@ -242,8 +242,9 @@ architecture depends on these semantics, not as an implementation detail.
 
 | Operation | Endpoint |
 |---|---|
-| Retain | `POST /v1/default/banks/{bank_id}/retain` with `{ "items": [ … ] }` |
-| Recall | `POST /v1/default/banks/{bank_id}/recall` |
+| Retain | `POST /v1/default/banks/{bank_id}/memories` with `{ "items": [ … ] }` |
+| Recall | `POST /v1/default/banks/{bank_id}/memories/recall` |
+| Completion | `GET /v1/default/banks/{bank_id}/operations/{operation_id}` |
 | Bank config | `PATCH /v1/default/banks/{bank_id}/config` |
 
 Per-item fields that carry our architecture: `content`, `document_id`,
@@ -258,10 +259,14 @@ Semantics we rely on:
 * **`document_id` gives idempotent upsert.** With the default
   `update_mode: "replace"`, re-importing the same logical document replaces the
   previous version instead of creating duplicates.
-* **`operation_id` is a separate retry idempotency key**, so a retry after a
-  timeout does not pay for extraction twice.
-* **`update_mode: "append"`** allows a single logical document to be delivered
-  as several items — the mechanism for conversations too large to send at once.
+* **`operation_id` is a separate async retry idempotency key**, so a retry
+  within the adapter lifecycle after an uncertain outcome does not enqueue
+  extraction twice. Synchronous retain ignores this key. The public retain
+  boundary waits for async completion; acceptance alone is not success.
+* **One conversation is one async item**, with `update_mode: "replace"`.
+  The pinned 1.1.0 queued path rejects shared-document multipart items. The
+  engine performs internal extraction chunking instead. The adapter rejects
+  requests above its explicit total byte limit without truncation (ADR-006).
 * **`timestamp` drives temporal grounding**, and is per item.
 
 ## 10. Document identity
@@ -695,13 +700,19 @@ left open are settled together, because they are one policy:
    arrives is outside this decision — acquisition is a replaceable component
    whose default implementation is manual placement — so automating it later
    changes nothing below.
-2. **A conversation that continued** is replaced in full. `update_mode:
-   "replace"` stays the default for re-import, and `append` remains reserved for
-   its §9 purpose of delivering one oversized document as several items. Where
-   the two meet — a conversation both too large to send at once and grown since
-   the last import — the whole conversation is re-sent within one retain
-   request, its first item replacing and the remainder appending, which keeps
-   the composition idempotent.
+2. **A conversation that continued** is replaced in full, in one async retain
+   item with `update_mode: "replace"`. This also applies to large conversations:
+   the engine handles extraction chunking. The adapter enforces a total request
+   limit (8 MiB by default), rejecting larger input explicitly without truncation.
+   An uncertain retry reuses its operation UUID and exact payload; a deliberate
+   delivery after success gets a new UUID. Cross-process retry coordination is
+   owned by the import orchestrator (#20).
+
+   **Amendment approved 2026-10-30 (#16):** live tests on the pinned 1.1.0 image
+   proved async shared-document multipart requests fail HTTP 400; sync multipart
+   ignores operation_id. The previous replace-then-append design could not provide
+   retry-cost deduplication. One large async item preserves that guarantee and
+   passed synthetic beginning/end recall, UUID replay and stale-content replacement.
 3. **A conversation that disappeared stays.** The importer MUST NOT diff the raw
    archive or the import state against an export, and MUST NOT derive removals
    from one. An absence may be recorded in the run log; nothing may act on it.
