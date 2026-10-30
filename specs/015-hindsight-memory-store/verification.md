@@ -192,3 +192,5 @@ Live tests used only generated synthetic scratch banks and cleaned them up.
 Development Hindsight/LiteLLM remain healthy; private .env stays ignored and was
 not staged. Cross-process retry coordination remains #20; product pipeline,
 provisioning and MCP/E2E remain downstream work. No product E2E pass is claimed.
+
+Delivery: implementation commit 8bfe285 pushed; PR #57 opened at https://github.com/nkz-soft/engineering-memory/pull/57. Issue #16 moved from in-progress to in-review. Worktree remains available for review.

@@ -47,7 +47,7 @@ Independent test: retain and refresh large single-item text, recalling facts fro
 - [x] T017 [P] Document exact offline and live commands and cross-process retry limits in specs/015-hindsight-memory-store/quickstart.md.
 - [x] T018 Run complete pytest, Ruff lint/format and pinned live checks; record red/green and completion evidence in specs/015-hindsight-memory-store/verification.md.
 - [x] T019 Request independent code review and resolve findings before delivery; record findings in specs/015-hindsight-memory-store/verification.md.
-- [ ] T020 Commit/push, compose .github/pull_request_template.md with actual evidence, open PR closing #16 and move issue to in-review.
+- [x] T020 Commit/push, compose .github/pull_request_template.md with actual evidence, open PR closing #16 and move issue to in-review.
 
 ## Dependencies and execution order
 
