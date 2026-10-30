@@ -21,7 +21,7 @@
 
 ## Verification and delivery
 - [x] T010 Run offline tests, lint/format, negative controls and two live runs; update specs/017-live-hindsight-contract/quickstart.md and verification.md.
-- [ ] T011 Request independent review, resolve findings, commit/push and open PR using .github/pull_request_template.md.
+- [x] T011 Request independent review, resolve findings, commit/push and open PR using .github/pull_request_template.md.
 
 ## Dependencies and strategy
 
