@@ -2,7 +2,7 @@
 
 This development setup starts a separate, self-hosted Hindsight instance. Its extraction calls use your existing LiteLLM proxy; embeddings and reranking run locally in the full image. Only the API is published, on host loopback. The bundled UI and embedded database have no published host ports.
 
-This is infrastructure for future contract tests and the memory adapter. It does not implement import/search commands, configure Hermes, provision `engineering-global`, or set the production retain mission. Consumers continue to use engineering-memory's access surface (ADR-008).
+This is infrastructure for future contract tests and the memory adapter. It does not implement import/search commands or configure Hermes. Bank provisioning is an explicit CLI step described below. Consumers continue to use engineering-memory's access surface (ADR-008).
 
 ## Prerequisites
 
@@ -138,3 +138,36 @@ Architecture §9 currently records `/retain` and `/recall` spellings. This deplo
 Implementation provides offline verification and reproducible commands. Live image startup, extraction, restart persistence and proxy-side observation were deliberately deferred by the operator during issue #15 implementation. See [verification record](../../specs/014-local-hindsight-deployment/verification.md) for actual commands and results; no live deployment success is claimed.
 
 The staged full-product Compose workflow is documented in [full-product.md](full-product.md). Engine-only commands here remain supported.
+
+## Provision the bank before importing
+
+After service readiness, enable bank configuration writes on the engine with
+`HINDSIGHT_API_ENABLE_BANK_CONFIG_API=true`. Set the existing application settings
+(`ENGINEERING_MEMORY_HINDSIGHT__BASE_URL`, optional `ENGINEERING_MEMORY_HINDSIGHT__TOKEN`,
+and required `ENGINEERING_MEMORY_LLM__BASE_URL`) in the environment, then run:
+
+```text
+uv run engineering-memory provision
+```
+
+The command applies the complete Architecture §12 mission to the configured bank
+(default `engineering-global`) and reports success only after exact read-back.
+It can be rerun after interruption or against an existing bank. It creates no
+conversation memories and preserves unrelated configuration. It does not delete
+a bank if verification fails.
+
+To evolve the policy, update Architecture §12 and the packaged
+`memory/hindsight/mission.txt` together, then rerun provision. This changes future
+extraction only; existing memories require a separate archive replay.
+
+Opt-in provisioning checks use unique disposable banks, never the configured
+production bank:
+
+```powershell
+$env:ENGINEERING_MEMORY_LIVE_STORE = '1'
+$env:ENGINEERING_MEMORY_LIVE_STORE_URL = 'http://127.0.0.1:8888'
+uv run pytest tests/integration/test_bank_provisioning.py -v
+```
+
+For authenticated test instances, provide `ENGINEERING_MEMORY_LIVE_STORE_TOKEN` in
+the environment. Live checks require the pinned service and enabled config writes.

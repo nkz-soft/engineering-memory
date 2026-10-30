@@ -30,3 +30,9 @@
 **Decision**: Add isolated MockTransport/CLI tests and opt-in live tests for initial 404, exact mission, repeat, changed mission and preservation. Existing deployment documentation reserves a provision role; document the CLI it can invoke, without expanding this feature into full-product initialization.
 **Rationale**: Constitution requires running-instance validation for engine assumptions. Live provisioning evidence is absent today; mocks cannot satisfy it.
 **Alternatives considered**: Claim live acceptance from #16's unrelated extraction checks.
+
+## Implementation evidence (2026-10-30)
+
+Inspected upstream v1.1.0 `hindsight-api-slim/hindsight_api/api/http.py` through GitHub: config PATCH consumes BankConfigUpdate.updates, GET returns config/overrides, and writes require HINDSIGHT_API_ENABLE_BANK_CONFIG_API. Source: https://github.com/vectorize-io/hindsight/blob/v1.1.0/hindsight-api-slim/hindsight_api/api/http.py . This confirms wire shape, not running-instance semantics.
+
+CLI composition is the explicit exception anticipated by the plan: only cli -> hindsight.provision imports provision/ProvisionError. The architectural import guard now permits that exact edge while continuing to reject CLI store imports and ingestion/access administration imports.

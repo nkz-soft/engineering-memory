@@ -1,14 +1,4 @@
-"""Command-line surface: the way the MVP is driven.
-
-This is deliberately a shell. 004-ci-scanning-packaging needed an installed application for the
-container image's entry point to start — the packaging target of ADR-004 cannot be exercised
-without one — and needed nothing else. Feature 001's checks contract said the Typer application
-"arrives with the feature that has something to run", and that still holds: the commands belong to
-the features that specify them, each with its own specification.
-
-`tests/unit/test_cli.py` asserts that no command has been registered. If that test fails because a
-command was added, the question is which specification designed it.
-"""
+"""Operator CLI; feature 016 adds explicit bank provisioning before import."""
 
 from __future__ import annotations
 
@@ -54,3 +44,17 @@ def main_callback(
 def main() -> None:
     """The console-script entry point declared in `pyproject.toml`."""
     app()
+
+
+@app.command("provision")
+def provision_command() -> None:
+    """Prepare the shared bank and verify its retain mission before import."""
+    from engineering_memory.memory.hindsight.provision import ProvisionError, provision
+    from engineering_memory.settings import SettingsError, load_settings
+
+    try:
+        provision(load_settings().hindsight)
+    except (SettingsError, ProvisionError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(1) from None
+    typer.echo("Bank retain mission verified.")

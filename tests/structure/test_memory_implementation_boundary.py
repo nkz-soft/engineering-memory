@@ -19,6 +19,14 @@ def violations(sources, packages=()):
                 name = node.module or ""
                 if node.level:
                     name = resolve_name("." * node.level + name, package)
+                # Feature 016: only the operator composition root may administer a bank.
+                # Consumers and all other adapter imports remain forbidden.
+                if (
+                    module == "engineering_memory.cli"
+                    and name == PREFIX + ".provision"
+                    and {alias.name for alias in node.names} <= {"provision", "ProvisionError"}
+                ):
+                    continue
                 edges.add(name)
                 edges.update(name + "." + alias.name for alias in node.names)
             elif (
@@ -93,3 +101,31 @@ def test_no_production_consumer_reaches_adapter():
             packages.add(".".join(parts))
         sources[".".join(parts)] = file.read_text(encoding="utf-8")
     assert violations(sources, packages) == []
+
+
+def test_guard_allows_only_cli_provisioning_composition():
+    assert (
+        violations(
+            {
+                "engineering_memory.cli": (
+                    "from engineering_memory.memory.hindsight.provision "
+                    "import provision, ProvisionError"
+                )
+            }
+        )
+        == []
+    )
+    assert violations(
+        {
+            "engineering_memory.cli": (
+                "from engineering_memory.memory.hindsight.store import HindsightStore"
+            )
+        }
+    )
+    assert violations(
+        {
+            "engineering_memory.ingestion": (
+                "from engineering_memory.memory.hindsight.provision import provision"
+            )
+        }
+    )

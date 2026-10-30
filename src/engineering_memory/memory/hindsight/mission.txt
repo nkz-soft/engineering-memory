@@ -1,0 +1,11 @@
+Prioritize:
+  architecture decisions and rationale; technology choices; implementation
+  decisions; debugging investigations; root causes; successful fixes;
+  unsuccessful approaches and why they failed; infrastructure configuration;
+  deployment procedures; API contracts; data model decisions; migrations and
+  version changes; coding conventions; project constraints; security decisions;
+  operational lessons.
+
+Do not prioritize:
+  greetings; conversational filler; temporary wording; repetitive status
+  messages; credentials or secrets.
