@@ -25,3 +25,11 @@ Rationale: ordinary offline checks must remain fast, and a passing skipped suite
 Alternatives: run against engineering-global or a developer service in CI; risks operator data and destroys isolation.
 
 Research used repository source and a read-only research-agent review. No external API semantics have been asserted as verified. Product decisions are resolved; pinned-protocol details are explicit implementation validation steps.
+
+## Implementation evidence — pinned image inspection
+
+The exact digest in deploy/hindsight/service.yaml was inspected by copying /app/api/hindsight_api from the image to temporary storage. No upstream source is vendored. api/http.py defines any, all, any_strict, all_strict and exact. any/all include untagged facts; strict variants exclude them; exact matches set equality and [] selects the empty scope.
+
+The OpenAI-compatible provider uses json_object by default; enabling HINDSIGHT_API_LLM_STRICT_SCHEMA_RETAIN supplies the explicit facts schema consumed by this fixture. HINDSIGHT_API_SKIP_LLM_VERIFICATION excludes arbitrary startup probes; unsupported extraction requests still fail and increment a checked error counter. Automatic consolidation is disabled because observations are not under test.
+
+RecallRequest.temporal_window is documented to rank, not filter. The temporal retrieval implementation selects in-window entries and spreads along links, so its trace may include out-of-window neighbours as well. The suite centres a window around each original timestamp and requires that fact to lead the temporal arm, while checking both recalled mentioned_at values. This refines the plan's historical selection wording without asserting chronological semantic ranking or excluding valid neighbours.

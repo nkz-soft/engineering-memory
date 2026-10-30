@@ -15,7 +15,7 @@ Promote existing opt-in compatibility experiments into a dedicated live CI contr
 **Testing**: pytest offline harness tests, live HTTP contract scenarios and CI workflow structure checks.
 **Target Platform**: Linux Docker CI; local Docker with host-side pytest, including PowerShell.
 **Project Type**: internal verification of the existing modular monolith.
-**Performance Goals**: bounded readiness and per-operation waits; dedicated CI job timeout of 20 minutes initially, tuned only from evidence.
+**Performance Goals**: bounded readiness and per-operation waits; dedicated CI job timeout of 25 minutes initially, tuned only from evidence.
 **Constraints**: no secrets required in fork PRs; no production bank access; no engine mocks; no generic chronological ranking assumption.
 **Scale/Scope**: five contract families, minimal synthetic facts, one pinned engine service.
 

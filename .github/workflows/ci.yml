@@ -20,6 +20,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  live-contract:
+    name: Live Hindsight contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - run: uv python install
+      - run: uv sync --locked
+      - run: uv run python deploy/hindsight/contract.py
+
   checks:
     name: Lint, format and tests
     runs-on: ubuntu-latest

@@ -182,7 +182,9 @@ user:<user-id>
 ```
 
 Hindsight supports tag filtering on `recall` and `reflect`, with match modes
-(any / all / strict / exact). Hermes exposes the same filtering to its provider
+(`any`, `all`, `any_strict`, `all_strict`, `exact`). Non-strict modes also include
+untagged memories; strict modes exclude them. `exact` matches the complete tag set,
+and an empty exact scope selects untagged memories. Hermes exposes the same filtering to its provider
 configuration.
 
 ## 7. Ingestion pipeline
@@ -267,7 +269,10 @@ Semantics we rely on:
   The pinned 1.1.0 queued path rejects shared-document multipart items. The
   engine performs internal extraction chunking instead. The adapter rejects
   requests above its explicit total byte limit without truncation (ADR-006).
-* **`timestamp` drives temporal grounding**, and is per item.
+* **`timestamp` drives temporal grounding**, and is per item. Recall preserves
+  the original `mentioned_at`; a temporal window prioritizes matching original
+  dates through the temporal retrieval arm. It is not a hard filter on final
+  semantic recall, nor a promise of chronological result sorting.
 
 ## 10. Document identity
 
