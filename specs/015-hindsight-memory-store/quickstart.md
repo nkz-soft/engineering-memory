@@ -1,39 +1,58 @@
-# Quickstart Validation Guide
+# Adapter validation and use
 
-This is a plan for Phase 2. Adapter tests and implementation do not exist yet.
+The adapter is HindsightStore in memory/hindsight/store.py. Construct with
+HindsightSettings and use close() or a context manager. An injected httpx.Client
+remains caller-owned. Calls accept already sanitized EnrichedConversation;
+archiving and sanitization belong to the upstream pipeline.
 
-The raw engine compatibility experiment now exists (adapter tests do not):
+One complete conversation is sent as one async replace item. Extraction chunking
+belongs to the engine. Default complete request cap: 8 MiB; override constructor
+max_request_bytes deliberately. Larger input is rejected before network I/O.
+Default HTTP timeout: 30 seconds, overall extraction completion: 240 seconds.
+
+## Offline checks
+
+```text
+uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+```
+
+Shared adapter contracts use a stateful wire fixture. Unit tests cover exact
+payload, source time, provenance, strict scope/limits, malformed responses, error
+translation, pending UUID replay, deadlines and size limits. Structure tests
+reject direct/relative/transitive production dependencies on the adapter.
+
+## Real engine
+
+Use docs/development/full-product.md. The ignored deploy/product/.env holds the
+provider route/key and the network proxy. OpenRouter must use HTTPS_PROXY or
+ALL_PROXY; the current Docker Desktop host proxy is reachable through
+host.docker.internal. Do not bypass OpenRouter with NO_PROXY. Never print resolved
+Compose configuration or provider responses containing secrets.
+
+```text
+uv run python deploy/product/run.py dependencies
+```
+
+Then PowerShell:
 
 ```powershell
 $env:ENGINEERING_MEMORY_LIVE_STORE = '1'
-uv run pytest tests/integration/test_hindsight_store.py -q --tb=short
+uv run pytest tests/integration/test_hindsight_store.py tests/contracts/test_hindsight_store_passes_the_contract.py -q --tb=short
 ```
 
-Default engine URL is http://127.0.0.1:8889; override with
-ENGINEERING_MEMORY_LIVE_STORE_URL. Uses only generated synthetic scratch banks
-and deletes its bank on exit. Without opt-in it skips. As of 2026-10-30 the
-single-item case passes and the multipart case fails HTTP 400; decision-needed.md
-records the blocking contract conflict. These are engine experiments, not
-product E2E or adapter completion.
+Default test URL is http://127.0.0.1:8889. Override with
+ENGINEERING_MEMORY_LIVE_STORE_URL. Tests use generated scratch banks, synthetic
+content, and cleanup. Local engine httpx clients disable environment proxies;
+only LiteLLM provider traffic uses the network proxy. No production bank writes.
+Without explicit opt-in live tests skip. These are engine/adapter contracts, not
+product pipeline E2E, which belongs to the downstream product issues.
 
-## Offline verification after implementation
+## Retry boundary
 
-From the feature worktree, with Python 3.13 and uv:
-
-```text
-uv sync --locked
-uv run pytest tests/contracts tests/unit tests/structure
-uv run ruff check .
-uv run ruff format --check .
-uv run pytest
-```
-
-Expected: concrete adapter passes reusable memory contract; transport tests prove exact mapping, failure handling, pending UUID reuse and lossless multipart delivery. Graph tests reject direct/indirect implementation imports by production consumers. Capture red then green evidence during each implementation step.
-
-## Real pinned engine
-
-Follow ../../docs/development/local-hindsight.md with operator-supplied proxy settings. Never paste environment values into reports. Provision a uniquely named synthetic test bank and mission; never run destructive fixtures against engineering-global.
-
-Phase 2 must document its exact opt-in environment switch and runnable integration command once the fixture exists. Test paths, async completion/idempotency, timestamps, strict tag filters, provenance, changed-content replacement and a multipart refresh. Recall synthetic facts from both ends under one document identity. Confirm reused operations do not repeat extraction through backend operation evidence.
-
-Record pinned version/digest, commands, results and any unavailable Docker/proxy prerequisites. Missing live validation is an unmet completion gate, not a passing test. Remove only fixture-owned scratch data.
+Exact retries after uncertain outcomes reuse the UUID in the same adapter
+instance. Confirmed success and changed payload create fresh operations; force
+and A-to-B-to-A therefore work. The bounded pending map is not durable across
+process restart. Cross-process operation coordination and backoff belong to #20.
+Retain returns success only after completed extraction, never mere acceptance.

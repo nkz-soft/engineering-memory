@@ -1,7 +1,7 @@
 """What every other module depends on. Knows nothing of any memory engine.
 
 The memory store boundary of ARCHITECTURE.md §8: `retain` and `recall`, expressed in the
-architecture's vocabulary. The Hindsight implementation arrives with #16 and lives in
+architecture's vocabulary. The concrete implementation lives in
 `memory/hindsight` — the only module permitted to know that Hindsight exists (Principle IV).
 """
 

@@ -1,6 +1,7 @@
 # Decision required: retry-safe oversized document delivery
 
-Status: proposed, awaiting human decision. No architecture amendment approved.
+Status: first option approved by the user on 2026-10-30. ADR-006 and the feature
+contract are amended accordingly. The large-document live experiment passed.
 
 ## Verified conflict
 
@@ -34,6 +35,7 @@ decision rather than silently weakening the approved issue acceptance.
 - Use synchronous multipart: rejected as a default because ignored operation_id
   fails the promised extraction-cost retry guarantee.
 
-Implementation remains gated pending the human decision. Approval of the first
-option authorizes drafting the ADR-006/issue-spec amendments and corresponding
-large-document verification; it does not constitute a claim that they pass.
+The user approved the first option. A synthetic large single-item experiment
+passed in 33.92 seconds, checking beginning/end facts, replay identity and
+replacement without a stale tail. This resolves the design gate; adapter and
+contract-suite verification remain separately required.

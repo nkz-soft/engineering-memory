@@ -134,3 +134,61 @@ semantics fail. No adapter or product E2E success is claimed. The external
 configuration blocker is resolved; the remaining blocker is the verified engine
 contract conflict. decision-needed.md proposes a concrete resolution requiring
 human governance review under the approved plan.
+
+## 2026-10-30 — Approved implementation and final verification
+
+The user approved the proposed single-async-item resolution. Updated ADR-006,
+section 9 routes, feature specification/plan/data model/contract, README and
+issue #16's explicit approved amendment. The constitution and stack are unchanged.
+
+Implemented HindsightStore with complete ordered conversation JSON, original
+time, stable document identity, versioned provenance, all_strict recall, local
+positive fact limits, safe boundary errors, total request cap and bounded pending
+UUID lifecycle. Default owned HTTP transport uses cancellable asyncio deadlines
+behind a synchronous executor facade; its sessions disable environment proxies
+and redirects. Injected synchronous clients remain caller-owned and must honor
+the supplied timeout; responses after deadline do not become success. OpenRouter
+provider traffic goes through the environment proxy in LiteLLM.
+
+Test-first evidence:
+
+- New adapter unit tests initially failed collection because the adapter module
+  did not exist; implementation then passed 26 tests.
+- Import-graph guard tests initially failed (3 failures), then passed after
+  implementing direct/relative/transitive graph checks.
+- Review regressions reproduced malformed list/dict statuses and pending-map
+  exhaustion after definitive refusals (3 failures), then passed with fixes.
+- Refused replay after an earlier uncertain submission initially produced two
+  UUIDs (1 failing regression), then preserved the original UUID after correction.
+- Owned transport cancellation/session cleanup, injected client ownership,
+  malformed acknowledgement identity and returned-scope validation are covered.
+
+Final commands and results:
+
+- `uv run pytest -q`: 1710 passed, 17 skipped in 60.74 seconds. Skips include the
+  explicitly disabled live experiments/contracts; they are not claimed as passes.
+- `uv run ruff check .`: all checks passed.
+- `uv run ruff format --check .`: 331 files already formatted.
+- `git diff --check`: passed.
+- With ENGINEERING_MEMORY_LIVE_STORE=1,
+  `uv run pytest tests/integration/test_hindsight_store.py -q --tb=short -k large-document`:
+  1 passed, 1 deselected in 33.92 seconds. Beginning/end facts, operation replay,
+  provenance/time/tags and stale-content replacement passed for large input.
+- With ENGINEERING_MEMORY_LIVE_STORE=1,
+  `uv run pytest tests/contracts/test_hindsight_store_passes_the_contract.py -q --tb=short -k Live`:
+  11 passed, 11 deselected in 284.14 seconds before transport hardening, and
+  11 passed, 11 deselected in 220.24 seconds after transport hardening.
+  The later replay-refusal correction affects first-attempt refusal cleanup only;
+  its exact regression and the full offline suite passed afterward.
+
+Independent review followed the requesting-code-review skill. Three actionable
+findings (pending capacity after refusal, malformed status, and UUID loss on a
+refused replay) were reproduced and fixed. The deadline concern prompted owned
+transport cancellation plus a bounded cancellation/closure test. Reviewer's final
+assessment: all actionable findings resolved, no remaining critical/important
+findings, conditional on the suites that have now passed.
+
+Live tests used only generated synthetic scratch banks and cleaned them up.
+Development Hindsight/LiteLLM remain healthy; private .env stays ignored and was
+not staged. Cross-process retry coordination remains #20; product pipeline,
+provisioning and MCP/E2E remain downstream work. No product E2E pass is claimed.

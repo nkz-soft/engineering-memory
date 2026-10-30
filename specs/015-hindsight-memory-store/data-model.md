@@ -1,21 +1,19 @@
 # Data Model
 
-## Existing public values
+Existing public values remain EnrichedConversation, Conversation, Provenance,
+AnyTag and RecallResult. Document identity is source-derived and time is original.
 
-- EnrichedConversation: immutable conversation, provenance and AnyTag tuple. document_id and content_hash derive from the conversation.
-- Conversation: source, source_id, started_at, optional last_activity_at/title and ordered messages. Never reorder by timestamp.
-- Provenance: source, source_id, project, optional repository/title, imported_at, importer_version. Imported time remains distinct from conversation time.
-- RecallResult: content, validated Provenance and optional score. Several facts may share document identity; the current result exposes identity through provenance source/source_id.
+Internal item: full ordered conversation JSON, stable document_id, timestamp,
+replace mode, tags and versioned string metadata containing validated provenance.
+One async item per operation; extraction chunking belongs to the engine. Requests
+above the configured total UTF-8 byte cap fail before I/O.
 
-## Internal wire values
+Pending state: document identity maps to exact item fingerprint and UUID, bounded
+to 128 uncertain documents. Same pending payload reuses UUID; changed payload
+gets a fresh UUID; confirmed completion/terminal failure clears its entry. No
+adapter database is introduced; cross-process retry coordination belongs to #20.
 
-- Serialized document: deterministic ordered text with source time/role/tool context, UTF-8 fingerprint and versioned provenance metadata.
-- Retain item: content fragment, stable document_id, original timestamp, context, metadata, tags/document_tags and replace/append mode.
-- Retain operation: UUID, payload fingerprint, completion deadline and backend completion status. No durable database introduced.
-- Recall envelope: verified pinned response mapped to existing results. Missing provenance or malformed content fails with a safe boundary error.
-
-## Lifecycle and validation
-
-New delivery → submit → pending → successful completion. Uncertain submit/poll outcome preserves UUID for identical retry. Confirmed success ends the operation. Changed payload creates a fresh UUID; intentional submission after success also creates a fresh UUID. Terminal failures become boundary errors; no false success on acceptance or failed extraction.
-
-Every part has the same document identity, timestamp, tags and metadata. Splitting preserves all serialized bytes and valid Unicode. Invalid empty content, nonpositive limits and invalid responses are rejected. Whole-request size limits produce explicit failure rather than unsafe independent append calls.
+Lifecycle: serialize/validate -> submit -> poll -> complete. Acceptance is not
+completion. Uncertain outcomes preserve retry identity. Recall reconstructs typed
+provenance only from valid versioned metadata and verifies document identity and
+requested tags; it never fabricates values missing from the engine response.

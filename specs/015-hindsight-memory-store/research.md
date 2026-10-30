@@ -84,3 +84,14 @@ exclusion, and replacement removing stale facts. Thus provider connectivity is
 no longer the implementation blocker. Required async multipart in ADR-006 and
 the current plan remains unsupported. See decision-needed.md before changing
 the normative contract or implementing a substitute.
+
+## R8 — Approved resolution and adapter validation (2026-10-30)
+
+The user explicitly approved R7's single-async-item proposal. ADR-006, section 9,
+feature specification, plan, data model and contract now describe one complete
+async replace item with engine extraction chunking and an explicit 8 MiB default
+whole-request cap. A synthetic large document with beginning/end facts passed
+operation replay, provenance, strict scope and replacement in 33.92 seconds.
+All eleven reusable memory boundary contracts then passed against the real
+adapter on synthetic scratch banks (284.14 seconds). This resolves R7's design
+gate; no claim is made that async shared-document multipart became supported.

@@ -16,8 +16,8 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("multipart", [False, True], ids=["single-item", "multipart"])
-def test_pinned_async_identity_provenance_strict_tags_and_multipart(multipart):
+@pytest.mark.parametrize("large", [False, True], ids=["single-item", "large-document"])
+def test_pinned_async_identity_provenance_strict_tags_and_replacement(large):
     bank = "engineering-memory-contract-" + uuid4().hex
     root = f"/v1/default/banks/{bank}"
     document = "chatgpt:" + uuid4().hex
@@ -82,14 +82,17 @@ def test_pinned_async_identity_provenance_strict_tags_and_multipart(multipart):
                     item(" The synthetic Orchard Observatory uses port 47291.", "append"),
                 ],
             }
-            if not multipart:
-                body["items"] = [
-                    item(
-                        "The synthetic Orchard Observatory codename is cobalt-orchard. "
-                        "The synthetic Orchard Observatory uses port 47291.",
-                        "replace",
-                    )
-                ]
+            padding = "\n// synthetic transport padding, no additional facts.\n" * (
+                1200 if large else 0
+            )
+            body["items"] = [
+                item(
+                    "The synthetic Orchard Observatory codename is cobalt-orchard. "
+                    + padding
+                    + "The synthetic Orchard Observatory uses port 47291.",
+                    "replace",
+                )
+            ]
             attempted = True
             accepted = request("POST", root + "/memories", json=body)
             assert accepted["operation_id"] == operation

@@ -85,7 +85,7 @@ class MemoryStore(Protocol):
         One document, not one item per message (§7): extraction must see the whole context.
 
         Retaining the same conversation twice leaves one logical document (MS-2) — promised to the
-        caller here, achieved however the implementation likes. #16 will lean on `document_id`
+        caller here, achieved however the implementation likes. The adapter uses `document_id`
         upsert and an idempotency key (§9); another engine may do something else entirely, and no
         caller can tell.
 

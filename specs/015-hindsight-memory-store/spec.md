@@ -1,94 +1,46 @@
 # Feature Specification: Hindsight Memory Store
 
-**Feature Branch**: `015-hindsight-memory-store`
-**Created**: 2026-10-28
-**Status**: Draft — awaiting approval
-**Input**: Issue #16, Implement the Hindsight memory store behind the interface.
+Branch: 015-hindsight-memory-store. Issue #16. Approved for implementation.
+The single-async-item amendment was approved by the user on 2026-10-30; see
+ARCHITECTURE.md section 9 / ADR-006 and decision-needed.md for evidence.
 
-## User Scenarios & Testing *(mandatory)*
+## User stories and acceptance
 
-### User Story 1 - Retain and recall history (Priority: P1)
+1. Retain sanitized enriched history and recall facts through the existing
+   engine-neutral boundary. Results preserve complete provenance, original time,
+   stable source identity and strict project tags. Positive limits bound returned
+   facts; empty matches return an empty tuple.
+2. Retry uncertain delivery with the same operation UUID without queuing another
+   extraction. Replace changed content at the same document identity. Deliberate
+   deliveries after success, including A-to-B-to-A, get fresh operation identities.
+3. Preserve large conversations as one async document, leaving extraction chunking
+   to the engine. Recall beginning/end facts and replace without stale facts.
+   Reject requests above an explicit total size limit; never truncate or silently
+   split into independently applied append operations.
 
-As an importer author, I retain a sanitized enriched conversation and retrieve its facts with original provenance through the existing memory boundary.
+## Functional requirements
 
-**Why this priority**: Enables subsequent import and retrieval work.
-**Independent Test**: Retain a synthetic conversation and recall its distinctive fact.
+- FR-001: implement the unchanged MemoryStore protocol only inside memory/hindsight.
+- FR-002: retain one conversation as one complete async item with stable document_id.
+- FR-003: preserve original timestamp, versioned provenance, tags, ordered messages,
+  roles and tool context; imported_at never substitutes for source time.
+- FR-004: reuse UUID and exact payload after uncertainty within adapter lifecycle;
+  changed payload and post-success deliveries start fresh operations.
+- FR-005: preserve Unicode and full text. Default total request cap is 8 MiB;
+  callers may configure the cap explicitly. Oversized requests fail before I/O.
+- FR-006: strict tag intersection, validated provenance, positive limits and empty
+  matches. Multiple distinct facts may belong to the same conversation.
+- FR-007: safe permanent/transient boundary errors, finite HTTP/completion deadlines,
+  no false success on acceptance, failure, cancelled or missing operation status.
+- FR-008: graph guard rejects direct/relative/indirect production engine imports.
+- FR-009: caller supplies sanitized EnrichedConversation after archiving; this
+  boundary neither sanitizes nor changes pipeline/archive responsibilities.
+- FR-010: verify pinned API and actual retain/recall including large replacement.
 
-**Acceptance Scenarios**:
+## Scope and limits
 
-1. **Given** a conversation with source, project and original time, **When** retained and recalled, **Then** results preserve provenance and stable document identity.
-2. **Given** multiple projects, **When** recall requests one project's tags and a limit, **Then** only matching facts return within that limit.
-3. **Given** no matching facts, **When** queried, **Then** the result is empty.
-
-### User Story 2 - Retry and refresh safely (Priority: P1)
-
-As an operator, I can retry uncertain delivery and replace grown conversations without duplicates or repeated extraction for the same operation.
-
-**Why this priority**: Replay must preserve history and avoid repeated extraction costs.
-**Independent Test**: Replay after an uncertain outcome, then replace changed content.
-
-**Acceptance Scenarios**:
-
-1. **Given** uncertain delivery, **When** retried as the same operation, **Then** extraction is not charged twice and one logical document remains.
-2. **Given** retained content, **When** updated, **Then** replacement preserves identity and removes stale content.
-
-### User Story 3 - Preserve oversized conversations (Priority: P2)
-
-As an operator, I can retain long discussions without losing text or exposing delivery parts as separate documents.
-
-**Why this priority**: Long discussions carry important engineering context.
-**Independent Test**: Force multipart delivery with a small threshold and recall facts from both ends.
-
-**Acceptance Scenarios**:
-
-1. **Given** an oversized conversation, **When** retained, **Then** all text remains ordered under one document identity.
-2. **Given** a previously retained oversized conversation, **When** refreshed or retried, **Then** no old tail or duplicate delivery parts remain.
-
-### Edge Cases
-
-- Empty content and invalid limits are rejected explicitly.
-- Single oversized messages and multibyte text split without loss.
-- Timeout and retryable failures remain distinguishable from rejected input or unauthorized access.
-- Missing or malformed provenance fails explicitly rather than inventing values.
-- Several facts may legitimately belong to one document; tests do not demand exactly one recalled fact.
-
-## Requirements *(mandatory)*
-
-### Functional Requirements
-
-- **FR-001**: Implement the existing memory boundary without exposing engine types to callers.
-- **FR-002**: Retain a conversation as one logical document with its existing deterministic identity.
-- **FR-003**: Preserve original conversation time, full provenance and tags on all delivery parts; never substitute import time.
-- **FR-004**: Reuse retry identity for uncertain delivery and replace changed content without duplicates; deliberate fresh extraction remains possible.
-- **FR-005**: Preserve all serialized text in order during multipart delivery and replacement.
-- **FR-006**: Recall supports strict tag scoping, limits, typed provenance and empty matches.
-- **FR-007**: Map failures to existing permanent/transient boundary errors without exposing content, credentials or response bodies.
-- **FR-008**: Enforce engine implementation isolation through production import-graph checks.
-- **FR-009**: Accept sanitized enriched input; archiving and sanitization remain pipeline prerequisites.
-- **FR-010**: Verify required behavior on the pinned running engine, including retry idempotency and multipart replacement.
-
-### Key Entities
-
-- **Enriched conversation**: Conversation, provenance and tags with derived stable identity.
-- **Logical operation**: Intended delivery whose retries share identity; distinct from a deliberate fresh delivery.
-- **Delivery part**: Ordered fragment of one logical document, invisible to callers.
-- **Recall result**: Matching fact with original provenance and optional relevance score.
-
-## Success Criteria *(mandatory)*
-
-### Measurable Outcomes
-
-- **SC-001**: All reusable memory contract scenarios pass for the concrete store.
-- **SC-002**: Retrying the synthetic operation leaves one logical document and causes no second extraction for that operation.
-- **SC-003**: Multipart delivery preserves 100% of serialized text and recalls facts from both ends with one document identity; refresh removes stale content.
-- **SC-004**: Every result in provenance and scoping scenarios has the expected project and source.
-- **SC-005**: No production module outside the implementation imports engine-specific implementation code, directly or transitively.
-
-## Assumptions
-
-- Phase 1 MVP only; no new source, consumer, bank strategy or dependency choice.
-- Issues #9 and #15 are closed prerequisites; closure does not prove live engine verification.
-- The shared bank and mission are provisioned separately (#17); no provisioning in this store.
-- Retry/backoff orchestration and durable import state remain #20. This adapter preserves pending operation identity within its lifecycle; durable cross-process retry coordination is a documented integration limitation.
-- Only synthetic history is used for verification.
-- Architecture and pinned-engine contract discrepancies require explicit reconciliation before implementation can be declared complete.
+No public engine-specific API, new dependency, pipeline, provisioning command,
+retry backoff or durable cross-process operation coordinator. Those belong to
+existing follow-up issues. A single writer uses each store instance; memory
+retains a bounded pending-operation map. Provider secrets and private exports
+never enter fixtures, reports or commits. Live tests use disposable synthetic banks.

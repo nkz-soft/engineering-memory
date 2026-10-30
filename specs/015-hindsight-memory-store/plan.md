@@ -1,76 +1,73 @@
 # Implementation Plan: Hindsight Memory Store
 
-**Branch**: `015-hindsight-memory-store` | **Date**: 2026-10-28 | **Spec**: [spec.md](spec.md)
+Branch: 015-hindsight-memory-store. Issue #16. Amendment approved 2026-10-30.
 
-## Summary
+## Summary and verified contract
 
-Implement the existing synchronous `MemoryStore` protocol in `memory/hindsight` using httpx. Preserve full conversation context, stable document identity, real timestamps, tags and provenance. Oversized documents use one request, first item replace and remaining items append (ADR-006). Internally submit asynchronous extraction and wait for completion if pinned verification confirms this is required for retry idempotency. The public method returns only after success.
+Implement the synchronous MemoryStore protocol with the existing httpx stack.
+One conversation is one asynchronous replace item; the engine performs internal
+chunking. Poll a client UUID operation until completed, with bounded deadlines.
+The approved ADR-006 amendment supersedes the earlier multipart proposal: pinned
+1.1.0 rejects duplicate document identities in queued batches, while synchronous
+retain ignores operation_id. Source and real-instance experiments confirm the
+/memories, /memories/recall and /operations/{id} routes. Large single-item replay,
+provenance, strict tags and replacement passed on the pinned running image.
 
-## Technical Context
+## Technical context
 
-**Language/Version**: Python 3.13.
-**Primary Dependencies**: Existing httpx, Pydantic v2, configuration and observability boundaries; no new runtime dependency.
-**Storage**: Self-hosted Hindsight 1.1.0 pinned by feature 014; no adapter-owned database.
-**Testing**: pytest reusable contracts, mock HTTP transport, import graph checks, explicitly enabled real-instance tests.
-**Target Platform**: Local Python application on Windows/Linux with Docker engine deployment.
-**Project Type**: Modular monolith and external HTTP service.
-**Performance Goals**: Finite request and completion deadlines, bounded per-item payloads; no speculative throughput target.
-**Constraints**: Shared engineering-global bank, sanitized inputs, no payload logging, unchanged engine-neutral protocol.
-**Scale/Scope**: One conversation per operation; multiple ordered items in one request. Reject unsupported total sizes explicitly rather than silently truncating.
+Python 3.13, Pydantic v2, existing httpx, pytest and Ruff. No new dependency or
+adapter-owned storage. Hindsight remains behind memory/interface. Ordinary tests
+are offline; live opt-in uses generated synthetic scratch banks and cleanup.
+Development services use the #55 product Compose with OpenRouter via the supplied
+HTTP(S) proxy environment. Credentials stay in the ignored product .env.
 
-## Constitution Check
+## Constitution check
 
-| Principle | Design and verification |
-|---|---|
-| I — Archive source of truth | Pipeline archives first; adapter receives enriched input and introduces no alternate archive. |
-| II — Provenance/identity | Stable derived id, source start time, metadata/tags on every part; verify retries and round-trip on real engine. |
-| III — Test first | Phase 2 observes failing tests before each implementation change; reusable contracts plus real retain/recall. |
-| IV — Replaceable boundaries | Existing protocol unchanged; concrete types, HTTP and engine vocabulary confined to memory/hindsight. Import graph guard includes indirect imports. |
-| V — Secrets | Sanitized inputs only; environment credentials, disabled redirects/environment proxies, safe errors and no content logging. |
+- I: archive remains source of truth; pipeline archives before calling this boundary.
+- II: source-derived document identity, original conversation timestamp, versioned
+  provenance and tags are preserved. Retry UUIDs survive uncertain in-process outcomes.
+- III: observe failing transport and guard tests before implementation, then bind
+  all MS-1–MS-11 contracts and verify the actual engine, including large input.
+- IV: production engine types and endpoints remain within memory/hindsight;
+  guard direct, relative and indirect production imports.
+- V: caller supplies sanitized enriched input; no payload/credential logging,
+  no redirects/environment proxying on local engine requests. OpenRouter provider
+  calls use the separately configured proxy in LiteLLM.
 
-Pre-design and post-design assessment: design fits all five principles. No deviations approved. Architecture endpoint discrepancy is an explicit implementation gate: reconcile documentation with verified pinned behavior; do not silently bypass §9. A semantic change requires its decision record and governance review.
+No constitution principle or stack change. User approved the ADR-006 contract
+amendment explicitly. Original source timestamps remain distinct from imported_at.
 
-## Project Structure
+## Delivery sequence
 
-```text
-specs/015-hindsight-memory-store/
-  spec.md, plan.md, research.md, data-model.md, quickstart.md
-  contracts/memory-store.md
-  checklists/requirements.md
-src/engineering_memory/memory/hindsight/
-  store.py
-  serialization.py
-tests/
-  contracts/test_hindsight_store_passes_the_contract.py
-  unit/test_hindsight_store.py
-  structure/test_memory_implementation_boundary.py
-  integration/test_hindsight_store.py
-```
+1. Record live compatibility evidence and amend ADR-006/section 9 explicitly.
+2. Write failing tests for mapping, malformed responses, safe errors and strict
+   scope; implement deterministic ordered conversation serialization and decoding.
+3. Submit one item with async=true, replace, stable document_id and a UUID.
+   Return only after completed status. Bound HTTP and completion deadlines.
+4. Keep pending (fingerprint, UUID) per document after uncertainty. Exact retries
+   reuse it; changed payload or deliberate new delivery after success gets a new
+   UUID. Bound pending entries to 128; cross-process coordination stays with #20.
+5. Enforce total encoded request limit (default 8 MiB), reject oversized input
+   explicitly without truncation. Preserve Unicode, ordered messages and tool context.
+6. Use all_strict tags, positive local result-count limit and validated complete
+   provenance. Preserve distinct facts from one document. Missing provenance fails.
+7. Bind reusable boundary contracts to stateful wire fixtures and real scratch
+   banks. Test long-document replacement, operation replay and source timestamps.
+8. Enforce production import isolation and synthetic violations. Run pytest,
+   Ruff lint/format, live contracts and an independent code review. Resolve findings.
+9. Commit/push and open a template-compliant PR closing #16; move to in-review.
 
-**Structure Decision**: Extend existing adapter package; do not re-export implementation from the interface or parent package.
+## Error policy and ownership
 
-## Design and Verification Sequence
+Timeouts/connections and HTTP 429/502/503/504 become unavailable. Other refusals,
+malformed data and terminal extraction failures become rejected. Unknown operation
+identity cannot prove success. Client is injected (caller-owned) or constructed
+(adapter-owned, close/context manager). Public errors omit response bodies and URLs.
 
-1. First write failing compatibility tests and inspect pinned OpenAPI/source plus a running instance. Feature 014 records /memories and /memories/recall, whereas §9 says /retain and /recall. Verify actual paths, async operation polling, strict tag matching, metadata availability and ordered replace/append semantics. Update §9 explicitly once proven. Stop implementation completion if required semantics cannot be demonstrated.
-2. Inject synchronous httpx client, define ownership/close behavior, reuse settings, finite HTTP and overall completion deadlines. No redirects or environment proxies. Keep public calls synchronous while waiting for asynchronous extraction completion; never return success on mere acceptance.
-3. Render messages in tuple order with role/time/tool context. Lossless deterministic UTF-8 splitting handles single oversized messages. Each part carries identical document id, original start time, string metadata and tags. First item replaces; subsequent items append in the same request.
-4. Use UUID operation ids. Cache the pending operation key and exact payload fingerprint across uncertain outcomes; changed payload starts a new operation. Clear after confirmed success so intentional re-extraction and A→B→A refresh work. Do not derive permanent operation ids solely from content hashes. Durable cross-process retry coordination is deferred to #20, without adding an engine-specific public argument.
-5. Preserve complete provenance in namespaced versioned string metadata, plus source time/document identity. Verify recall returns that metadata, or request included document metadata if the pinned API requires it. Rebuild validated `RecallResult` values; reject missing/invalid metadata. Use strict intersection tag semantics (verify all_strict), positive limits, and preserve distinct facts from the same document.
-6. Timeouts/connections and 429/502/503/504 map to unavailable; rejected/unauthorized input, other refusals and malformed responses map to rejected. Keep messages safe and engine response bodies out. Retain bounded completion polling, but leave retry backoff policy to #20.
-7. Bind tests/contracts/store.py MS-1–MS-11 to concrete adapter using a stateful transport fixture and to an explicitly enabled real scratch-bank fixture. Offline tests cover wire mapping, retry identity, Unicode/multipart, updated content, empty matches, strict filters, limits, malformed provenance, async failures/deadlines and safe errors.
-8. Live tests use only synthetic facts and a uniquely named disposable bank, never destructive tests on engineering-global. Verify replace/upsert, retry extraction suppression, timestamps, metadata/tags and multipart replacement. Inspect operation identity/completion evidence rather than inferring extraction suppression solely from fact counts.
-9. Enforce production import isolation with graph checks and synthetic violations. Existing architecture prose/configuration/deployment references are not forbidden engine dependencies; avoid naive text bans that reject established documentation.
-10. Run uv run pytest, uv run ruff check ., uv run ruff format --check ., and explicit pinned-instance integration validation. Record commands/output and missing prerequisites honestly. Request code review before opening the template-compliant PR and changing labels.
+## Alternatives
 
-## Alternatives Considered
-
-- Pipeline HTTP calls rejected by Principle IV and ADR-001.
-- SDK rejected in favor of existing httpx stack and narrow mapping.
-- Per-message documents rejected by §7; separate append requests rejected by ADR-006.
-- Synchronous wire extraction rejected if operation_id is ignored; bounded async completion preserves the synchronous public contract.
-- Permanent content-derived operation keys rejected because force and A→B→A need new operations.
-- Public engine operation-id parameters rejected to preserve the existing interface.
-
-## Complexity Tracking
-
-No proposed constitution deviation. Pending key storage is in-memory and bounded by the single-writer lifecycle; it is not durable import state. External contract verification is mandatory before claiming implementation completion.
+Direct pipeline engine calls violate Principle IV. SDK adds an unnecessary stack
+surface. Separate async appends expose partial updates and violate the approved
+one-operation replacement semantics. Sync multipart loses operation deduplication.
+Permanent content-derived UUIDs prevent force/A-to-B-to-A refresh. A pin change
+was not established as necessary after large single-item validation succeeded.
