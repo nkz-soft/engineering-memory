@@ -22,4 +22,4 @@ T001 → T002 → T003 → T004 → T005 → T006 → T007 → T008 → T009.
 US1 is the MVP; US2 independently verifies existing-bank policy changes. Unit and CLI tests can be authored independently, but each implementation follows an observed failure. No parallel implementation is needed for this small change. No extension hooks configured. Requirements checklist: 16/16 PASS.
 
 
-Live runtime acceptance remains pending as recorded in verification.md; T008 records the attempted test and does not claim live success. T009 produces a draft PR for this reason.
+Live runtime acceptance subsequently passed on the isolated pinned local engine; see verification.md. The original draft prerequisite is resolved.
