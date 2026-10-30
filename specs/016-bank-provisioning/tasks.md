@@ -23,4 +23,3 @@ US1 is the MVP; US2 independently verifies existing-bank policy changes. Unit an
 
 
 Live runtime acceptance remains pending as recorded in verification.md; T008 records the attempted test and does not claim live success. T009 produces a draft PR for this reason.
-
