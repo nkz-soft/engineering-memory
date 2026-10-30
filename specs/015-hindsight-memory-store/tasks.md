@@ -10,7 +10,7 @@
 
 ## Phase 2: Foundational compatibility gate
 
-- [ ] T003 Inspect pinned v1.1.0 OpenAPI/source and record exact retain/recall/operation schemas in specs/015-hindsight-memory-store/research.md.
+- [x] T003 Inspect pinned v1.1.0 OpenAPI/source and record exact retain/recall/operation schemas in specs/015-hindsight-memory-store/research.md.
 - [ ] T004 Write and run explicit live compatibility tests for routes, UUID deduplication, async completion, strict tags, metadata and replace/append in tests/integration/test_hindsight_store.py.
 - [ ] T005 Reconcile verified paths in ARCHITECTURE.md section 9; document any unsupported semantic requirement before proceeding.
 

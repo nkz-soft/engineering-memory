@@ -35,3 +35,35 @@
 **Alternatives considered**: Mock-only validation, production-bank mutation, exact fact-count assertions.
 
 No unresolved product clarification is needed. External semantic uncertainties are explicit implementation experiments with fail/stop criteria, not assumptions of successful behavior. No live server validation was performed during planning.
+
+## R6 — Pinned HTTP schema inspection (2026-10-30, T003)
+
+Inspected upstream tag `v1.1.0`, resolved through the GitHub commits API to
+`a5a619b5ca59c5c39e0f96be6f7a31fabd136bd5`. Source:
+[hindsight_api/api/http.py](https://github.com/vectorize-io/hindsight/blob/a5a619b5ca59c5c39e0f96be6f7a31fabd136bd5/hindsight-api-slim/hindsight_api/api/http.py).
+This is source evidence, not verification of the deployed image digest.
+
+- Retain is `POST /v1/default/banks/{bank_id}/memories`. `RetainRequest`
+  accepts `items`, `async` (default false), and an optional UUID `operation_id`.
+  The key is ignored for synchronous retain. Async submission with a key requires
+  every item to resolve to one strategy; mixed strategies return HTTP 400.
+- Each `MemoryItem` carries content, timestamp, document identity, metadata and
+  tags. Its `update_mode` accepts replace or append. Source describes append as
+  concatenation followed by reprocessing; ordered multipart behavior and stale
+  tail removal still require the running-instance experiment.
+- `RetainResponse` contains success, bank_id, items_count, async, and optional
+  operation_id/operation_ids. Async acceptance is not completed extraction.
+- Poll `GET /v1/default/banks/{bank_id}/operations/{operation_id}`. The status
+  schema enumerates pending, processing, completed, failed, cancelled and
+  not_found, with optional completion time, error and progress. Completed records
+  expire after the configured retention window; not_found cannot prove success.
+- Recall is `POST /v1/default/banks/{bank_id}/memories/recall` with query, tags,
+  tags_match and max_tokens. There is no result-count limit field in RecallRequest;
+  the adapter must enforce the interface limit locally. all_strict specifies AND
+  matching while excluding untagged facts; the default any includes untagged facts.
+- RecallResponse contains results. Each RecallResult includes id/text and optional
+  document_id, string-valued metadata, tags and temporal fields. Their presence
+  in the schema does not establish provenance round-trip behavior on the engine.
+
+The endpoint discrepancy is confirmed in source. Architecture remains unchanged
+until T004 verifies the pin on a running instance, as required by T005.
