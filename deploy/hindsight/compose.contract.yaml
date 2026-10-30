@@ -1,0 +1,28 @@
+# Disposable real engine; only its extraction model is substituted.
+services:
+  hindsight:
+    extends:
+      file: service.yaml
+      service: hindsight
+    ports:
+      - 127.0.0.1:${CONTRACT_ENGINE_PORT:-8889}:8888
+    environment:
+      HINDSIGHT_API_LLM_BASE_URL: http://extraction:8080/v1
+      HINDSIGHT_API_LLM_MODEL: contract
+      HINDSIGHT_API_LLM_API_KEY: synthetic-unused
+      HINDSIGHT_API_LLM_MAX_RETRIES: '0'
+      HINDSIGHT_API_LLM_STRICT_SCHEMA_RETAIN: 'true'
+      # Arbitrary startup model probes are outside this extraction fixture's contract.
+      HINDSIGHT_API_SKIP_LLM_VERIFICATION: 'true'
+      HINDSIGHT_API_ENABLE_AUTO_CONSOLIDATION: 'false'
+    depends_on:
+      - extraction
+  extraction:
+    image: python:3.13-slim
+    command: [python, /fixture/llm.py]
+    volumes:
+      - ../../tests/integration/hindsight_contract/llm.py:/fixture/llm.py:ro
+    ports:
+      - 127.0.0.1:${CONTRACT_FIXTURE_PORT:-8890}:8080
+volumes:
+  hindsight-data: null

@@ -347,3 +347,14 @@ def test_the_image_is_never_published() -> None:
         f"The image job contains {offenders}. Publishing requires credentials, which would end "
         "this workflow's ability to run on a pull request from a fork."
     )
+
+
+def test_live_contract_job_runs_without_credentials_or_conditions():
+    """§6/9/10 must be verified against an engine even for fork PRs."""
+    job = _job(_workflow(), "live-contract")
+    assert "if" not in job
+    assert job["timeout-minutes"] <= 25
+    assert "uv run python deploy/hindsight/contract.py" in _run_commands(
+        _workflow(), "live-contract"
+    )
+    assert "secrets." not in str(job)
