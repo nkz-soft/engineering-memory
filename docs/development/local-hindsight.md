@@ -136,3 +136,5 @@ Architecture §9 currently records `/retain` and `/recall` spellings. This deplo
 ## Validation status
 
 Implementation provides offline verification and reproducible commands. Live image startup, extraction, restart persistence and proxy-side observation were deliberately deferred by the operator during issue #15 implementation. See [verification record](../../specs/014-local-hindsight-deployment/verification.md) for actual commands and results; no live deployment success is claimed.
+
+The staged full-product Compose workflow is documented in [full-product.md](full-product.md). Engine-only commands here remain supported.

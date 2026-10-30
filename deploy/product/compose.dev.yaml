@@ -1,0 +1,4 @@
+services:
+  hindsight:
+    ports:
+      - '127.0.0.1:${PRODUCT_DEV_PORT:-8889}:8888'

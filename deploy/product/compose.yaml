@@ -1,0 +1,103 @@
+# Compose >= 2.24.4 (!reset). The engine-only file is the canonical engine definition.
+x-app: &app
+  image: ${COMPOSE_PROJECT_NAME}-app:local
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  profiles: [tools]
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  environment:
+    ENGINEERING_MEMORY_HINDSIGHT__BASE_URL: http://hindsight:8888
+    ENGINEERING_MEMORY_HINDSIGHT__BANK_ID: engineering-global
+    ENGINEERING_MEMORY_LLM__BASE_URL: ${PRODUCT_PROXY_URL:-http://litellm:4000/v1}
+    ENGINEERING_MEMORY_LLM__API_KEY: ${PRODUCT_PROXY_KEY:?Set PRODUCT_PROXY_KEY}
+    ENGINEERING_MEMORY_ARCHIVE_ROOT: /var/lib/engineering-memory/archive
+    ENGINEERING_MEMORY_IMPORT_STATE_PATH: /var/lib/engineering-memory/state/import-state.db
+    ENGINEERING_MEMORY_PROJECT_RULES_PATH: /var/lib/engineering-memory/state/projects.toml
+  volumes:
+    - archive-data:/var/lib/engineering-memory/archive
+    - state-data:/var/lib/engineering-memory/state
+  logging:
+    driver: none
+services:
+  hindsight:
+    extends:
+      file: ../hindsight/service.yaml
+      service: hindsight
+    ports: !reset []
+    environment:
+      HINDSIGHT_API_LLM_BASE_URL: ${PRODUCT_PROXY_URL:-http://litellm:4000/v1}
+      HINDSIGHT_API_LLM_MODEL: ${PRODUCT_MODEL_ALIAS:-engineering-extraction}
+      HINDSIGHT_API_LLM_API_KEY: ${PRODUCT_PROXY_KEY:?Set PRODUCT_PROXY_KEY}
+      HINDSIGHT_API_WORKER_ID: ${COMPOSE_PROJECT_NAME}
+    depends_on:
+      litellm:
+        condition: service_healthy
+    logging:
+      driver: none
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable@sha256:37e2dafb088a7723beb998590682957386dfc83ffea1848486f8e0e5cfac0b06
+    profiles: [internal]
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    command: [--config, /app/product-config.yaml, --port, '4000']
+    environment:
+      PRODUCT_MODEL_ALIAS: ${PRODUCT_MODEL_ALIAS:-engineering-extraction}
+      PRODUCT_PROVIDER_MODEL: ${PRODUCT_PROVIDER_MODEL:-}
+      PRODUCT_PROVIDER_API_BASE: ${PRODUCT_PROVIDER_API_BASE:-}
+      PRODUCT_PROVIDER_API_KEY: ${PRODUCT_PROVIDER_API_KEY:-}
+      LITELLM_MASTER_KEY: ${PRODUCT_PROXY_KEY:?Set PRODUCT_PROXY_KEY}
+      LITELLM_LOG: ERROR
+      LITELLM_MODE: PRODUCTION
+    volumes:
+      - ./litellm.yaml:/app/product-config.yaml:ro
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=5).close()"]
+      interval: 5s
+      timeout: 6s
+      start_period: 20s
+      retries: 60
+    logging:
+      driver: none
+  app:
+    <<: *app
+    command: [--help]
+  provision:
+    <<: *app
+    # Reserved role: CLI does not implement this command yet. Fails closed today.
+    command: [provision]
+    depends_on:
+      hindsight:
+        condition: service_healthy
+  import:
+    <<: *app
+    command: [import]
+    depends_on:
+      provision:
+        condition: service_completed_successfully
+  status:
+    <<: *app
+    command: [status]
+    depends_on:
+      provision:
+        condition: service_completed_successfully
+  mcp:
+    <<: *app
+    command: [mcp]
+    stdin_open: true
+    tty: false
+    depends_on:
+      provision:
+        condition: service_completed_successfully
+  e2e:
+    <<: *app
+    entrypoint: [python, -c]
+    command: ["raise SystemExit('BLOCKED: product E2E scenario from issues 23/24 is not implemented')"]
+    depends_on:
+      provision:
+        condition: service_completed_successfully
+volumes:
+  hindsight-data:
+  archive-data:
+  state-data:

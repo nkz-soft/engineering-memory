@@ -1,0 +1,15 @@
+model_list:
+  - model_name: engineering-extraction
+    litellm_params:
+      model: os.environ/PRODUCT_PROVIDER_MODEL
+      api_base: os.environ/PRODUCT_PROVIDER_API_BASE
+      api_key: os.environ/PRODUCT_PROVIDER_API_KEY
+litellm_settings:
+  set_verbose: false
+  turn_off_message_logging: true
+  request_timeout: 120
+  num_retries: 0
+  success_callback: []
+  failure_callback: []
+general_settings:
+  disable_error_logs: true
