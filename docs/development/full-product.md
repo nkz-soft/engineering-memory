@@ -64,6 +64,17 @@ available with its original environment-variable names and project.
 
 ## Application development and data lifecycle
 
+### Provider network proxy
+
+LiteLLM receives HTTP_PROXY, HTTPS_PROXY, ALL_PROXY and NO_PROXY from the shell
+or the ignored product .env file (lowercase names are also accepted). OpenRouter
+requires HTTPS_PROXY or ALL_PROXY; startup rejects a missing proxy or NO_PROXY
+that would bypass openrouter.ai. HTTP_PROXY alone does not cover HTTPS calls.
+Use a container-reachable proxy URL, such as http://host.docker.internal:PORT
+for a proxy on the Docker Desktop host. Do not place proxy credentials in tracked
+files. NO_PROXY should cover localhost,127.0.0.1,hindsight,litellm so local health
+checks stay local. Internal application/engine traffic does not need this proxy.
+
 The application uses the repository Dockerfile and installed package. After
 editing source, rebuild the application:
 

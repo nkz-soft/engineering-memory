@@ -18,6 +18,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
+from urllib.request import proxy_bypass_environment
 
 from dotenv import dotenv_values
 
@@ -100,6 +101,14 @@ def validate_environment(env, *, external):
         valid = False
     if not valid:
         raise DeploymentError("Invalid container-reachable URL: " + name)
+    if not external and url.hostname == "openrouter.ai":
+        proxy = env.get("HTTPS_PROXY") or env.get("https_proxy")
+        proxy = proxy or env.get("ALL_PROXY") or env.get("all_proxy")
+        if not proxy or not proxy.strip():
+            raise DeploymentError("OpenRouter requires an HTTPS_PROXY or ALL_PROXY proxy")
+        bypass = env.get("NO_PROXY") or env.get("no_proxy") or ""
+        if proxy_bypass_environment(url.hostname, {"no": bypass}):
+            raise DeploymentError("NO_PROXY must not bypass the OpenRouter proxy")
 
 
 def execute(args, *, env, timeout):

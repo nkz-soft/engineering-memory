@@ -76,3 +76,29 @@ PRODUCT_PROVIDER_API_BASE and PRODUCT_PROVIDER_API_KEY, per the new deployment
 guide. External mode instead needs PRODUCT_PROXY_URL and PRODUCT_PROXY_KEY.
 The remaining prerequisite is operator provider configuration, not an independently
 deployed LiteLLM proxy. T004 still has no live evidence.
+
+## 2026-10-30 — Required OpenRouter network proxy
+
+Operator selected OpenRouter openai/gpt-oss-20b and supplied the provider key in
+the ignored product .env. Startup was interrupted following the operator's
+requirement that OpenRouter always be reached through environment-configured
+network proxies. No product containers were running when checked afterward.
+
+Added regression tests for proxy forwarding and missing/bypassed OpenRouter
+proxy configuration. Both failed before the change (2 failed). Compose now
+forwards HTTP_PROXY, HTTPS_PROXY, ALL_PROXY and NO_PROXY to LiteLLM, including
+lowercase fallbacks. Internal OpenRouter preflight requires HTTPS_PROXY or
+ALL_PROXY and rejects NO_PROXY bypass of openrouter.ai.
+
+Verification:
+
+- `uv run pytest tests/unit/test_product_runner.py tests/structure/test_product_deployment.py -q`: 33 passed.
+- `uv run ruff check deploy/product/run.py tests/unit/test_product_runner.py tests/structure/test_product_deployment.py`: all checks passed.
+- `uv run ruff format --check deploy/product/run.py tests/unit/test_product_runner.py tests/structure/test_product_deployment.py`: 3 files already formatted.
+- `git diff --check`: passed.
+- `uv run python deploy/product/run.py dependencies`: exit 1,
+  OpenRouter requires an HTTPS_PROXY or ALL_PROXY proxy.
+
+No proxy variables were found in the checked process/user/machine environments.
+Awaiting the operator's container-reachable proxy address or local configuration
+path. No live engine compatibility or provider extraction pass is claimed.

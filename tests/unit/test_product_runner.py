@@ -70,6 +70,18 @@ def test_external_proxy_does_not_require_internal_provider(runner):
         )
 
 
+def test_openrouter_requires_proxy_and_forbids_bypass(runner, env):
+    env["PRODUCT_PROVIDER_API_BASE"] = "https://openrouter.ai/api/v1"
+    with pytest.raises(runner.DeploymentError, match="proxy"):
+        runner.validate_environment(env, external=False)
+    env["HTTPS_PROXY"] = "http://host.docker.internal:7890"
+    runner.validate_environment(env, external=False)
+    for bypass in ("*", "openrouter.ai", ".openrouter.ai"):
+        env["NO_PROXY"] = bypass
+        with pytest.raises(runner.DeploymentError, match="bypass"):
+            runner.validate_environment(env, external=False)
+
+
 @pytest.mark.parametrize("fail_at", ["startup", "provision", "scenario", "cleanup", None])
 def test_e2e_failure_and_cleanup_are_scoped(runner, env, fail_at):
     calls = []
