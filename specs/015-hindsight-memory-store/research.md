@@ -67,3 +67,20 @@ This is source evidence, not verification of the deployed image digest.
 
 The endpoint discrepancy is confirmed in source. Architecture remains unchanged
 until T004 verifies the pin on a running instance, as required by T005.
+
+## R7 — Live async multipart incompatibility (2026-10-30)
+
+The running digest reports API version 1.1.0. Its async retain rejects a request
+containing two items with the same document_id with HTTP 400 before extraction.
+Inspection of `/app/api/hindsight_api/engine/memory_engine.py`, method
+`submit_async_retain`, confirms this is deliberate: queued children run in
+parallel without a per-document gate, so duplicate document identities are
+rejected to prevent races. The synchronous path folds those items sequentially,
+but does not use the client operation_id for retry deduplication.
+
+The single-item async compatibility experiment passes, including completed
+operation replay, original mentioned_at, metadata/tags, strict unrelated-tag
+exclusion, and replacement removing stale facts. Thus provider connectivity is
+no longer the implementation blocker. Required async multipart in ADR-006 and
+the current plan remains unsupported. See decision-needed.md before changing
+the normative contract or implementing a substitute.

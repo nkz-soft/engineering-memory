@@ -102,3 +102,35 @@ Verification:
 No proxy variables were found in the checked process/user/machine environments.
 Awaiting the operator's container-reachable proxy address or local configuration
 path. No live engine compatibility or provider extraction pass is claimed.
+
+## 2026-10-30 — Proxy configured; live compatibility results
+
+Operator supplied local proxy port 10808. Verified HTTP CONNECT from the host
+and from a disposable local Python container: OpenRouter public models endpoint
+returned HTTP 200, without an API key. Saved container-reachable HTTP_PROXY and
+HTTPS_PROXY plus internal NO_PROXY exclusions in the ignored product .env;
+provider credentials were preserved and never printed.
+
+`uv run python deploy/product/run.py dependencies`: exit 0, infrastructure only.
+Both product Hindsight and LiteLLM containers became healthy. Development
+containers remain running; no development volumes were reset.
+
+Added opt-in synthetic tests/integration/test_hindsight_store.py before adapter
+implementation. Ordinary invocation skips; running API reports 1.1.0.
+
+- Initial explicit live multipart experiment: 1 failed, HTTP 400 at async retain.
+  Scratch-bank cleanup completed. Pinned source confirms deliberate rejection of
+  duplicate document_id values on the queued path.
+- With ENGINEERING_MEMORY_LIVE_STORE=1, `uv run pytest tests/integration/test_hindsight_store.py -q --tb=short -k single-item`:
+  1 passed, 1 deselected in 19.13s. Actual extraction/recall through LiteLLM and
+  OpenRouter succeeded; replay returned the same completed operation/time,
+  provenance/time/tags round-tripped, unrelated strict scope returned nothing,
+  and replacement removed old facts. Scratch-bank cleanup completed.
+- `uv run pytest -q` before parameterizing that experiment: 1655 passed,
+  5 skipped in 65.82s. Ruff lint passed, 325 files already formatted.
+
+T004 is partially executed but remains unchecked because required multipart
+semantics fail. No adapter or product E2E success is claimed. The external
+configuration blocker is resolved; the remaining blocker is the verified engine
+contract conflict. decision-needed.md proposes a concrete resolution requiring
+human governance review under the approved plan.
