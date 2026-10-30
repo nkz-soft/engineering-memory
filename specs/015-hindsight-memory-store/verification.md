@@ -54,3 +54,25 @@ semantics have not been proven; source inspection cannot replace that evidence.
 The approved dependency sequence therefore still blocks adapter implementation
 and PR delivery. Configure those variables in the execution environment, then
 resume `/issue-to-pr 16`. Do not put credentials in chat or committed files.
+
+## 2026-10-30 — Correct deployment prerequisite after issue #55
+
+The preceding engine-only preflight did not account for merged issue #55 / PR
+#56. Merged main (17ac51a) into this feature branch without conflicts. The product
+Compose stack now supplies the internal proxy URL and engineering-extraction
+alias, and maps PRODUCT_PROXY_KEY into the engine credential. The three legacy
+HINDSIGHT_API_LLM_* variables are therefore not prerequisites for this workflow.
+
+Validation from this worktree:
+
+- `uv run python deploy/product/run.py config`: OK: config, exit 0.
+- `uv run python deploy/product/run.py dependencies`: FAIL: Missing required
+  variable: PRODUCT_PROXY_KEY, exit 1 before container creation.
+
+No PRODUCT_* environment variables or deploy/product/.env were found in this
+worktree. The primary checkout and issue #55 worktree also have no product .env.
+Internal mode requires PRODUCT_PROXY_KEY, PRODUCT_PROVIDER_MODEL,
+PRODUCT_PROVIDER_API_BASE and PRODUCT_PROVIDER_API_KEY, per the new deployment
+guide. External mode instead needs PRODUCT_PROXY_URL and PRODUCT_PROXY_KEY.
+The remaining prerequisite is operator provider configuration, not an independently
+deployed LiteLLM proxy. T004 still has no live evidence.
