@@ -2,7 +2,7 @@
 
 **Feature Branch**: `018-ingestion-pipeline`
 **Created**: 2026-10-31
-**Status**: Draft — ready for planning review
+**Status**: Implemented — ready for pull request review
 **Input**: Issue #19, Compose the ingestion pipeline conversation by conversation.
 
 ## User Scenarios & Testing *(mandatory)*

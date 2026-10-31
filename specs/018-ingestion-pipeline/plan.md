@@ -47,7 +47,6 @@ src/engineering_memory/ingestion/
   report.py                 # immutable per-item and aggregate results
 src/engineering_memory/normalization/
   enrichment.py             # pure enrichment of sanitized conversation
- tests/unit/test_ingestion_pipeline.py
  tests/unit/test_ingestion_report.py
  tests/unit/test_enrichment.py
  tests/contracts/test_pipeline.py
@@ -83,3 +82,9 @@ Commands and expected results are in [quickstart.md](quickstart.md). This phase 
 ## Complexity Tracking
 
 No constitution violations or additional infrastructure. Report metadata is intentionally retained for callers; large-run streaming reports can be a separate measured need.
+
+## Implementation notes
+
+Implementation uses the existing shared logger and `ingestion.operation` event schema directly rather than wrapping processing in `ingestion_operation`: that context manager formats arbitrary exception messages, while this pipeline must emit only fixed safe stage categories and attach the project resolved during processing. Logging sink failures are best effort and cannot abort ingestion. The optional clock is expected to provide aware UTC timestamps. Invalid parser subjects are treated as unknown identities rather than allowed to break report validation.
+
+Tasks and integration coverage live in tasks.md and tests/integration/test_ingestion_pipeline.py. Unit coverage of orchestration is consolidated in tests/contracts/test_pipeline.py; a duplicate unit harness is unnecessary. No new dependencies or boundary changes were needed.
