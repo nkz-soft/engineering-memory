@@ -1,7 +1,7 @@
 # Implementation Plan: Retry transient Hindsight failures
 
 **Branch**: `019-hindsight-retry` | **Date**: 2026-10-31 | **Spec**: [spec.md](spec.md)
-**Status**: Awaiting human planning approval. Input: issue #20.
+**Status**: Approved by workflow rerun; implemented and verified. Input: issue #20.
 
 ## Summary
 
@@ -37,7 +37,7 @@ Tenacity implements the existing stack row without displacement; no ADR, bank, t
 
 ### Documentation (this feature)
 
-`specs/019-hindsight-retry/`: spec.md, plan.md, research.md, data-model.md, quickstart.md, checklists/requirements.md and contracts/retry-behavior.md. tasks.md is deferred until approval.
+`specs/019-hindsight-retry/`: spec.md, plan.md, research.md, data-model.md, quickstart.md, checklists/requirements.md and contracts/retry-behavior.md. tasks.md records completed implementation work; verification.md records results.
 
 ### Source Code (repository root)
 

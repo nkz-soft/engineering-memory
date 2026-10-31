@@ -5,6 +5,7 @@ import json
 import httpx
 import pytest
 
+from engineering_memory.memory.hindsight.retry import RetryPolicy
 from engineering_memory.memory.hindsight.store import HindsightStore
 from engineering_memory.memory.interface import MemoryStoreRejected, MemoryStoreUnavailable
 from engineering_memory.normalization import ProjectTag
@@ -18,6 +19,7 @@ def make_store(handler, **kwargs):
         HindsightSettings(base_url="http://engine.invalid"),
         client=client,
         poll_interval=0,
+        retry_policy=RetryPolicy(initial=0.00001, maximum=0.00001, jitter=0),
         **kwargs,
     )
 
@@ -65,7 +67,7 @@ def test_uncertain_retry_reuses_uuid_but_success_and_changed_payload_start_fresh
             return httpx.Response(200, json={"status": "completed"})
         body = json.loads(request.content)
         operations.append(body["operation_id"])
-        if len(operations) == 1:
+        if len(operations) <= 4:
             raise httpx.ReadTimeout("private payload and credential", request=request)
         return httpx.Response(
             200, json={"success": True, "async": True, "operation_id": operations[-1]}
@@ -78,8 +80,8 @@ def test_uncertain_retry_reuses_uuid_but_success_and_changed_payload_start_fresh
     store.retain(sample())
     store.retain(sample("changed"))
     store.retain(sample())
-    assert operations[0] == operations[1]
-    assert len(set(operations[1:])) == 4
+    assert len(set(operations[:5])) == 1
+    assert len(set(operations[4:])) == 4
 
 
 @pytest.mark.parametrize("status", [400, 401, 403, 409, 422, 500, 429, 502, 503, 504])
@@ -270,7 +272,7 @@ def test_invalid_acknowledgement_preserves_retry_identity(ack):
     for _ in range(2):
         with pytest.raises(MemoryStoreRejected):
             store.retain(sample())
-    assert operations[0] == operations[1]
+    assert len(set(operations[:5])) == 1
 
 
 def test_out_of_scope_engine_result_is_rejected():
@@ -296,9 +298,9 @@ def test_refused_replay_preserves_prior_uncertain_uuid():
         if request.method == "GET":
             return httpx.Response(200, json={"status": "completed"})
         operations.append(json.loads(request.content)["operation_id"])
-        if len(operations) == 1:
+        if len(operations) <= 4:
             raise httpx.ReadTimeout("uncertain", request=request)
-        if len(operations) == 2:
+        if len(operations) == 5:
             return httpx.Response(401)
         return httpx.Response(
             200, json={"success": True, "async": True, "operation_id": operations[-1]}

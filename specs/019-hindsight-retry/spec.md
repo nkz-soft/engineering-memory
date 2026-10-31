@@ -2,7 +2,7 @@
 
 **Feature Branch**: `019-hindsight-retry`
 **Created**: 2026-10-31
-**Status**: Draft — awaiting planning approval
+**Status**: Implemented; awaiting pull request review
 **Input**: Issue #20, "Retry transient Hindsight failures with backoff and jitter".
 
 ## User Scenarios & Testing *(mandatory)*
