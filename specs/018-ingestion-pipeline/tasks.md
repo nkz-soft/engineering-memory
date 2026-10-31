@@ -33,7 +33,7 @@ Independent test: second import skips unchanged items; changed, failed and force
 ## Phase 6 — Verification and review
 
 - [x] T008 Validate all suites, lint, formatting, diff and review; record outcomes in specs/018-ingestion-pipeline/quickstart.md.
-- [ ] T009 Update library contract and usage documentation in specs/018-ingestion-pipeline/contracts/pipeline.md, then create PR from .github/pull_request_template.md.
+- [x] T009 Update library contract and usage documentation in specs/018-ingestion-pipeline/contracts/pipeline.md, then create PR from .github/pull_request_template.md.
 
 ## Dependencies and strategy
 
