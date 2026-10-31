@@ -229,7 +229,7 @@ def test_every_public_name_is_exported() -> None:
     Submodules are excluded — importing `normalization.canonical` binds `canonical` as an attribute
     of the package, and that is Python's doing rather than a public name this module chose.
     """
-    submodules = {"base", "canonical", "conversation", "provenance", "tags"}
+    submodules = {"base", "canonical", "conversation", "enrichment", "provenance", "tags"}
     unexported = sorted(public_names() - set(normalization.__all__) - submodules)
 
     assert not unexported, (
