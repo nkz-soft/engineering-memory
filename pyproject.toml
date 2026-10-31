@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings>=2",
     "sqlalchemy>=2,<3",
     "structlog>=26.1.0",
+    "tenacity>=9.2.1,<10",
     "typer>=0.12",
 ]
 
@@ -39,6 +40,7 @@ engineering-memory = "engineering_memory.cli:main"
 #                              the features that specify them.
 # httpx                        the HTTP client row, added by 014-local-hindsight-deployment.
 # sqlalchemy                   the Database access row, added by 013-sqlite-import-state.
+# tenacity                     the Retry row, added by 019-hindsight-retry.
 # tests/structure/test_packaging.py holds this line.
 
 [dependency-groups]

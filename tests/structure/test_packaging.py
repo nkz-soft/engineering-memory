@@ -97,6 +97,7 @@ EXPECTED_RUNTIME_DEPENDENCIES = frozenset(
         "typer",
         "sqlalchemy",
         "httpx",
+        "tenacity",
     }
 )
 """Every runtime dependency the project is allowed to declare, by distribution name.
@@ -109,6 +110,7 @@ that needed it, and with the row of the constitution's Technology Stack table th
   `BaseSettings`, separated at the v1→v2 split for packaging reasons
   (specs/002-environment-configuration/research.md R2).
 * `httpx` — the HTTP client row, added by 014-local-hindsight-deployment.
+* `tenacity` — the Retry row, added by 019-hindsight-retry under ADR-004.
 * `sqlalchemy` — the Database access row, added by 013-sqlite-import-state.
 * `structlog` — the Logging row, added by 003-logging-telemetry-baseline.
 * `opentelemetry-api` and `opentelemetry-sdk` — the Telemetry row, added by the same feature.
