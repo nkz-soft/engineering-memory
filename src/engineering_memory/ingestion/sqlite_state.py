@@ -74,14 +74,14 @@ _UNAVAILABLE = {
 class SQLiteImportState:
     """SQLAlchemy Core adapter for the existing ImportState protocol."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, read_only: bool = False) -> None:
         self.path = Path(path).absolute()
         self._ready = False
         self._engine = create_engine(
             URL.create(
                 "sqlite+pysqlite",
                 database=self.path.as_uri(),
-                query={"mode": "rw", "uri": "true"},
+                query={"mode": "ro" if read_only else "rw", "uri": "true"},
             ),
             connect_args={"autocommit": False, "timeout": 5},
             poolclass=NullPool,
@@ -185,6 +185,17 @@ class SQLiteImportState:
                     .one_or_none()
                 )
                 return ImportRecord.model_validate(dict(row)) if row is not None else None
+
+    def iter_records(self) -> Iterator[ImportRecord]:
+        """Read validated latest records in deterministic identity order."""
+        with self._errors():
+            self._require_ready()
+            with self._engine.connect() as connection:
+                rows = connection.execute(
+                    select(_RECORDS).order_by(_RECORDS.c.source, _RECORDS.c.source_id)
+                ).mappings()
+                for row in rows:
+                    yield ImportRecord.model_validate(dict(row))
 
     def record(self, record: ImportRecord) -> None:
         """Atomically replace one identity's outcome, committing before return."""

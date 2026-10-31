@@ -14,7 +14,11 @@ def extraction(body):
         messages = body["messages"]
         assert len(messages) == 2 and messages[1]["role"] == "user"
         text = messages[1]["content"]
-        matches = re.findall(r"Synthetic contract fact: ([^\n]+)", text)
+        # Adapter requests embed the conversation as JSON; raw contract requests
+        # carry a plain line. Accept only the same bounded synthetic fact in either.
+        matches = re.findall(
+            r'Synthetic contract fact: (Orchard [A-Za-z0-9 .,\-]+)(?=["\n]|$)', text
+        )
         assert len(matches) == 1
         fact = matches[0].strip()
         assert re.fullmatch(r"Orchard [A-Za-z0-9 .,\-]+", fact)

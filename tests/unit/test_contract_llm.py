@@ -35,3 +35,13 @@ def test_extraction_preserves_only_synthetic_fact():
 def test_unknown_protocol_or_content_fails_closed(body):
     with pytest.raises(ValueError, match="unsupported"):
         extraction(body)
+
+
+def test_extraction_reads_synthetic_fact_inside_serialized_conversation():
+    import json
+
+    text = json.dumps(
+        {"messages": [{"text": "Synthetic contract fact: Orchard uses cobalt."}]}, indent=2
+    )
+    result = extraction(payload(text))
+    assert result["facts"][0]["what"] == "Orchard uses cobalt."

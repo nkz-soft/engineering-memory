@@ -423,3 +423,28 @@ def environment_variable_names() -> frozenset[str]:
 def secret_variable_names() -> frozenset[str]:
     """The subset of those that carry a credential."""
     return frozenset(name for name, is_secret in _declared_variables().items() if is_secret)
+
+
+class _StateSettings(BaseSettings):
+    """Only the local import-state path is needed for offline inspection."""
+
+    model_config = Settings.model_config
+    import_state_path: Path = Path("data/import-state.db")
+
+    _reject_blank = field_validator("import_state_path", mode="before")(
+        Settings._reject_a_blank_path.__func__
+    )
+    _resolve = field_validator("import_state_path")(
+        Settings._resolve_against_the_project_root.__func__
+    )
+
+
+def load_state_path() -> Path:
+    """Read the same path policy without requiring unrelated remote settings."""
+    try:
+        if DEFAULT_ENV_FILE is not None:
+            _reject_malformed(Path(DEFAULT_ENV_FILE))
+        return _StateSettings(_env_file=DEFAULT_ENV_FILE).import_state_path
+    except (ValidationError, SettingsError):
+        pass
+    raise SettingsError("configuration invalid")

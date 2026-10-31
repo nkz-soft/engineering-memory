@@ -1,5 +1,8 @@
-"""CLI usage and the command specified by feature 016."""
+"""CLI usage and the operator commands specified by feature 020."""
 
+import pytest
+from rich.text import Text
+from typer import rich_utils
 from typer.testing import CliRunner
 
 from engineering_memory.cli import app
@@ -12,5 +15,11 @@ def test_help_exits_zero_and_names_the_application():
     assert "engineering-memory" in result.output.lower().replace("_", "-")
 
 
-def test_only_specified_command_is_registered():
-    assert [command.name for command in app.registered_commands] == ["provision"]
+@pytest.mark.parametrize("force_terminal", [False, True])
+def test_operator_command_help_lists_json_option(monkeypatch, force_terminal):
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.setattr(rich_utils, "FORCE_TERMINAL", force_terminal)
+    for command in ("provision", "import", "status"):
+        result = CliRunner().invoke(app, [command, "--help"])
+        assert result.exit_code == 0
+        assert "--json" in Text.from_ansi(result.output).plain

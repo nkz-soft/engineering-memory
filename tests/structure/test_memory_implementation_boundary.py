@@ -27,6 +27,19 @@ def violations(sources, packages=()):
                     and {alias.name for alias in node.names} <= {"provision", "ProvisionError"}
                 ):
                     continue
+                # Feature 020: the operator composition root constructs the memory adapter.
+                # No serialization/transport internals or consumer imports are exempt.
+                if module == "engineering_memory.cli.runtime" and (
+                    (
+                        name == PREFIX + ".store"
+                        and {alias.name for alias in node.names} == {"HindsightStore"}
+                    )
+                    or (
+                        name == PREFIX + ".provision"
+                        and {alias.name for alias in node.names} == {"ProvisionError"}
+                    )
+                ):
+                    continue
                 edges.add(name)
                 edges.update(name + "." + alias.name for alias in node.names)
             elif (
@@ -126,6 +139,34 @@ def test_guard_allows_only_cli_provisioning_composition():
         {
             "engineering_memory.ingestion": (
                 "from engineering_memory.memory.hindsight.provision import provision"
+            )
+        }
+    )
+
+
+def test_guard_allows_only_operator_runtime_adapter_construction():
+    assert (
+        violations(
+            {
+                "engineering_memory.cli.runtime": (
+                    "from engineering_memory.memory.hindsight.store import HindsightStore\n"
+                    "from engineering_memory.memory.hindsight.provision import ProvisionError"
+                )
+            }
+        )
+        == []
+    )
+    assert violations(
+        {
+            "engineering_memory.ingestion": (
+                "from engineering_memory.memory.hindsight.store import HindsightStore"
+            )
+        }
+    )
+    assert violations(
+        {
+            "engineering_memory.cli.runtime": (
+                "from engineering_memory.memory.hindsight.serialization import item_for"
             )
         }
     )
