@@ -171,3 +171,29 @@ class ImportStateContract:
         found = reopened.find(Source.CHATGPT, "broken1")
         assert found is not None
         assert found.status is ImportStatus.FAILED
+
+    def test_enumeration_is_ordered_latest_state(self):
+        state = self.make_state()
+        assert list(state.iter_records()) == []
+        state.record(record(source_id="z"))
+        state.record(record(source_id="a"))
+        state.record(record(ImportStatus.FAILED, source_id="z"))
+        rows = list(state.iter_records())
+        assert [(r.source_id, r.status) for r in rows] == [
+            ("a", ImportStatus.IMPORTED),
+            ("z", ImportStatus.FAILED),
+        ]
+
+    def test_enumeration_propagates_unavailable(self):
+        state = self.make_unavailable_state()
+        if state is None:
+            pytest.skip("adapter has no unavailable fixture")
+        with pytest.raises(ImportStateUnavailable):
+            list(state.iter_records())
+
+    def test_enumeration_propagates_corruption(self):
+        state = self.make_corrupt_state()
+        if state is None:
+            pytest.skip("adapter has no corruption fixture")
+        with pytest.raises(ImportStateCorrupt):
+            list(state.iter_records())

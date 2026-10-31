@@ -5,7 +5,7 @@
 
 ## Summary
 
-Extend the existing Typer application with import and status, retain provision, and establish text/JSON and exit-code contracts. The CLI composes concrete adapters; the pipeline remains interface-driven. Stop after this design for human review.
+Extend the existing Typer application with import and status, retain provision, and establish text/JSON and exit-code contracts. The CLI composes concrete adapters; the pipeline remains interface-driven. The planning gate was approved by rerunning `/issue-to-pr 21`; implementation follows this design.
 
 ## Technical Context
 
@@ -33,7 +33,7 @@ Stack and bank policy unchanged; no governance decision record or deviation requ
 
 ## Project Structure
 
-Feature artifacts: spec.md, plan.md, research.md, data-model.md, contracts/cli.md, quickstart.md, checklists/requirements.md. tasks.md is deferred until approval.
+Feature artifacts: spec.md, plan.md, research.md, data-model.md, contracts/cli.md, quickstart.md, checklists/requirements.md. tasks.md records implementation and verification progress.
 
 Source changes:
 - `src/engineering_memory/cli/`: retain app/entry point; extract composition and result rendering as needed to keep command callbacks small.

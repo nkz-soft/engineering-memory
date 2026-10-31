@@ -34,6 +34,10 @@ class InMemoryImportState:
         """Everything remembered, for a pipeline test to read — not part of the boundary."""
         return tuple(self._records.values())
 
+    def iter_records(self):
+        self._refuse_if_broken("state")
+        yield from (self._records[key] for key in sorted(self._records))
+
     def record(self, record: ImportRecord) -> None:
         self._refuse_if_broken(record.source_id)
         self._records[(record.source, record.source_id)] = record

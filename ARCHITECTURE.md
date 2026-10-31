@@ -484,10 +484,14 @@ configuration, the command-line surface and the testing framework.
 None of it changes anything above: the stack was chosen to fit the architecture,
 not the other way round.
 
-Still open, and deliberately so, is the exact command surface. It is constrained
-by ADR-004 and will be fixed by the first specification that needs it. The raw
-archive layout is fixed by feature 012 (§14), and the import-state schema by
-feature 013 (§17).
+The operator surface is fixed by feature 020: `engineering-memory provision`,
+`import --export PATH | --from-archive` with optional `--force`, and `status`.
+Each operational command supports `--json`; text is the default. Status inspects
+latest durable records offline; imported/skipped/failed run summaries belong to
+import. Exit codes and output fields are defined in
+[`specs/020-operator-cli/contracts/cli.md`](specs/020-operator-cli/contracts/cli.md).
+Dry-run remains separate work. The raw archive layout is fixed by feature 012
+(§14), and the import-state schema by feature 013 (§17).
 
 ## 21. Out of scope for the MVP
 

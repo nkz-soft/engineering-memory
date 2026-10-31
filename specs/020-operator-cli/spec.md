@@ -2,7 +2,7 @@
 
 **Feature Branch**: `020-operator-cli`
 **Created**: 2026-10-31
-**Status**: Draft — awaiting human planning review
+**Status**: Implemented — validation and code review recorded in verification.md
 **Input**: Issue #21: expose provisioning, export/archive import, and import status.
 
 ## User Scenarios & Testing

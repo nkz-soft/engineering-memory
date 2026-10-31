@@ -16,6 +16,7 @@ Contract: specs/007-boundary-interfaces/contracts/interfaces.md, rules IS-1 to I
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
@@ -141,6 +142,13 @@ class ImportStateUnavailable(TransientBoundaryError):
 @runtime_checkable
 class ImportState(Protocol):
     """Remembers what has been imported, so a re-run does not pay for extraction twice."""
+
+    def iter_records(self) -> Iterator[ImportRecord]:
+        """Yield latest records ordered by source/source_id, without writing state.
+
+        Raises ImportStateUnavailable or ImportStateCorrupt, including during iteration.
+        """
+        ...
 
     def record(self, record: ImportRecord) -> None:
         """Remember the outcome of one conversation's import.

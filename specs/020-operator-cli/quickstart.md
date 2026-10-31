@@ -1,6 +1,6 @@
 # Quickstart validation guide
 
-These are planned validation commands for Phase 2. New CLI options do not exist at the planning gate.
+The CLI is implemented. Run the following checks against synthetic history only.
 
 ## Prerequisites
 
@@ -20,7 +20,19 @@ uv run engineering-memory import --help
 uv run engineering-memory status --help
 ```
 
-New command tests must use Typer CliRunner, observe failures before implementation, and inject fake memory only for offline suites. Existing live integration controls remain opt-in. Add a CLI live scenario and document its exact invocation and result during implementation.
+New command tests must use Typer CliRunner, observe failures before implementation, and inject fake memory only for offline suites. Existing live integration controls remain opt-in. For the live command workflow, start the isolated contract stack, then run:
+
+```powershell
+docker compose -p cli-validation -f deploy/hindsight/compose.contract.yaml up -d --wait
+$env:ENGINEERING_MEMORY_LIVE_CONTRACT = '1'
+uv run pytest tests/integration/test_operator_cli.py::test_live_commands -q
+Remove-Item Env:ENGINEERING_MEMORY_LIVE_CONTRACT
+docker compose -p cli-validation -f deploy/hindsight/compose.contract.yaml down --volumes
+```
+
+The test uses a unique scratch bank, temporary local storage, and synthetic extraction.
+It provisions, imports, skips unchanged history, replays with force, inspects status,
+and recalls the synthetic fact. The scratch bank and disposable stack are removed.
 
 ## Fixture and live workflow
 

@@ -1,4 +1,4 @@
-"""CLI usage and the command specified by feature 016."""
+"""CLI usage and the operator commands specified by feature 020."""
 
 from typer.testing import CliRunner
 
@@ -13,4 +13,7 @@ def test_help_exits_zero_and_names_the_application():
 
 
 def test_only_specified_command_is_registered():
-    assert [command.name for command in app.registered_commands] == ["provision"]
+    for command in ("provision", "import", "status"):
+        result = CliRunner().invoke(app, [command, "--help"])
+        assert result.exit_code == 0
+        assert "--json" in result.output

@@ -44,19 +44,11 @@ conversation models, boundary interfaces, ChatGPT export parsing, secret
 sanitization and deterministic project classification. CI covers tests, lint,
 secret scanning and container packaging.
 
-Persistent local archive, SQLite import-state and Hindsight memory adapters are
-implemented. The import pipeline and MCP server remain future work. The memory
-adapter uses bounded async extraction, strict tag scoping and complete provenance;
-see [adapter validation](specs/015-hindsight-memory-store/quickstart.md).
-The CLI currently
-provides `--help` and `--version` only; it cannot import or search conversations.
-Integration tests compose the existing stages with in-memory fakes, so they do
-not demonstrate a working Hindsight deployment.
-
-A [local Hindsight development setup](docs/development/local-hindsight.md) now
-provides a pinned Docker Compose profile and an opt-in synthetic scratch-bank
-smoke command. Extraction routes through an operator-managed LiteLLM proxy.
-Live deployment/proxy acceptance is deferred; no successful live run is claimed.
+Persistent local archive, SQLite import-state, the Hindsight adapter and the
+conversation-by-conversation ingestion pipeline are implemented. The operator CLI
+provides provisioning, export import, archive replay and offline status. The MCP
+access server remains future work. Synthetic live validation uses the isolated
+Hindsight contract stack; it does not measure model quality on private history.
 
 The first milestone is to import ChatGPT history and have Hermes answer a
 question from it. Claude Code and Codex access, and additional history sources,
@@ -232,3 +224,59 @@ or re-extraction is needed.
 ## License
 
 See [LICENSE](LICENSE).
+
+## Operator commands
+
+Configure endpoints and paths using `.env.example` and the
+[local Hindsight setup](docs/development/local-hindsight.md), then explicitly
+provision the shared bank before importing. Credentials come from environment
+configuration; no credential command-line flags are supported.
+
+```sh
+uv run engineering-memory provision
+uv run engineering-memory import --export /path/to/export.zip
+uv run engineering-memory import --from-archive --force
+uv run engineering-memory status
+```
+
+| Command/flag | Meaning |
+|---|---|
+| `provision` | Apply and verify the retain mission on the configured shared bank. Import never provisions automatically. |
+| `import --export PATH` | Read a ChatGPT ZIP, extracted export directory, or conversations JSON file. |
+| `import --from-archive` | Replay originals from the configured local archive, with current processing rules. Select exactly one input mode. |
+| `import --force` | Reprocess unchanged content explicitly; stable document ids are preserved. |
+| `status` | Inspect latest local imported/failed records without contacting memory or requiring remote endpoint settings. Missing state is empty; corrupt state is an error. |
+| `--json` | Per operational command, emit one versioned JSON result on stdout; logs use stderr. |
+| `--help` | At root or on any command, list accepted arguments. |
+| `--version` | At root, print the installed distribution version. |
+
+`ENGINEERING_MEMORY_ARCHIVE_ROOT`, `ENGINEERING_MEMORY_IMPORT_STATE_PATH` and
+`ENGINEERING_MEMORY_PROJECT_RULES_PATH` select local storage and classification
+rules. Relative paths resolve against the source checkout, consistently with
+existing settings; installed deployments should use absolute paths. Status reads
+only the state-path setting. Provision/import validate the full configuration.
+
+Import reports imported, skipped and failed counts plus safe per-item failures.
+Unchanged successful conversations skip extraction; changed and failed items
+retry. One item failure does not prevent later valid items from importing.
+Status describes **latest durable records**, not historical runs: skips do not
+overwrite imported records, and failures without usable identity may appear only
+in the import result. Status can successfully report stored failures.
+
+Exit codes: **0** success (including empty/all-skipped imports and successful
+status inspection), **1** operational/configuration error or any import failure,
+including partial success, **2** usage error, **130** interruption after cleanup.
+
+```sh
+uv run engineering-memory import --export /path/to/export.zip --json
+uv run engineering-memory status --json
+```
+
+Structured results include `schema_version: 1`, `command`, `status` and `error`.
+Import adds counts, outcomes and any terminal stage; status adds current records
+and imported/failed totals; provision adds bank and mission verification. Error
+categories/stages are fixed safe values, never arbitrary exception text. Framework
+parser errors (unknown flags/invalid option types), help and version retain Typer
+output. See the [CLI contract](specs/020-operator-cli/contracts/cli.md) for fields
+and the [validation guide](specs/020-operator-cli/quickstart.md) for fixture/live
+checks. Dry-run is deferred to #22.
