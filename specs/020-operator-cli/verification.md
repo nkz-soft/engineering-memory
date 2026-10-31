@@ -30,3 +30,16 @@ A separate reviewer inspected the working implementation against the specificati
 ## Limits
 
 No new schema, dependencies, source integrations or dry-run flag. Status reflects latest durable records, not historical skips. Structured application errors use the documented envelope; framework parser/help/version output remains Typer's. Live extraction is deterministic synthetic validation and does not establish real-model quality on a private corpus.
+
+## CI colored-help follow-up
+
+GitHub Actions forces Rich terminal styling, which can insert ANSI escape codes
+inside an option name. Reproduced the reported failure with `TERM=xterm-256color`
+and `GITHUB_ACTIONS=true`: the raw `--json` substring assertion failed. The help
+test now checks `Text.from_ansi(...).plain` and explicitly covers both forced-color
+and plain terminal modes. Application behavior is unchanged.
+
+With those CI terminal variables set:
+`.venv/Scripts/python.exe -m pytest -q --tb=short --color=no` —
+**1864 passed, 28 skipped in 89.08s**.
+Ruff lint and format checks both pass.
