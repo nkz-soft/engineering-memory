@@ -337,3 +337,211 @@ def test_decoder_rejects_missing_version():
     del fact["metadata"]["engineering_memory.version"]
     with pytest.raises(MemoryStoreRejected):
         check_synthetic(fact)
+
+
+def test_reimport_evidence_positive_control():
+    assert_reimport_facts(
+        [
+            {"id": "fact-a", "document_id": "chatgpt:replay-a", "text": "Orchard cobalt relay."},
+            {"id": "fact-b", "document_id": "chatgpt:replay-b", "text": "Orchard amber queue."},
+        ],
+        {"chatgpt:replay-a": "Orchard cobalt relay.", "chatgpt:replay-b": "Orchard amber queue."},
+    )
+    assert_replay_activity([], [], {"calls": 2, "errors": 0}, {"calls": 2, "errors": 0}, 0)
+
+
+@pytest.mark.parametrize("corruption", ["missing", "extra", "duplicate", "stale"])
+def test_reimport_recall_corruption_is_detected(corruption):
+    facts = [
+        {"id": "fact-a", "document_id": "chatgpt:replay-a", "text": "Orchard cobalt relay."},
+        {"id": "fact-b", "document_id": "chatgpt:replay-b", "text": "Orchard amber queue."},
+    ]
+    expected = {
+        "chatgpt:replay-a": "Orchard cobalt relay.",
+        "chatgpt:replay-b": "Orchard amber queue.",
+    }
+    if corruption == "missing":
+        facts.pop()
+    elif corruption == "extra":
+        facts.append({"id": "extra", "document_id": "unexpected", "text": "Orchard stray."})
+    elif corruption == "duplicate":
+        facts.append({**facts[0], "id": "duplicate"})
+    else:
+        expected["chatgpt:replay-a"] = "Orchard silver relay."
+    with pytest.raises(AssertionError):
+        assert_reimport_facts(facts, expected)
+
+
+@pytest.mark.parametrize(
+    "submitted,expected,calls,errors",
+    [
+        (["chatgpt:replay-a"], [], 0, 0),
+        ([], [], 1, 0),
+        (["chatgpt:replay-b"], ["chatgpt:replay-a"], 1, 0),
+        ([], [], 0, 1),
+    ],
+)
+def test_reimport_activity_corruption_is_detected(submitted, expected, calls, errors):
+    with pytest.raises(AssertionError):
+        assert_replay_activity(
+            submitted,
+            expected,
+            {"calls": 2, "errors": 0},
+            {"calls": 2 + calls, "errors": errors},
+            len(expected),
+        )
+
+
+@live
+def test_reimport_unchanged(engine, tmp_path):
+    verify_reimport(engine, tmp_path, "unchanged")
+
+
+@live
+def test_reimport_state_loss(engine, tmp_path):
+    verify_reimport(engine, tmp_path, "state-loss")
+
+
+@live
+def test_reimport_changed(engine, tmp_path):
+    verify_reimport(engine, tmp_path, "changed")
+
+
+def assert_reimport_facts(facts, expected):
+    """Count documents from recall, with stronger one-fact fixture cardinality."""
+    assert {fact["document_id"] for fact in facts} == set(expected), "recalled document identities"
+    for document, decision in expected.items():
+        matching = [fact for fact in facts if fact["document_id"] == document]
+        assert len(matching) == 1, "one controlled fact per document"
+        assert matching[0]["text"] == decision, "current controlled decision"
+
+
+def assert_replay_activity(submitted, expected, before, after, extraction_delta):
+    assert sorted(submitted) == sorted(expected), "submitted identities"
+    assert after["errors"] == before["errors"] == 0, "extraction errors"
+    if extraction_delta is not None:
+        assert after["calls"] - before["calls"] == extraction_delta, "extraction calls"
+
+
+REIMPORT_FACTS = {
+    "chatgpt:replay-a": "Orchard cobalt relay isolates worker retries.",
+    "chatgpt:replay-b": "Orchard amber queue preserves event ordering.",
+}
+REPLACEMENT = "Orchard silver relay isolates worker retries."
+
+
+class RecordingStore:
+    """Observe real submissions without replacing the memory implementation."""
+
+    def __init__(self, memory):
+        self.memory = memory
+        self.submitted = []
+
+    def retain(self, enriched):
+        self.submitted.append(enriched.document_id)
+        return self.memory.retain(enriched)
+
+
+def fixture_stats():
+    with httpx.Client(trust_env=False, timeout=10) as client:
+        response = client.get(os.environ["CONTRACT_FIXTURE_URL"] + "/stats")
+        response.raise_for_status()
+        return response.json()
+
+
+def recall_corpus(client, root, expected):
+    # Recall is ranked, not an inventory API. This tiny scratch bank contains two
+    # short, deterministic facts; query broadly and by every original/current fact.
+    facts = {}
+    for query in ["Orchard relay queue", *REIMPORT_FACTS.values(), *expected.values()]:
+        response = client.post(
+            root + "/memories/recall",
+            json={"query": query, "types": ["world"], "budget": "high", "max_tokens": 32768},
+        )
+        response.raise_for_status()
+        for fact in response.json()["results"]:
+            facts[fact["id"]] = fact
+    assert_reimport_facts(list(facts.values()), expected)
+    return facts
+
+
+def write_corpus(path, expected):
+    records = [
+        synth.linear_record(
+            identity.removeprefix("chatgpt:"),
+            synth.message("user", "Synthetic contract fact: " + decision),
+            title="Synthetic Orchard replay",
+            create_time=ORIGINAL.timestamp(),
+            update_time=ORIGINAL.timestamp(),
+        )
+        for identity, decision in expected.items()
+    ]
+    synth.write_directory(path, records)
+    return records
+
+
+def import_corpus(tmp_path, settings, expected):
+    # Fresh adapter lifetimes on every invocation rule out in-process retry keys
+    # as the protection in the lost-state case.
+    export = tmp_path / "export"
+    records = write_corpus(export, expected)
+    archive = LocalRawArchive(tmp_path / "archive")
+    state = SQLiteImportState(tmp_path / "state.db")
+    state.initialize()
+    try:
+        with HindsightStore(settings) as memory:
+            recorder = RecordingStore(memory)
+            pipeline = IngestionPipeline(
+                sanitizer=PatternSecretSanitizer(),
+                classifier=AliasProjectClassifier(
+                    ProjectRuleSet(rules=(ProjectRule(project="orchard", aliases=("Orchard",)),))
+                ),
+                archive=archive,
+                state=state,
+                memory=recorder,
+                importer_version="synthetic-reimport-v1",
+                bank=settings.bank_id,
+                repository="synthetic/orchard",
+                user="synthetic",
+            )
+            report = pipeline.run(ChatGPTExportSource(export))
+            assert report.failed == 0 and report.terminal_error is None, report
+            for (identity, decision), record in zip(expected.items(), records, strict=True):
+                assert json.loads(archive.load_original(identity).content) == record
+                normalized = archive.load(identity)
+                assert normalized.conversation.started_at == ORIGINAL
+                assert decision in normalized.conversation.messages[0].text
+            return report, recorder.submitted
+    finally:
+        state.close()
+
+
+def verify_reimport(engine, tmp_path, scenario):
+    settings, client, root = engine
+    before = fixture_stats()
+    baseline, submitted = import_corpus(tmp_path, settings, REIMPORT_FACTS)
+    assert (baseline.imported, baseline.skipped) == (2, 0)
+    assert_replay_activity(submitted, list(REIMPORT_FACTS), before, fixture_stats(), 2)
+    original = recall_corpus(client, root, REIMPORT_FACTS)
+    expected = dict(REIMPORT_FACTS)
+    if scenario == "state-loss":
+        # All state connections were disposed by import_corpus. Only this test's
+        # DB is removed; preserve its archive and bank for actual recovery.
+        (tmp_path / "state.db").unlink()
+    elif scenario == "changed":
+        expected["chatgpt:replay-a"] = REPLACEMENT
+    before = fixture_stats()
+    replay, submitted = import_corpus(tmp_path, settings, expected)
+    after = fixture_stats()
+    wanted = {"unchanged": [], "state-loss": list(expected), "changed": ["chatgpt:replay-a"]}
+    assert_replay_activity(
+        submitted,
+        wanted[scenario],
+        before,
+        after,
+        {"unchanged": 0, "state-loss": None, "changed": 1}[scenario],
+    )
+    assert (replay.imported, replay.skipped) == (len(wanted[scenario]), 2 - len(wanted[scenario]))
+    recalled = recall_corpus(client, root, expected)
+    if scenario == "unchanged":
+        assert set(recalled) == set(original), "unchanged replay preserves fact identities"
