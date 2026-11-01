@@ -50,6 +50,7 @@ dev = [
     # Only so that tests/structure/test_ci_workflow.py can parse the workflow instead of
     # pattern-matching its text. Development-only; FR-011 concerns runtime dependencies.
     "pyyaml>=6",
+    "testcontainers>=4.14,<5",
 ]
 
 [build-system]

@@ -358,3 +358,13 @@ def test_live_contract_job_runs_without_credentials_or_conditions():
         _workflow(), "live-contract"
     )
     assert "secrets." not in str(job)
+
+
+def test_live_end_to_end_job_is_required_and_credential_free():
+    job = _job(_workflow(), "live-e2e")
+    assert "if" not in job
+    assert not job.get("continue-on-error", False)
+    assert job["timeout-minutes"] <= 25
+    assert "uv sync --locked" in _run_commands(_workflow(), "live-e2e")
+    assert "uv run python deploy/hindsight/e2e.py" in _run_commands(_workflow(), "live-e2e")
+    assert "secrets." not in str(job)
