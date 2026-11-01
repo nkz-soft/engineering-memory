@@ -10,6 +10,9 @@ NAMES = [
     "test_import_and_recall",
     "test_pipeline_known_repository_and_tags",
     "test_wire_timestamp_omission_is_detected",
+    "test_reimport_unchanged",
+    "test_reimport_state_loss",
+    "test_reimport_changed",
 ]
 
 
@@ -148,3 +151,12 @@ def test_supervisor_accepts_completed_ready_worker(monkeypatch, tmp_path):
     e2e.supervise(["worker"], ready)
     process.wait.assert_called_once_with(timeout=1020)
     process.kill.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "missing", ["test_reimport_unchanged", "test_reimport_state_loss", "test_reimport_changed"]
+)
+def test_each_reimport_case_is_required(missing):
+    names = NAMES
+    with pytest.raises(ValueError, match="end-to-end"):
+        e2e.verify_report(report([name for name in names if name != missing]))

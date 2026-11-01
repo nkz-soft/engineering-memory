@@ -27,6 +27,9 @@ REQUIRED = {
     "test_import_and_recall",
     "test_pipeline_known_repository_and_tags",
     "test_wire_timestamp_omission_is_detected",
+    "test_reimport_unchanged",
+    "test_reimport_state_loss",
+    "test_reimport_changed",
 }
 
 
