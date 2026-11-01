@@ -5,12 +5,22 @@ import json
 import typer
 
 
-def result(command: str) -> dict:
+def result(command: str, *, dry_run: bool = False) -> dict:
     data = {"schema_version": 1, "command": command, "status": "success", "error": None}
     if command == "provision":
         data.update(bank=None, mission_verified=False)
     elif command == "import":
-        data.update(imported=0, skipped=0, failed=0, terminal_error=None, outcomes=[])
+        if dry_run:
+            data.update(
+                dry_run=True,
+                would_import=0,
+                would_skip=0,
+                failed=0,
+                terminal_error=None,
+                outcomes=[],
+            )
+        else:
+            data.update(imported=0, skipped=0, failed=0, terminal_error=None, outcomes=[])
     else:
         data.update(imported=0, failed=0, records=[])
     return data
@@ -26,6 +36,20 @@ def emit(data: dict, *, structured: bool) -> None:
     if data["command"] == "provision":
         if data["mission_verified"]:
             typer.echo("Bank retain mission verified.")
+    elif data.get("dry_run"):
+        typer.echo(
+            f"Dry run: would import: {data['would_import']}; "
+            f"would skip: {data['would_skip']}; failed: {data['failed']}"
+        )
+        for row in data["outcomes"]:
+            typer.echo(
+                f"{row['document_id'] or '<unknown>'} {row['project'] or '-'} "
+                f"{row['timestamp'] or '-'} "
+                f"redactions={','.join(row['redaction_categories']) or 'none'} "
+                f"{row['decision']} {row['error'] or ''}"
+            )
+        if data["terminal_error"]:
+            typer.echo(f"Terminal error: {data['terminal_error']}")
     elif data["command"] == "import":
         typer.echo(
             f"Imported: {data['imported']}; skipped: {data['skipped']}; failed: {data['failed']}"

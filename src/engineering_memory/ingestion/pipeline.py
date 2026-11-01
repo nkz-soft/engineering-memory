@@ -9,7 +9,13 @@ from pydantic import TypeAdapter, ValidationError
 
 from engineering_memory.archive.interface import RawArchive
 from engineering_memory.classification.classifier import ProjectClassifier
-from engineering_memory.ingestion.report import ConversationOutcome, RunReport, Stage
+from engineering_memory.ingestion.report import (
+    ConversationOutcome,
+    PreviewOutcome,
+    PreviewReport,
+    RunReport,
+    Stage,
+)
 from engineering_memory.ingestion.source import (
     ConversationSource,
     SourceConversation,
@@ -40,8 +46,8 @@ class IngestionPipeline:
         sanitizer: SecretSanitizer,
         classifier: ProjectClassifier,
         archive: RawArchive,
-        memory: MemoryStore,
-        state: ImportState,
+        memory: MemoryStore | None,
+        state: ImportState | None,
         importer_version: str,
         bank: str = "engineering-global",
         repository: str | None = None,
@@ -59,13 +65,20 @@ class IngestionPipeline:
         self.user = user
         self.clock = clock
 
-    def run(self, source: ConversationSource, *, force: bool = False) -> RunReport:
+    def run(
+        self, source: ConversationSource, *, force: bool = False, dry_run: bool = False
+    ) -> RunReport:
         """Return outcomes in source order; cancellation propagates unchanged."""
+        if not dry_run and (self.memory is None or self.state is None):
+            raise ValueError("real ingestion requires memory and state adapters")
         outcomes: list[ConversationOutcome] = []
+        report_type = PreviewReport if dry_run else RunReport
+        outcome_type = PreviewOutcome if dry_run else ConversationOutcome
+        overlay = {} if dry_run else None
         try:
             reader = iter(source.read())
         except Exception:
-            return RunReport(terminal_error=Stage.SOURCE)
+            return report_type(terminal_error=Stage.SOURCE)
         while True:
             started_at = self.clock()
             started = perf_counter()
@@ -74,7 +87,7 @@ class IngestionPipeline:
             except StopIteration:
                 break
             except SourceFormatError as error:
-                outcome = ConversationOutcome(
+                outcome = outcome_type(
                     source=source.source,
                     source_id=_usable_identity(error.subject),
                     status=ImportStatus.FAILED,
@@ -85,25 +98,39 @@ class IngestionPipeline:
                 outcomes.append(outcome)
                 continue
             except Exception:
-                return RunReport(outcomes=tuple(outcomes), terminal_error=Stage.SOURCE)
-            outcome, project = self._process(item, force=force)
+                return report_type(outcomes=tuple(outcomes), terminal_error=Stage.SOURCE)
+            outcome, project = self._process(item, force=force, overlay=overlay)
             self._try_emit(outcome, project, started_at, started)
             outcomes.append(outcome)
-        return RunReport(outcomes=tuple(outcomes))
+        return report_type(outcomes=tuple(outcomes))
 
     def _process(
-        self, item: SourceConversation, *, force: bool
+        self, item: SourceConversation, *, force: bool, overlay: dict | None = None
     ) -> tuple[ConversationOutcome, str | None]:
         conversation = item.conversation
         content_hash = None
         project = None
         stage = Stage.HASH
+        preview = overlay is not None
+        metadata = {}
+        skipped = False
+        outcome_type = PreviewOutcome if preview else ConversationOutcome
+        key = (conversation.source, conversation.source_id)
         try:
             content_hash = conversation.content_hash()
             stage = Stage.STATE_READ
-            record = self.state.find(conversation.source, conversation.source_id)
-            if may_skip(record, content_hash, force=force):
-                return ConversationOutcome(
+            record = (
+                overlay[key]
+                if preview and key in overlay
+                else (
+                    self.state.find(conversation.source, conversation.source_id)
+                    if self.state is not None
+                    else None
+                )
+            )
+            skipped = may_skip(record, content_hash, force=force)
+            if skipped and not preview:
+                return outcome_type(
                     source=conversation.source,
                     source_id=conversation.source_id,
                     document_id=conversation.document_id,
@@ -111,7 +138,7 @@ class IngestionPipeline:
                     completed_at=self.clock(),
                 ), None
             stage = Stage.SANITIZE
-            sanitized, _ = self.sanitizer.sanitize(conversation)
+            sanitized, redactions = self.sanitizer.sanitize(conversation)
             stage = Stage.CLASSIFY
             tag = self.classifier.classify(sanitized)
             project = tag.value
@@ -124,12 +151,21 @@ class IngestionPipeline:
                 repository=self.repository,
                 user=self.user,
             )
+            if preview:
+                metadata = dict(
+                    project=str(tag),
+                    timestamp=enriched.conversation.started_at,
+                    redaction_categories=tuple(sorted(redactions.counts)),
+                )
             stage = Stage.ARCHIVE
-            self.archive.store(enriched, item.original)
+            if not preview:
+                self.archive.store(enriched, item.original)
             stage = Stage.RETAIN
-            self.memory.retain(enriched)
+            if not preview:
+                self.memory.retain(enriched)
             stage = Stage.STATE_WRITE
-            self.state.record(
+            self._remember(
+                overlay,
                 ImportRecord(
                     source=conversation.source,
                     source_id=conversation.source_id,
@@ -137,13 +173,14 @@ class IngestionPipeline:
                     content_hash=content_hash,
                     recorded_at=self.clock(),
                     status=ImportStatus.IMPORTED,
-                )
+                ),
             )
         except Exception:
             secondary = False
-            if content_hash is not None:
+            if content_hash is not None and not (preview and skipped):
                 try:
-                    self.state.record(
+                    self._remember(
+                        overlay,
                         ImportRecord(
                             source=conversation.source,
                             source_id=conversation.source_id,
@@ -152,11 +189,11 @@ class IngestionPipeline:
                             recorded_at=self.clock(),
                             status=ImportStatus.FAILED,
                             error=stage.value,
-                        )
+                        ),
                     )
                 except Exception:
                     secondary = True
-            return ConversationOutcome(
+            return outcome_type(
                 source=conversation.source,
                 source_id=conversation.source_id,
                 document_id=conversation.document_id,
@@ -164,14 +201,22 @@ class IngestionPipeline:
                 completed_at=self.clock(),
                 error=stage,
                 state_record_failed=secondary,
+                **metadata,
             ), project
-        return ConversationOutcome(
+        return outcome_type(
             source=conversation.source,
             source_id=conversation.source_id,
             document_id=conversation.document_id,
-            status=ImportStatus.IMPORTED,
+            status=ImportStatus.SKIPPED if skipped else ImportStatus.IMPORTED,
             completed_at=self.clock(),
+            **metadata,
         ), project
+
+    def _remember(self, overlay: dict | None, record: ImportRecord) -> None:
+        if overlay is not None:
+            overlay[(record.source, record.source_id)] = record
+        else:
+            self.state.record(record)
 
     def _try_emit(
         self,
@@ -196,6 +241,10 @@ class IngestionPipeline:
         # formats raw exception text, which untrusted adapters may fill with content.
         logger = get_logger()
         emit = logger.error if outcome.status is ImportStatus.FAILED else logger.info
+        preview = isinstance(outcome, PreviewOutcome)
+        status = outcome.status.value
+        if preview and outcome.status is not ImportStatus.FAILED:
+            status = "would_import" if outcome.status is ImportStatus.IMPORTED else "would_skip"
         emit(
             "ingestion.operation",
             source=outcome.source.value,
@@ -205,9 +254,10 @@ class IngestionPipeline:
             bank=self.bank,
             start_time=started_at.isoformat(),
             duration_ms=(perf_counter() - started) * 1000,
-            status=outcome.status.value,
+            status=status,
             error=outcome.error.value if outcome.error else None,
             state_record_failed=outcome.state_record_failed,
+            **({"dry_run": True} if preview else {}),
         )
 
 

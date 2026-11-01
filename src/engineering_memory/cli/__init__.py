@@ -46,11 +46,11 @@ def main() -> None:
     app()
 
 
-def _execute(command, structured, action):
+def _execute(command, structured, action, *, dry_run=False):
     from engineering_memory.cli.results import emit, result
     from engineering_memory.cli.runtime import error_category
 
-    data = result(command)
+    data = result(command, dry_run=dry_run)
     code = 0
     try:
         action(data)
@@ -91,6 +91,9 @@ def import_command(
     ),
     from_archive: bool = typer.Option(False, "--from-archive", help="Replay archived originals."),
     force: bool = typer.Option(False, "--force", help="Reprocess unchanged conversations."),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview decisions without memory calls or writes."
+    ),
     structured: bool = typer.Option(False, "--json", help="Emit one JSON result."),
 ) -> None:
     """Import ChatGPT history from exactly one source."""
@@ -98,11 +101,16 @@ def import_command(
     from engineering_memory.cli.runtime import run_import
 
     if (export is None) == (not from_archive):
-        data = result("import")
+        data = result("import", dry_run=dry_run)
         data.update(status="failure", error="usage")
         emit(data, structured=structured)
         raise typer.Exit(2)
-    _execute("import", structured, lambda data: run_import(data, export, force, _version()))
+    _execute(
+        "import",
+        structured,
+        lambda data: run_import(data, export, force, _version(), dry_run=dry_run),
+        dry_run=dry_run,
+    )
 
 
 @app.command("status")
