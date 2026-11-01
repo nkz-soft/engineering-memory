@@ -77,3 +77,7 @@ pyproject.toml / uv.lock                    # dev-only testcontainers dependency
 ## Complexity Tracking
 
 No constitutional violations or deviations. Open implementation detail: choose the installed testcontainers API compatible with the locked dev dependency during implementation; preserve the lifecycle and deadline contract in contracts/e2e.md.
+
+## Implementation refinement
+
+The ordinary CLI does not accept known repository or optional user context. Keep its positive case intact and add a separately required real-pipeline case supplying those supported constructor arguments. This covers populated repository provenance and all four tag namespaces without a CLI feature or production contract change. Add a separate 90-second cleanup subprocess and best-effort label-scoped deletion to enforce the lifecycle deadline even after worker timeout.
