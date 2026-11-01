@@ -37,17 +37,24 @@ def make_memory(settings):
     return HindsightStore(settings)
 
 
-def run_import(data: dict, export: str | None, force: bool, version: str) -> None:
+def run_import(
+    data: dict, export: str | None, force: bool, version: str, *, dry_run: bool = False
+) -> None:
     settings = load_settings()
     configure(settings)
     rules = load_project_rules(
         settings.project_rules_path, required="project_rules_path" in settings.model_fields_set
     )
     with ExitStack() as resources:
-        state = SQLiteImportState(settings.import_state_path)
-        resources.callback(state.close)
-        state.initialize()
-        memory = make_memory(settings.hindsight)
+        state = None
+        if not dry_run or settings.import_state_path.exists():
+            state = SQLiteImportState(settings.import_state_path, read_only=dry_run)
+            resources.callback(state.close)
+            if dry_run:
+                state.validate()
+            else:
+                state.initialize()
+        memory = None if dry_run else make_memory(settings.hindsight)
         if close := getattr(memory, "close", None):
             resources.callback(close)
         archive = LocalRawArchive(settings.archive_root)
@@ -75,7 +82,28 @@ def run_import(data: dict, export: str | None, force: bool, version: str) -> Non
             state=state,
             importer_version=version,
             bank=settings.hindsight.bank_id,
-        ).run(OwnedSource(), force=force)
+        ).run(OwnedSource(), force=force, dry_run=dry_run)
+        if dry_run:
+            outcomes = []
+            for outcome in report.outcomes:
+                row = outcome.model_dump(
+                    mode="json", exclude={"status", "completed_at", "state_record_failed"}
+                )
+                row["decision"] = {
+                    "imported": "would_import",
+                    "skipped": "would_skip",
+                    "failed": "failed",
+                }[outcome.status.value]
+                outcomes.append(row)
+            data.update(
+                status=report.status.value,
+                would_import=report.imported,
+                would_skip=report.skipped,
+                failed=report.failed,
+                terminal_error=report.terminal_error,
+                outcomes=outcomes,
+            )
+            return
         data.update(
             status=report.status.value,
             imported=report.imported,

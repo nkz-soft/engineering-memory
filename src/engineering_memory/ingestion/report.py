@@ -70,3 +70,15 @@ class RunReport(FrozenModel):
         if self.imported or self.skipped:
             return RunStatus.PARTIAL_SUCCESS
         return RunStatus.FAILURE
+
+
+class PreviewOutcome(ConversationOutcome):
+    """Prepared metadata only; internal status represents a projected action."""
+
+    project: str | None = None
+    timestamp: Timestamp | None = None
+    redaction_categories: tuple[str, ...] = ()
+
+
+class PreviewReport(RunReport):
+    outcomes: tuple[PreviewOutcome, ...] = ()

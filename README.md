@@ -280,3 +280,22 @@ parser errors (unknown flags/invalid option types), help and version retain Type
 output. See the [CLI contract](specs/020-operator-cli/contracts/cli.md) for fields
 and the [validation guide](specs/020-operator-cli/quickstart.md) for fixture/live
 checks. Dry-run is deferred to #22.
+
+### Preview an import
+
+Preview either source before paying for extraction:
+
+```bash
+uv run engineering-memory import --export /path/to/export --dry-run
+uv run engineering-memory import --from-archive --dry-run --json
+```
+
+Each conversation reports its document id, project tag, original timestamp, redaction categories
+and `would_import`/`would_skip` decision. `--force` previews reprocessing unchanged content.
+Dry runs never construct a memory client, contact Hindsight, write archives or update import
+state. Missing state stays missing. Existing settings validation still applies.
+
+JSON uses `dry_run: true`, `would_import`, `would_skip`, `failed` and ordered `outcomes` rather
+than claiming completed imports. Preview parity assumes unchanged input, rules and starting
+state and successful real writes; it cannot predict remote or storage-write failures.
+See [the dry-run CLI contract](specs/021-import-dry-run/contracts/cli.md).

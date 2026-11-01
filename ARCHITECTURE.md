@@ -490,7 +490,11 @@ Each operational command supports `--json`; text is the default. Status inspects
 latest durable records offline; imported/skipped/failed run summaries belong to
 import. Exit codes and output fields are defined in
 [`specs/020-operator-cli/contracts/cli.md`](specs/020-operator-cli/contracts/cli.md).
-Dry-run remains separate work. The raw archive layout is fixed by feature 012
+Feature 021 adds `import --dry-run` for either source, with `--force` and `--json`
+support. It prepares safe per-conversation metadata and projects import/skip
+decisions without constructing a memory client or writing archive/state. Missing
+state is empty; existing state is read-only. Its output and parity limits are
+defined in `specs/021-import-dry-run/contracts/cli.md`. The raw archive layout is fixed by feature 012
 (§14), and the import-state schema by feature 013 (§17).
 
 ## 21. Out of scope for the MVP
