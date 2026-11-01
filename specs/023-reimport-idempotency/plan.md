@@ -78,4 +78,3 @@ tests/unit/test_e2e_runner.py
 ## Complexity Tracking
 
 No constitutional violations. No unresolved clarification. Implementation must verify supported recall limits against the pinned running engine, rather than infer completeness from a first-hit helper.
-
