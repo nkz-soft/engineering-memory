@@ -36,3 +36,7 @@ Follow-up review confirmed no material remaining findings after the startup supe
 - `uv sync --locked`: resolved/checked 41 packages successfully.
 - Docker query for tagged end-to-end networks also returned none.
 
+## Review handoff
+
+PR: https://github.com/nkz-soft/engineering-memory/pull/64
+Issue #23 moved from in-progress to in-review. CI started; its result is independent of the local verification recorded above.

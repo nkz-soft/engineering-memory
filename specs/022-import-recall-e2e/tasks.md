@@ -22,11 +22,8 @@
 ## Phase 5: Verification and review
 - [x] T008 Run lint, format, full offline suite, existing live contracts and two clean end-to-end runs; record evidence in specs/022-import-recall-e2e/verification.md
 - [x] T009 Request independent code review and resolve findings; update specs/022-import-recall-e2e/quickstart.md
-- [ ] T010 Commit, push and create template-compliant PR; record issue label transition in specs/022-import-recall-e2e/verification.md
+- [x] T010 Commit, push and create template-compliant PR; record issue label transition in specs/022-import-recall-e2e/verification.md
 
 ## Dependencies and execution
 T001 -> T002 -> T003 -> US1 (T004–T005) -> US2 (T006–T007) -> T008–T010.
 Tests precede implementation. US1 is the MVP; US2 makes it a required review gate. No tasks are marked parallel because harness and live tests share setup. Independent review occurs after verification.
-
-
-
