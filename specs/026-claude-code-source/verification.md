@@ -56,3 +56,17 @@ this source's approved scope. Basename collisions and context-only refresh behav
 in the import guide and ADR-010.
 
 Published implementation: https://github.com/nkz-soft/engineering-memory/pull/68. Issue #27 moved to in-review. Worktree retained for review.
+
+## PR secret-scan follow-up
+
+CI flagged five assembled-in-source synthetic password assignments as generic API keys. These were
+invented test values, not credentials. The tests now assemble those values at runtime, following
+the repository's synthetic-fixture convention; runtime test inputs are unchanged. The two original
+implementation/handoff commits were replaced on this feature branch so the literals do not remain
+in reachable history. Planning commit db31b89 is unchanged.
+
+After the fixture-only change, `uv run ruff check .` passed and the focused source/context/CLI
+selection passed 37 tests. The pinned Gitleaks v8.30.1 scanner was run over an isolated single-branch
+clone (a Linux container cannot directly follow the Windows worktree's .git pointer):
+35 commits scanned, approximately 3.23 MB, no leaks found. The initial direct worktree-container
+invocation scanned zero commits and was rejected as invalid evidence despite its zero exit code.
