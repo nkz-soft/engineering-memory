@@ -545,3 +545,63 @@ def verify_reimport(engine, tmp_path, scenario):
     recalled = recall_corpus(client, root, expected)
     if scenario == "unchanged":
         assert set(recalled) == set(original), "unchanged replay preserves fact identities"
+
+
+@live
+def test_import_to_access_tools(engine, tmp_path):
+    """Real import + live memory recall through the consumer's stdio protocol."""
+    import sys
+
+    import anyio
+    from mcp.client import Client
+    from mcp.client.stdio import StdioServerParameters
+
+    settings, _, _ = engine
+    import_decision(tmp_path, settings)
+    environment = {
+        key: value for key, value in os.environ.items() if not key.startswith("ENGINEERING_MEMORY_")
+    }
+    environment.update(
+        {
+            "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL": str(settings.base_url),
+            "ENGINEERING_MEMORY_HINDSIGHT__BANK_ID": settings.bank_id,
+            "ENGINEERING_MEMORY_ARCHIVE_ROOT": str(tmp_path / "archive"),
+        }
+    )
+    parameters = StdioServerParameters(
+        command=sys.executable,
+        args=["-c", "from engineering_memory.cli import main; main()", "serve"],
+        env=environment,
+        cwd=str(tmp_path),
+    )
+
+    async def scenario():
+        with anyio.fail_after(120):
+            async with Client(parameters, mode="legacy") as client:
+                result = await client.call_tool(
+                    "search_memory",
+                    {
+                        "query": "Orchard cobalt relay",
+                        "tags": ["project:orchard", "source:chatgpt"],
+                    },
+                )
+                assert not result.is_error, result
+                matches = result.structured_content["results"]
+                matching = [item for item in matches if item["document_id"] == DOCUMENT]
+                assert matching and DECISION in matching[0]["content"]
+                assert datetime.fromisoformat(matching[0]["started_at"]) == ORIGINAL
+                for key, value in EXPECTED.items():
+                    assert matching[0]["provenance"][key] == value
+                page = await client.call_tool("get_conversation", {"document_id": DOCUMENT})
+                assert not page.is_error
+                assert DECISION in page.structured_content["messages"][0]["text"]
+                excluded = await client.call_tool(
+                    "search_memory",
+                    {
+                        "query": "Orchard cobalt relay",
+                        "tags": ["project:another"],
+                    },
+                )
+                assert not excluded.is_error and excluded.structured_content["results"] == []
+
+    anyio.run(scenario)

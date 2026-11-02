@@ -8,6 +8,7 @@ from deploy.hindsight import e2e
 CASE = "tests.integration.test_import_recall_e2e"
 NAMES = [
     "test_import_and_recall",
+    "test_import_to_access_tools",
     "test_pipeline_known_repository_and_tags",
     "test_wire_timestamp_omission_is_detected",
     "test_reimport_unchanged",
