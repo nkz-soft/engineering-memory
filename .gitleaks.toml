@@ -85,3 +85,12 @@ regexTarget = "line"
 targetRules = ["aws-access-token"]
 paths = ['''^tests/fixtures/secret_scanning/leaky_config\.ini$''']
 regexes = ['''AKIAQ7B4TYZ3KJ6MNP5R''']
+
+[[allowlists]]
+description = "025: the invented password used to prove Claude import sanitizes retained and accessed content"
+condition = "AND"
+regexTarget = "line"
+
+targetRules = ["generic-api-key"]
+paths = ['''^tests/integration/test_claude_cli\.py$''']
+regexes = ['''password=synthetic-secret-123''']

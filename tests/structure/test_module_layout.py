@@ -111,6 +111,7 @@ def test_constitution_tree_parses_to_the_recorded_modules() -> None:
         "cli",
         "ingestion",
         "ingestion.chatgpt",
+        "ingestion.claude_chat",
         "ingestion.claude_code",
         "ingestion.codex",
         "normalization",

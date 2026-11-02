@@ -87,7 +87,10 @@ def provision_command(
 @app.command("import")
 def import_command(
     export: str | None = typer.Option(
-        None, "--export", help="ChatGPT ZIP, export directory or conversations JSON."
+        None, "--export", help="Source ZIP, export directory or conversations JSON."
+    ),
+    source: str = typer.Option(
+        "chatgpt", "--source", help="History source: chatgpt or claude-chat."
     ),
     from_archive: bool = typer.Option(False, "--from-archive", help="Replay archived originals."),
     force: bool = typer.Option(False, "--force", help="Reprocess unchanged conversations."),
@@ -96,11 +99,11 @@ def import_command(
     ),
     structured: bool = typer.Option(False, "--json", help="Emit one JSON result."),
 ) -> None:
-    """Import ChatGPT history from exactly one source."""
+    """Import history from exactly one export or the selected source archive."""
     from engineering_memory.cli.results import emit, result
     from engineering_memory.cli.runtime import run_import
 
-    if (export is None) == (not from_archive):
+    if source not in {"chatgpt", "claude-chat"} or (export is None) == (not from_archive):
         data = result("import", dry_run=dry_run)
         data.update(status="failure", error="usage")
         emit(data, structured=structured)
@@ -108,7 +111,7 @@ def import_command(
     _execute(
         "import",
         structured,
-        lambda data: run_import(data, export, force, _version(), dry_run=dry_run),
+        lambda data: run_import(data, export, force, _version(), dry_run=dry_run, source=source),
         dry_run=dry_run,
     )
 

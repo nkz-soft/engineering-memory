@@ -862,3 +862,39 @@ Each consumer starts its own server process, so archive and import-state access
 is concurrent from the first day. Reads against SQLite and local files tolerate
 that; it is a constraint on the production stores of ADR-004, which must allow
 concurrent readers alongside a running import.
+
+### ADR-009 — Claude plain-chat exports are an independent history source
+
+**Status:** Accepted, 2026-11-02. Specification: `specs/025-claude-chat-source/` (#26).
+
+**Context.** Plain Claude chat history extends Phase 2 history coverage. Its format differs
+from ChatGPT and Claude Code; the constitution requires a separate source specification and
+record. Anthropic's export help confirms downloadable exports but does not publish a normative
+JSON field schema. No private history was inspected to create this implementation.
+
+**Decision.** Add `ingestion/claude_chat` behind the existing conversation-source interface.
+Support the bounded fixture dialect documented in the feature's data model: a conversations JSON
+array with native `uuid`, `name`, original `created_at`/`updated_at`, and ordered `chat_messages`.
+Human and assistant senders map to existing roles. Structured text blocks take precedence over
+legacy text; non-text blocks and attachments become markers while their full representation
+stays in the original record. Incompatible required fields fail the record explicitly.
+
+Accept a direct JSON array file, a directory containing root `conversations.json`, or a ZIP
+with one root `conversations.json`; no extraction, split Claude exports or format guessing.
+Reuse the existing JSON scanner and local/ZIP transport unchanged; constrain Claude packaging
+inside its own module. A resumable iterator isolates malformed records and preserves exact JSON
+slices. Replay reparses archived originals with the same parser and verifies archive identity.
+
+Registration is `import --source claude-chat` for exports and archive replay; the default
+remains `chatgpt`. Other source enum members remain unsupported until independently implemented.
+The source supplies `Source.CLAUDE_CHAT`; existing policies derive `claude-chat:{uuid}` identities,
+`source:claude-chat` tags, hashes, sanitization and provenance. No shared stage or storage changes.
+
+**Alternatives rejected.** Folding this into ChatGPT parsing loses source ownership. Guessing
+format from identically named files is ambiguous. Another pipeline duplicates security and
+identity policy. Extracting shared parser infrastructure expands scope without a current need.
+Live acquisition and the Compliance API concern different features and formats.
+
+**Consequences.** CLI selection is the small registration change required by the source boundary.
+Fixtures define supported compatibility; incompatible vendor export variants need new evidence
+and regression tests before support. Binary content is archived but not indexed or fetched.
