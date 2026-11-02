@@ -7,6 +7,7 @@ license = "MIT"
 requires-python = "==3.13.*"
 dependencies = [
     "httpx>=0.28.1",
+    "mcp>=2.3.0",
     "opentelemetry-api>=1.44.0",
     "opentelemetry-sdk>=1.44.0",
     "pydantic>=2",
@@ -40,6 +41,7 @@ engineering-memory = "engineering_memory.cli:main"
 #                              the features that specify them.
 # httpx                        the HTTP client row, added by 014-local-hindsight-deployment.
 # sqlalchemy                   the Database access row, added by 013-sqlite-import-state.
+# mcp                          the official MCP SDK, added by 024-hermes-memory-access (ADR-008).
 # tenacity                     the Retry row, added by 019-hindsight-retry.
 # tests/structure/test_packaging.py holds this line.
 

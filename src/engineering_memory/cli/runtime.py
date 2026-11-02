@@ -137,3 +137,16 @@ def run_status(data: dict) -> None:
         )
     finally:
         state.close()
+
+
+def run_serve() -> None:
+    """Compose reads only; the consumer owns the lifetime of this stdio child."""
+    from engineering_memory.access.server import run_stdio
+    from engineering_memory.access.service import MemoryAccess
+    from engineering_memory.settings import load_access_settings
+
+    settings = load_access_settings()
+    with ExitStack() as resources:
+        memory = make_memory(settings.hindsight)
+        resources.callback(memory.close)
+        run_stdio(MemoryAccess(memory, LocalRawArchive(settings.archive_root)))

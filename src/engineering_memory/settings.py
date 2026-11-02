@@ -448,3 +448,27 @@ def load_state_path() -> Path:
     except (ValidationError, SettingsError):
         pass
     raise SettingsError("configuration invalid")
+
+
+class AccessSettings(BaseSettings):
+    """Read-only server configuration, without importer/extraction requirements."""
+
+    model_config = Settings.model_config
+    hindsight: HindsightSettings
+    archive_root: Path = Path("data/archive")
+
+    _reject_blank = field_validator("archive_root", mode="before")(
+        Settings._reject_a_blank_path.__func__
+    )
+    _resolve = field_validator("archive_root")(Settings._resolve_against_the_project_root.__func__)
+
+
+def load_access_settings() -> AccessSettings:
+    """Read the established environment prefix; hide invalid inputs and chains."""
+    try:
+        if DEFAULT_ENV_FILE is not None:
+            _reject_malformed(Path(DEFAULT_ENV_FILE))
+        return AccessSettings(_env_file=DEFAULT_ENV_FILE)
+    except (ValidationError, SettingsError):
+        pass
+    raise SettingsError("configuration invalid")

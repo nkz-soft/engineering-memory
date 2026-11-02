@@ -121,3 +121,20 @@ def status_command(
     from engineering_memory.cli.runtime import run_status
 
     _execute("status", structured, run_status)
+
+
+@app.command("serve")
+def serve_command() -> None:
+    """Serve read-only memory tools over stdio for local consumers."""
+    from engineering_memory.cli.runtime import error_category, run_serve
+
+    try:
+        run_serve()
+    except KeyboardInterrupt:
+        raise typer.Exit(130) from None
+    except Exception as error:
+        category = error_category(error)
+    else:
+        return
+    typer.echo(f"Memory server could not start: {category}", err=True)
+    raise typer.Exit(1)

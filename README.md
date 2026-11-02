@@ -299,3 +299,9 @@ JSON uses `dry_run: true`, `would_import`, `would_skip`, `failed` and ordered `o
 than claiming completed imports. Preview parity assumes unchanged input, rules and starting
 state and successful real writes; it cannot predict remote or storage-write failures.
 See [the dry-run CLI contract](specs/021-import-dry-run/contracts/cli.md).
+
+## Memory access from Hermes
+
+Hermes connects through the read-only engineering-memory MCP server. See the
+[configuration and acceptance guide](docs/operations/hermes-memory.md) for local
+stdio setup, project/source filtering, conversation paging and troubleshooting.

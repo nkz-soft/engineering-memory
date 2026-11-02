@@ -216,6 +216,7 @@ def _holds_only_a_docstring(source: Path) -> bool:
 FILLED_BOUNDARIES = frozenset(
     {
         "observability",
+        "access",
         "cli",
         "normalization",
         "ingestion",
@@ -227,6 +228,7 @@ FILLED_BOUNDARIES = frozenset(
     }
 )
 """The recorded boundaries a feature has filled with an implementation, and when.
+* ``access`` — 024-hermes-memory-access, read-only stdio MCP retrieval (ADR-008).
 
 * ``memory.hindsight`` — 014-local-hindsight-deployment adds the synthetic operational
   smoke probe, not the production memory-store adapter.
