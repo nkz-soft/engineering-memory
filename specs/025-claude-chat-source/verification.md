@@ -27,7 +27,9 @@ reviewer ran parser/CLI/module tests: 35 passed.
 - `uv run pytest tests/integration/test_claude_live.py -q`: 1 skipped; isolated live contract
   stack was not opted in/configured. No live extraction or actual-engine Claude recall claimed.
 
-The final full-suite result is recorded below before commit. Supported export compatibility is
+The final full-suite result is recorded below. Supported export compatibility is
 bounded by synthetic fixtures; no private vendor export was inspected or committed.
 
 - Final `uv run pytest -q`: **2004 passed, 36 skipped in 88.85s** (exit 0).
+
+PR: https://github.com/nkz-soft/engineering-memory/pull/67. Issue moved to in-review.

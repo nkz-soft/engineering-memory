@@ -34,7 +34,7 @@ Independent check: preview makes zero writes/calls; archive-only forced replay r
 
 - [x] T010 Record claude_chat in .specify/memory/constitution.md (patch 1.3.1), append ADR-009 to ARCHITECTURE.md and document source selector/export limitations in README.md and specs/025-claude-chat-source/quickstart.md.
 - [x] T011 Run lint, format, full pytest, live check if configured; record results and review fixes in specs/025-claude-chat-source/verification.md.
-- [ ] T012 Commit, push, open PR using .github/pull_request_template.md and move issue #26 to in-review.
+- [x] T012 Commit, push, open PR using .github/pull_request_template.md and move issue #26 to in-review.
 
 ## Dependencies and execution
 
@@ -43,4 +43,3 @@ once fixtures exist; implementation and verification run sequentially. US2/US3 u
 MVP is US1, then mixed recall, then preview/replay; all are required before PR completion.
 Parallel opportunities: independent contract and parser test files, or live and offline integration
 scenarios. Each implementation change follows an observed failing test; no shared policy changes.
-
