@@ -35,7 +35,8 @@ sanitization before retention. Official export documentation does not specify a 
 
 No principle, stack, bank, tag or Hindsight contract changes. New source requires its own ADR:
 proposed ADR-009 below. Confirm the next available number at implementation time (ADR-007 is
-reserved and ADR-008 exists). No constitution amendment is needed.
+reserved and ADR-008 exists). Implementation validation requires a patch amendment (1.3.1) recording claude_chat in the
+constitution module tree; no principle or policy changes.
 
 ## Project Structure
 

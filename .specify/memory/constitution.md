@@ -161,6 +161,7 @@ engineering-memory
 ├── cli
 ├── ingestion
 │   ├── chatgpt
+│   ├── claude_chat
 │   ├── claude_code
 │   └── codex
 ├── normalization
@@ -251,4 +252,7 @@ reference outside the memory store, a consumer configured against Hindsight
 rather than the access surface, or a path that serves an original or writes
 memory through the access surface.
 
-**Version**: 1.3.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-25
+**Version**: 1.3.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-02
+
+Patch 1.3.1 records the independently specified Claude plain-chat source (#26, ADR-009)
+in the module layout. No principle, technology choice or boundary policy changes.

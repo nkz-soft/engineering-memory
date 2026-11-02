@@ -11,6 +11,8 @@ from engineering_memory.classification import (
 )
 from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
 from engineering_memory.ingestion.chatgpt.archive_source import ChatGPTArchiveSource
+from engineering_memory.ingestion.claude_chat import ClaudeChatExportSource
+from engineering_memory.ingestion.claude_chat.archive_source import ClaudeChatArchiveSource
 from engineering_memory.ingestion.pipeline import IngestionPipeline
 from engineering_memory.ingestion.report import Stage
 from engineering_memory.ingestion.sqlite_state import SQLiteImportState
@@ -38,8 +40,19 @@ def make_memory(settings):
 
 
 def run_import(
-    data: dict, export: str | None, force: bool, version: str, *, dry_run: bool = False
+    data: dict,
+    export: str | None,
+    force: bool,
+    version: str,
+    *,
+    dry_run: bool = False,
+    source: str = "chatgpt",
 ) -> None:
+    sources = {
+        "chatgpt": (ChatGPTExportSource, ChatGPTArchiveSource),
+        "claude-chat": (ClaudeChatExportSource, ClaudeChatArchiveSource),
+    }
+    export_reader, archive_reader = sources[source]
     settings = load_settings()
     configure(settings)
     rules = load_project_rules(
@@ -59,9 +72,7 @@ def run_import(
             resources.callback(close)
         archive = LocalRawArchive(settings.archive_root)
         input_source = (
-            ChatGPTExportSource(Path(export))
-            if export is not None
-            else ChatGPTArchiveSource(archive)
+            export_reader(Path(export)) if export is not None else archive_reader(archive)
         )
 
         # Own the reader explicitly so interrupts/terminal failures release an open ZIP/export.

@@ -21,3 +21,23 @@ that the source already exists. Use Python 3.13/uv and synthetic exports only.
    Record the exact opt-in live pytest invocation and results once those tests are implemented.
 6. Run `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest`.
    Preserve actual command output for review. No live service or extraction was run in planning.
+
+## Phase 2 commands and review notes
+
+The implemented source checks run with:
+
+```powershell
+uv run pytest tests/unit/test_claude_source.py tests/contracts/test_claude_source.py tests/integration/test_claude_cli.py tests/integration/test_claude_pipeline.py
+```
+
+To exercise the additional mixed-source recall check against an isolated live contract stack:
+
+```powershell
+$env:ENGINEERING_MEMORY_LIVE_CONTRACT = '1'
+$env:ENGINEERING_MEMORY_LIVE_STORE_URL = 'http://127.0.0.1:8889'
+uv run pytest tests/integration/test_claude_live.py -v
+```
+
+This creates and removes only a unique synthetic test bank. Without the opt-in flag, it skips
+explicitly. It is an additional check, not automatically selected by the existing contract runner.
+Recorded execution results and review findings are in [verification.md](verification.md).

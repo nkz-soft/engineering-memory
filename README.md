@@ -305,3 +305,26 @@ See [the dry-run CLI contract](specs/021-import-dry-run/contracts/cli.md).
 Hermes connects through the read-only engineering-memory MCP server. See the
 [configuration and acceptance guide](docs/operations/hermes-memory.md) for local
 stdio setup, project/source filtering, conversation paging and troubleshooting.
+
+### Claude plain-chat history
+
+Use the same importer with an explicit source selector (the default remains `chatgpt`):
+
+```powershell
+uv run engineering-memory import --source claude-chat --export data/claude/export.zip --dry-run --json
+uv run engineering-memory import --source claude-chat --export data/claude/export.zip --json
+uv run engineering-memory import --source claude-chat --from-archive --force --json
+```
+
+Claude input can be a direct JSON array file, an extracted directory with root
+`conversations.json`, or a ZIP with one root `conversations.json`. Initial support covers the
+bounded plain-chat dialect in [the source data model](specs/025-claude-chat-source/data-model.md):
+native `uuid`, original timezone-bearing `created_at`, and ordered `chat_messages` with
+`human`/`assistant` senders and text or structured content blocks. This is fixture-defined
+compatibility, not a claim of a stable vendor schema. Claude Code logs, split exports, live
+acquisition and binary indexing are outside this source's scope. Keep downloaded history under
+ignored `data/`. Originals remain local; the shared sanitizer protects retained/accessed content.
+
+Claude documents use `claude-chat:{uuid}` and `source:claude-chat`, so the existing memory access
+surface can search both sources or filter to Claude. See ADR-009 and
+[the validation guide](specs/025-claude-chat-source/quickstart.md).
