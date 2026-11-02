@@ -11,7 +11,7 @@
   or a filename fallback. Duplicate ids in one snapshot are errors.
 - Block mapping, context precedence and incomplete/orphan tool behavior are in ../data-model.md.
 - CLI: `engineering-memory import --source claude-code --export PATH` selects this source;
-  `--dry-run` and `--force` retain shared semantics. Without `--export`, select archived originals.
+  `--dry-run` and `--force` retain shared semantics. Use `--from-archive` instead of `--export` to select archived originals.
 - `ClaudeCodeArchiveSource` filters archive entries by this source and reparses original bytes;
   it never treats stored normalized output as parser input.
 - Metadata classification uses repository, then cwd, before prose aliases; unknown context does

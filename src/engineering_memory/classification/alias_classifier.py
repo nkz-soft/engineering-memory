@@ -33,7 +33,9 @@ SWEPT_FIELDS: dict[str, frozenset[str]] = {
 """Fields that carry text a person or a tool wrote — or that hold models which do."""
 
 IGNORED_FIELDS: dict[str, frozenset[str]] = {
-    "Conversation": frozenset({"source", "source_id", "started_at", "last_activity_at"}),
+    "Conversation": frozenset(
+        {"source", "source_id", "started_at", "last_activity_at", "repository", "working_directory"}
+    ),
     "Message": frozenset({"role", "sent_at"}),
     "ToolActivity": frozenset(),
     "NonTextPart": frozenset({"kind"}),

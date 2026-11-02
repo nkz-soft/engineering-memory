@@ -106,3 +106,13 @@ require sanitizer/serialization coverage, and basename-derived projects can coll
 ## Complexity Tracking
 
 No constitution violations or exceptions.
+
+## Implementation review refinements
+
+Review found that multiline secrets inside serialized tool JSON were escaped before scanning.
+The shared sanitizer now scans decoded JSON textual leaves as well as the whole tool field (the
+latter retains keyed-password detection). This keeps tool payloads in the existing normalized
+strings without allowing JSON escaping to bypass multiline patterns. Request/diff and output
+regressions prove private-key bodies are removed. No schema or hash coverage change is needed.
+JSONL splitting recognizes LF only, preserving valid Unicode paragraph separators inside text.
+A selected symlink is rejected once and the reader terminates, preserving resumable error semantics.

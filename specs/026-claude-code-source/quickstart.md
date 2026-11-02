@@ -13,7 +13,7 @@ for live recall, the existing provisioned self-hosted Hindsight bank and model c
 4. Run `uv run engineering-memory import --source claude-code --export PATH` twice.
    Expect one import followed by one unchanged skip with zero extra extraction calls.
 5. Change an output in the snapshot and import again. Expect an update under the same document id.
-6. Move the snapshot away and run `uv run engineering-memory import --source claude-code --force`.
+6. Move the snapshot away and run `uv run engineering-memory import --source claude-code --from-archive --force`.
    Expect successful replay from archived originals with original session identity and project.
 7. Through the existing memory access test client, recall the fabricated root cause filtered to
    `source:claude-code` and `project:orchard`, then open the returned document. Expect the failed

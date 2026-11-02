@@ -54,3 +54,6 @@ expands the trusted input beyond the selected snapshot and makes replay depend o
 
 No unresolved research blockers. Validate this dialect with synthetic fixtures during implementation;
 actual recall semantics still require the live integration gate.
+
+Implementation refinement: the common sanitizer scans decoded JSON textual leaves within tool
+request/result strings before its whole-field scan, so escaped multiline secrets remain detectable.

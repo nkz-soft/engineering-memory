@@ -45,3 +45,32 @@ def test_extraction_reads_synthetic_fact_inside_serialized_conversation():
     )
     result = extraction(payload(text))
     assert result["facts"][0]["what"] == "Orchard uses cobalt."
+
+
+def test_extraction_reads_synthetic_fact_inside_tool_result():
+    import json
+
+    text = json.dumps(
+        {
+            "messages": [
+                {
+                    "tool_activity": [
+                        {
+                            "result": json.dumps(
+                                {
+                                    "tool_use_id": "one",
+                                    "is_error": True,
+                                    "content": (
+                                        "Synthetic contract fact: "
+                                        "Orchard relay fails because port zero is disabled."
+                                    ),
+                                }
+                            )
+                        }
+                    ]
+                }
+            ]
+        }
+    )
+    result = extraction(payload(text))
+    assert result["facts"][0]["what"] == "Orchard relay fails because port zero is disabled."

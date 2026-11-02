@@ -82,7 +82,7 @@ def test_preview_zero_writes_or_memory_calls(configured, monkeypatch):
     assert not (root / "archive").exists()
 
 
-@pytest.mark.parametrize("source", ["claude-code", "codex", "hermes", "invalid"])
+@pytest.mark.parametrize("source", ["codex", "hermes", "invalid"])
 def test_unsupported_source_refused_before_side_effects(configured, monkeypatch, source):
     root, _ = configured
 

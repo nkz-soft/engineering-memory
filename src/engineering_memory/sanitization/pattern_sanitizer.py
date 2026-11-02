@@ -19,6 +19,7 @@ and the caller decides what to record.
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Sequence
 
@@ -36,7 +37,7 @@ from engineering_memory.sanitization.scanner import redact
 __all__ = ["COPIED_FIELDS", "SCANNED_FIELDS", "PatternSecretSanitizer"]
 
 SCANNED_FIELDS: dict[str, frozenset[str]] = {
-    "Conversation": frozenset({"title", "messages"}),
+    "Conversation": frozenset({"title", "messages", "repository", "working_directory"}),
     "Message": frozenset({"text", "tool_activity", "non_text_parts"}),
     "ToolActivity": frozenset({"name", "request", "result"}),
     "NonTextPart": frozenset({"name"}),
@@ -72,7 +73,14 @@ class PatternSecretSanitizer:
         try:
             title = self._text(conversation.title, counts)
             messages = tuple(self._message(message, counts) for message in conversation.messages)
-            sanitized = conversation.model_copy(update={"title": title, "messages": messages})
+            sanitized = conversation.model_copy(
+                update={
+                    "title": title,
+                    "messages": messages,
+                    "repository": self._text(conversation.repository, counts),
+                    "working_directory": self._text(conversation.working_directory, counts),
+                }
+            )
         except (ValidationError, ValueError, TypeError, RecursionError, re.error) as failure:
             # Never "return the input unchanged": that would send the secret onwards under the
             # appearance of success, which is the failure SS-8 exists to forbid.
@@ -111,10 +119,41 @@ class PatternSecretSanitizer:
         return activity.model_copy(
             update={
                 "name": self._text(activity.name, counts) or activity.name,
-                "request": self._text(activity.request, counts),
-                "result": self._text(activity.result, counts),
+                "request": self._tool_text(activity.request, counts),
+                "result": self._tool_text(activity.result, counts),
             }
         )
+
+    def _tool_text(self, text: str | None, counts: dict[RedactionCategory, int]) -> str | None:
+        """Scan decoded JSON leaves too: escaped newlines must not hide multiline secrets.
+
+        Retain the whole-string scan for keyed secrets such as JSON password assignments.
+        Plain-text tool payloads keep their existing handling.
+        """
+        if not text:
+            return text
+        try:
+            value = json.loads(text)
+        except ValueError:
+            return self._text(text, counts)
+        if not isinstance(value, (dict, list)):
+            return self._text(text, counts)
+        rewritten = self._json_value(value, counts)
+        if rewritten != value:
+            text = json.dumps(rewritten, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return self._text(text, counts)
+
+    def _json_value(self, value, counts):
+        if isinstance(value, str):
+            return self._tool_text(value, counts)
+        if isinstance(value, list):
+            return [self._json_value(item, counts) for item in value]
+        if isinstance(value, dict):
+            return {
+                self._text(key, counts): self._json_value(item, counts)
+                for key, item in value.items()
+            }
+        return value
 
     def _text(self, text: str | None, counts: dict[RedactionCategory, int]) -> str | None:
         """Redact one field, accumulating its counts. `None` stays `None`, never `""`."""
