@@ -33,3 +33,17 @@ bounded by synthetic fixtures; no private vendor export was inspected or committ
 - Final `uv run pytest -q`: **2004 passed, 36 skipped in 88.85s** (exit 0).
 
 PR: https://github.com/nkz-soft/engineering-memory/pull/67. Issue moved to in-review.
+
+## PR secret-scan correction
+
+CI flagged the deliberate synthetic password fixture in the historical implementation commit.
+Because CI scans full history, keep the redaction fixture and exempt only its exact literal,
+anchored test file and generic-api-key rule with AND conditions in .gitleaks.toml.
+
+- Pinned Gitleaks v8.30.1 Windows release verified against release SHA-256 checksums.
+- `gitleaks git . --no-banner --redact -v`: 86 commits scanned; no leaks found (exit 0).
+- `gitleaks dir tests/fixtures/secret_scanning --no-banner --redact -v --exit-code 42`:
+  one intentional aws-access-token finding, expected exit 42. Detection remains active.
+- `uv run pytest tests/structure/test_secret_scanning_config.py tests/integration/test_claude_cli.py -q`:
+  12 passed.
+- `uv run ruff check .` and `git diff --check`: passed.
