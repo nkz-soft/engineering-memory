@@ -25,7 +25,7 @@ Test-first is mandatory under Principle III; observe failures before implementat
 - [x] T011 Run regression/lint/format checks and SDK subprocess integration; record commands and outcomes.
 - [x] T012 Exercise live import-to-MCP retrieval and scoped distractor against isolated deployment.
 - [ ] T013 Demonstrate fresh Hermes conversation and reproducible second setup; record safe evidence.
-- [ ] T014 Request code review, fix findings, commit/push and open PR using repository template.
+- [x] T014 Request code review, fix findings, commit/push and open PR using repository template.
 
 ## Dependencies and execution
 T001 → T002 → T003 → T004. T005 → T006 follows the same validation model;
@@ -38,5 +38,3 @@ consumer docs can be reviewed while regression checks run. Execute sequentially 
 Deliver validated read services first, then transport and launch, then documentation
 and live evidence. Unavailable external prerequisites remain unchecked with an explicit
 reason; automated doubles never substitute for live consumer acceptance.
-
-

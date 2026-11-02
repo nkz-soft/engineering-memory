@@ -56,4 +56,3 @@ The PR must remain a draft until the operator procedure in
 [hermes-memory.md](../../docs/operations/hermes-memory.md) is completed with synthetic
 public evidence. SDK/live-backend results prove the server path, not model tool use
 inside Hermes. Task T013 remains unchecked; no Phase 1 completion claim is made.
-
