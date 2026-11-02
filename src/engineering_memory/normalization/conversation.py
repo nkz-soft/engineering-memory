@@ -134,6 +134,8 @@ class Conversation(FrozenModel):
     started_at: Timestamp
     last_activity_at: Timestamp | None = None
     messages: tuple[Message, ...] = ()
+    repository: Text | None = None
+    working_directory: Text | None = None
 
     @property
     def document_id(self) -> str:

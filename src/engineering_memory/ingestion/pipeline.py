@@ -148,7 +148,7 @@ class IngestionPipeline:
                 tag,
                 importer_version=self.importer_version,
                 imported_at=self.clock(),
-                repository=self.repository,
+                repository=sanitized.repository or self.repository,
                 user=self.user,
             )
             if preview:

@@ -57,7 +57,10 @@ def test_neither_list_names_a_field_that_does_not_exist(model: type[BaseModel]) 
 @pytest.mark.parametrize("model", MODELS, ids=lambda model: model.__name__)
 def test_the_classifier_reads_exactly_what_the_sanitizer_scans(model: type[BaseModel]) -> None:
     """The two stages of §7 that read text read the same text (research R10)."""
-    assert SWEPT_FIELDS[model.__name__] == SCANNED_FIELDS[model.__name__], (
+    # §15 now reads source context in the metadata classifier, ahead of prose aliases.
+    # Keep these fields out of the prose sweep so an unusable context cannot masquerade as prose.
+    metadata = {"repository", "working_directory"} if model is Conversation else set()
+    assert SWEPT_FIELDS[model.__name__] | metadata == SCANNED_FIELDS[model.__name__], (
         f"{model.__name__}: the classifier sweeps {sorted(SWEPT_FIELDS[model.__name__])} while "
         f"the sanitizer scans {sorted(SCANNED_FIELDS[model.__name__])}. A field in one list and "
         "not the other is text one stage reads and the other does not."

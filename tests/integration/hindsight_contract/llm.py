@@ -17,7 +17,7 @@ def extraction(body):
         # Adapter requests embed the conversation as JSON; raw contract requests
         # carry a plain line. Accept only the same bounded synthetic fact in either.
         matches = re.findall(
-            r'Synthetic contract fact: (Orchard [A-Za-z0-9 .,\-]+)(?=["\n]|$)', text
+            r'Synthetic contract fact: (Orchard [A-Za-z0-9 .,\-]+)(?=\\*["\n]|$)', text
         )
         assert len(matches) == 1
         fact = matches[0].strip()

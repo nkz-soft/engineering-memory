@@ -898,3 +898,33 @@ Live acquisition and the Compliance API concern different features and formats.
 **Consequences.** CLI selection is the small registration change required by the source boundary.
 Fixtures define supported compatibility; incompatible vendor export variants need new evidence
 and regression tests before support. Binary content is archived but not indexed or fetched.
+
+### ADR-010 — Claude Code snapshots preserve tool evidence and recorded project context
+
+**Status:** Accepted, 2026-11-02. Specification: `specs/026-claude-code-source/` (#27).
+
+**Context.** Coding-agent history carries the command → error → investigation → solution chain in
+interleaved tool calls, results and diffs. Prose-only import loses that evidence. This is also the
+first implemented source carrying explicit repository/working-directory context under §15.
+
+**Decision.** Add a dedicated ConversationSource for operator-provided, quiescent main-session JSONL
+snapshots. Preserve exact original bytes and normalize text/tool blocks in recorded order, retaining
+native call/result association and error status in deterministic ToolActivity strings. Add optional
+generic repository and working-directory context to Conversation, scan it in the sanitizer, resolve
+it before prose aliases, and enrich each session with its own sanitized repository when present.
+Use native session ids/times, `claude-code:{sessionId}`, and `source:claude-code`. Replay reparses
+archived originals. No recorded tools execute and no referenced external files are read.
+
+**Alternatives.** Prose-only import loses root-cause evidence. Pairing results by position breaks
+parallel tool calls. A separate pipeline duplicates policy. Live git inspection breaks portable
+replay and can classify old history by a new checkout. Structured tool-field additions would change
+canonical coverage; the existing request/result strings preserve the required evidence without
+invalidating every source's stored hashes.
+
+**Consequences.** No new dependency, bank strategy, tag meaning or Hindsight contract change.
+Canonical v1 stays unchanged; source context remains metadata, so context-only corrections need
+force/replay to refresh retained provenance. Compatibility is bounded by the documented synthetic
+fixture dialect, not a stable vendor local-storage API. Nested subagents, acquisition/watchers,
+externalized outputs and binary indexing are separate work. Repository/cwd basenames are deterministic
+but may collide; configured aliases map ambiguous contexts to established projects. Unsupported
+content remains in originals with normalized markers, and malformed sessions fail independently.

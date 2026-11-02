@@ -328,3 +328,10 @@ ignored `data/`. Originals remain local; the shared sanitizer protects retained/
 Claude documents use `claude-chat:{uuid}` and `source:claude-chat`, so the existing memory access
 surface can search both sources or filter to Claude. See ADR-009 and
 [the validation guide](specs/025-claude-chat-source/quickstart.md).
+
+### Claude Code session history
+
+Import saved main-session JSONL snapshots with `--source claude-code`. Tool requests, results,
+errors and diffs are preserved in order; recorded repository/cwd context determines the project
+before prose aliases. See [the import guide](docs/claude-code.md) for supported input, archive
+replay and limitations, and ADR-010 for the source decision.
