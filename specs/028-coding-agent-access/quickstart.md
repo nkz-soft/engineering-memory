@@ -1,6 +1,6 @@
 # Quickstart validation guide
 
-Implementation and isolated client-registration checks are recorded in [verification.md](verification.md). Actual model-driven consumer acceptance remains blocked; follow the [operations guide](../../docs/operations/coding-agent-memory.md) to finish it.
+Implementation and isolated client-registration checks are recorded in [verification.md](verification.md). Actual model-driven consumer acceptance is tracked in [#71](https://github.com/nkz-soft/engineering-memory/issues/71); follow the [operations guide](../../docs/operations/coding-agent-memory.md) to finish it.
 
 ## Prerequisites
 

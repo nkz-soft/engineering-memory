@@ -17,10 +17,11 @@ commit `38a17ad`. Implementation revision is the commit containing this record.
 | Actual ChatGPT -> Claude Code journey | Blocked | Claude Code reports loggedIn=false |
 | Actual Claude Code -> Codex refinement journey | Blocked | Requires the authenticated completed Claude Code session from the first journey |
 
-The user explicitly requested keeping the PR draft with live acceptance blocked.
-Both actual consumer conditions remain unverified. Registration and SDK/backend checks
-are not model-driven client acceptance. Do not merge or claim Phase 2 complete on these
-results alone. No personal client settings, private history or credentials were changed.
+Real-agent acceptance is now tracked separately in [task #71](https://github.com/nkz-soft/engineering-memory/issues/71), consolidating T005/T008 as T014.
+PR #70 supplies the configuration, isolated registration checks and backend regression.
+Both actual consumer conditions remain unverified; registration and SDK/backend checks
+are not model-driven client acceptance and do not establish Phase 2 completion.
+The PR remains draft; extracting the follow-up does not change its review state. No personal client settings, private history or credentials were changed.
 
 ## Commands and results
 
@@ -114,7 +115,7 @@ After authenticated Claude Code is available, follow the operations guide with s
 history: blind ChatGPT decision recall, actual completed Claude Code refinement snapshot,
 before/after import Codex visibility, provenance/time/context, project/source exclusions
 and unchanged reimport. Record actual calls/results and tested versions, then request
-review before marking the PR ready. An unsupported native snapshot stays an explicit
+review of the evidence before closing #71 and claiming Phase 2 acceptance. An unsupported native snapshot stays an explicit
 blocker; the existing bounded parsers must not be silently expanded in this feature.
 ## Live-gate fixture debugging
 
@@ -147,3 +148,12 @@ review's evidence wording finding was resolved by repeating CLI checks from an a
 external temporary directory; stale quickstart wording was corrected.
 
 Draft review: [PR #70](https://github.com/nkz-soft/engineering-memory/pull/70), implementation commit `4bd273c`. Issue #29 is in-review; T005/T008 remain blocked.
+
+## Scope split
+
+The user requested a separate task for integration testing on real agents. [#71](https://github.com/nkz-soft/engineering-memory/issues/71)
+owns execution and evidence for both actual consumer journeys; T005/T008 remain
+unverified and are consolidated under T014. #29/PR #70 retain the configuration guide,
+isolated client checks and mandatory real-engine import-to-stdio regression. No new
+live test was run during this documentation-only split, and no blocked check was marked
+passed. The draft state of PR #70 is unchanged.

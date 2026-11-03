@@ -134,6 +134,10 @@ embedded in it. Neither automatic per-turn recall nor reflect/list/write tools a
 
 ## Demonstrate the two Phase 2 journeys
 
+Execution and evidence for these real-agent checks are tracked in
+[task #71](https://github.com/nkz-soft/engineering-memory/issues/71), separately from the
+configuration and backend regression delivered by PR #70.
+
 Use a dedicated synthetic project and a competing decision in another project. Keep
 expected answers in a private validation note outside each fresh client's prompt/workspace.
 Never use private conversations as public evidence. Use an already prepared local operator

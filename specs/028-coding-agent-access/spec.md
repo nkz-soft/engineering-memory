@@ -2,7 +2,7 @@
 
 **Feature Branch**: `028-coding-agent-access`
 **Created**: 2026-11-03
-**Status**: Implemented for draft review — live consumer acceptance blocked
+**Status**: Configuration and backend regression implemented; real-agent acceptance tracked in #71
 **Input**: Issue #29, interpreted under ADR-008: connect Claude Code and Codex to the
 shared access surface and demonstrate cross-agent visibility after import.
 
@@ -119,3 +119,11 @@ actual consumer evidence from automated backend checks or missing prerequisites.
   time-range queries and authorization changes are outside scope.
 - Clarification review found no critical ambiguity requiring a question. Operational
   blockers are checked during implementation and recorded rather than assumed away.
+
+## Delivery scope split
+
+Real model-driven execution of US1/US2 and their Phase 2 acceptance evidence are tracked
+separately in [task #71](https://github.com/nkz-soft/engineering-memory/issues/71) (T014,
+consolidating T005/T008). #29/PR #70 deliver the configuration guide, isolated client
+registration checks and backend regression. The scenarios and success criteria above
+remain the acceptance contract for the follow-up; they have not been marked passed.

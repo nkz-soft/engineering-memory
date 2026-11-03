@@ -17,7 +17,7 @@ Independent test: fresh Claude Code recalls an imported decision and opens norma
 
 - [x] T003 [US1] Add synthetic ChatGPT/competing-project import-to-stdio regression in tests/integration/test_coding_agent_access.py.
 - [x] T004 [US1] Document Claude Code registration, environment and scoped recall in docs/operations/coding-agent-memory.md.
-- [ ] T005 [US1] Execute real Claude Code acceptance and record evidence or blocker in specs/028-coding-agent-access/verification.md.
+- [ ] T005 [US1] Deferred to #71 (T014): execute real Claude Code acceptance and record evidence or blocker in specs/028-coding-agent-access/verification.md.
 
 ## Phase 4: US2 — Claude Code to Codex (P1)
 
@@ -25,7 +25,7 @@ Independent test: import a completed refinement and retrieve it in fresh Codex.
 
 - [x] T006 [US2] Extend tests/integration/test_coding_agent_access.py with before/after import visibility, identity, time, negative filters, sanitized paging and unchanged-import skipping.
 - [x] T007 [US2] Document Codex config/env_vars and import-mediated refinement workflow in docs/operations/coding-agent-memory.md.
-- [ ] T008 [US2] Execute actual session refinement/import/Codex acceptance and record evidence or blocker in specs/028-coding-agent-access/verification.md.
+- [ ] T008 [US2] Deferred to #71 (T014): execute actual session refinement/import/Codex acceptance and record evidence or blocker in specs/028-coding-agent-access/verification.md.
 
 ## Phase 5: US3 — Reproducibility (P2)
 
@@ -53,9 +53,14 @@ US3 README links can run alongside isolated client syntax checks. All same-file 
 remain sequential. Deliver US1 first, add US2, then validate reproducibility. Actual live
 acceptance stays unchecked when blocked even if documentation and automation are ready.
 
-## Outstanding live acceptance
+## Follow-up: real-agent integration testing
 
 T005 and T008 remain unchecked: Claude Code is unauthenticated, so neither a real blind
-Claude Code recall nor its actual completed refinement session was produced. The user
-requested a draft PR with these checks blocked. Isolated registration and passing backend
+Claude Code recall nor its actual completed refinement session was produced. Their execution is now owned by the separate [task #71](https://github.com/nkz-soft/engineering-memory/issues/71). Isolated registration and passing backend
 regression do not satisfy those tasks. See verification.md for evidence and resumption steps.
+
+- [ ] T014 Verify shared memory with real Claude Code and Codex agents and record reproducible integration-test evidence in specs/028-coding-agent-access/verification.md.
+
+T014 consolidates the deferred T005/T008 live journeys in #71; it is a follow-up to
+PR #70, not a claim that those journeys have passed. The existing configuration,
+registration and backend regression deliverables remain in #29/PR #70.
