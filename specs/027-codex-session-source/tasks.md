@@ -27,4 +27,3 @@ Independent check: valid/invalid/valid batch and per-session project tags.
 T001 → T002/T003/T006 (tests first) → T004/parser → T005/T007 → T008/T009 → T010. US2 parser evidence is a prerequisite for US1 integration; US3 adds independent context/recovery checks. MVP is US1; full delivery includes all three. Test authoring in separate contract and unit files can proceed in parallel, as can final documentation and live-test preparation. Implementation proceeds sequentially here.
 
 Live acceptance remains unverified; T009 records the skip and unavailable isolated service. T010 completes when the reviewed branch and draft PR are published.
-
