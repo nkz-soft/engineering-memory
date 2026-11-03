@@ -58,4 +58,3 @@ Planned validation: tests/unit, tests/contracts/test_codex_source.py, tests/inte
 ## Complexity Tracking
 
 No constitution violations. Risks: upstream format drift, duplicate event streams, compaction replay, orphan tool records and ambiguous context. The source contract specifies deterministic handling; implementation must expand fixtures before claiming additional dialect support.
-
