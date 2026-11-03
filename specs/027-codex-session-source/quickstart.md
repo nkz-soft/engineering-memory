@@ -39,10 +39,20 @@ $env:ENGINEERING_MEMORY_LIVE_CONTRACT = '1'
 uv run pytest tests/integration/test_codex_live.py -q
 ```
 
-Live acceptance is UNVERIFIED: the flag was unset and a localhost:8889/health probe found no
-isolated contract service. No production bank or private history was touched. The PR remains a
-draft pending this acceptance check. Source-filtered recall through the in-memory contract store
-is covered by tests/integration/test_codex_cli.py.
+Initial automated run skipped live acceptance because the isolated service was unavailable.
+The operator subsequently started the isolated contract stack and supplied the successful output
+on 2026-11-03:
+
+```text
+uv run pytest tests/integration/test_codex_live.py -v
+tests/integration/test_codex_live.py::test_live_tool_root_cause_recall PASSED
+1 passed in 4.16s
+```
+
+Live acceptance is VERIFIED by this operator-run result. The test covers actual-engine recall
+with source/project filters, negative filters, unchanged skip and sanitized archive access.
+Source-filtered recall through the in-memory contract store is also covered by
+tests/integration/test_codex_cli.py.
 
 Final full-suite verification: `uv run pytest -q` — **2084 passed, 38 skipped in 90.21s**.
 `uv run engineering-memory import --help` also confirmed Codex selection and unchanged ChatGPT default.
