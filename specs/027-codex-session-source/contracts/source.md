@@ -6,9 +6,9 @@ Planned CLI selection: `--source codex` on the existing import command. Existing
 
 ## Supported baseline
 
-UTF-8 JSONL, one native conversation per snapshot. Require consistent session_meta with payload.id, payload.timestamp and optional payload.cwd; preserve original timestamped record order. Metadata-only sessions yield an empty conversation if the shared model permits it; otherwise fail explicitly and test the chosen model constraint before implementation.
+UTF-8 JSONL, one native conversation per snapshot. Require consistent session_meta with payload.id, payload.timestamp and optional payload.cwd; preserve original timestamped record order. Metadata-only sessions yield an empty conversation, as permitted by the shared model.
 
-Select response_item.payload as visible transcript authority: message roles user/assistant/system/developer, textual input_text/output_text, and supported non-text markers. event_msg mirrors and turn/token bookkeeping are not additional dialogue. Ignore a documented allowlist of bookkeeping records. Reject unsupported content-bearing response types with a safe format error; keep original bytes available on successful snapshots for future reparse.
+Select response_item.payload as visible transcript authority: message roles user/assistant/system/developer, textual input_text/output_text, and supported non-text markers. event_msg types user_message, agent_message, agent_reasoning, token_count, task_started, task_complete and turn_aborted are allowed but add no dialogue; other event types fail. Turn context and compaction bookkeeping do not add dialogue. Ignore a documented allowlist of bookkeeping records. Reject unsupported content-bearing response types with a safe format error; keep original bytes available on successful snapshots for future reparse.
 
 Support function_call/function_call_output and custom_tool_call/custom_tool_call_output only after verifying their exact fields against a pinned upstream protocol revision. Preserve call_id, tool name, arguments/input and output as deterministic ToolActivity strings in order. Unmatched outputs and calls without outputs remain explicit evidence. Nested JSON values must remain available to the shared sanitizer. No external paths are dereferenced.
 

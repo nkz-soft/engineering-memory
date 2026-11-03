@@ -17,6 +17,8 @@ from engineering_memory.ingestion.claude_chat import ClaudeChatExportSource
 from engineering_memory.ingestion.claude_chat.archive_source import ClaudeChatArchiveSource
 from engineering_memory.ingestion.claude_code import ClaudeCodeSessionSource
 from engineering_memory.ingestion.claude_code.archive_source import ClaudeCodeArchiveSource
+from engineering_memory.ingestion.codex import CodexSessionSource
+from engineering_memory.ingestion.codex.archive_source import CodexArchiveSource
 from engineering_memory.ingestion.pipeline import IngestionPipeline
 from engineering_memory.ingestion.report import Stage
 from engineering_memory.ingestion.sqlite_state import SQLiteImportState
@@ -56,6 +58,7 @@ def run_import(
         "chatgpt": (ChatGPTExportSource, ChatGPTArchiveSource),
         "claude-chat": (ClaudeChatExportSource, ClaudeChatArchiveSource),
         "claude-code": (ClaudeCodeSessionSource, ClaudeCodeArchiveSource),
+        "codex": (CodexSessionSource, CodexArchiveSource),
     }
     export_reader, archive_reader = sources[source]
     settings = load_settings()

@@ -19,3 +19,30 @@ Expected: original bytes and sanitized normalized conversation archived; codex:{
 Live acceptance requires configured local Hindsight and the existing access surface. Recall a unique synthetic fact with source:codex plus its known project; verify the result and absence from a different-source filter. The implementation must add the exact opt-in test command here. Missing live configuration means UNVERIFIED, not PASS.
 
 Planning verification only: review links, FR/SC coverage and constitution gates; no implementation tests are claimed in Phase 1.
+
+## Implementation verification
+
+Phase 2 uses `uv run pytest tests/unit/test_codex_source.py tests/contracts/test_codex_source.py tests/integration/test_codex_cli.py tests/integration/test_codex_live.py -q`.
+The focused run passed 30 tests; the opt-in live test skipped. Tests first failed on missing
+CodexSessionSource; CLI tests then failed on unsupported source selection before registration.
+Review regressions for unknown events and directory symlinks both failed before their fixes.
+
+`uv run ruff check .` passed; `uv run ruff format --check .` passed (501 files).
+The first full suite found one obsolete expectation that Codex was unsupported; that parameter
+was removed while Hermes/invalid refusal coverage remains. Final full-suite results are recorded
+in the PR verification section.
+
+Exact live command (isolated service required):
+
+```powershell
+$env:ENGINEERING_MEMORY_LIVE_CONTRACT = '1'
+uv run pytest tests/integration/test_codex_live.py -q
+```
+
+Live acceptance is UNVERIFIED: the flag was unset and a localhost:8889/health probe found no
+isolated contract service. No production bank or private history was touched. The PR remains a
+draft pending this acceptance check. Source-filtered recall through the in-memory contract store
+is covered by tests/integration/test_codex_cli.py.
+
+Final full-suite verification: `uv run pytest -q` — **2084 passed, 38 skipped in 90.21s**.
+`uv run engineering-memory import --help` also confirmed Codex selection and unchanged ChatGPT default.

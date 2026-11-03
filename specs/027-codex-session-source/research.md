@@ -33,3 +33,11 @@ Alternatives: A hash migration expands scope without fixing an acceptance requir
 
 Decision: Flat operator-provided snapshots; no live history discovery, external output fetch, event-only legacy fallback or subagent aggregation. ADR-011 is available at c1036c7; confirm again before appending.
 Rationale: Architecture §22 includes coding agents; §21 does not require acquisition. Issue #19 is closed and #27 merged. No mandatory extension hooks are installed.
+
+## Implementation evidence
+
+Adapter and tests preserve the bounded dialect above. Protocol field evidence is recorded at
+OpenAI Codex revision dbaead0106de82bd129a4f6f503d173ad5109f68 in docs/codex.md.
+Metadata-only snapshots are supported by the existing empty-message model. The implementation
+uses an explicit allowlist for ignored event kinds and reports directory symlinks as resumable
+format failures; these decisions were verified by failing regression tests before fixes.
