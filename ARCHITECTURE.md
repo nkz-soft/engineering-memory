@@ -928,3 +928,31 @@ fixture dialect, not a stable vendor local-storage API. Nested subagents, acquis
 externalized outputs and binary indexing are separate work. Repository/cwd basenames are deterministic
 but may collide; configured aliases map ambiguous contexts to established projects. Unsupported
 content remains in originals with normalized markers, and malformed sessions fail independently.
+
+### ADR-011 — Codex sessions use a dedicated snapshot source
+
+**Status:** Accepted in the implementation for issue #28.
+
+**Context:** Codex sessions are a Phase 2 history source (§2, §22). Their format evolves
+independently of Claude Code; sharing a format parser would conflate different source contracts.
+
+**Decision:** Read explicitly staged, complete JSONL rollout snapshots through a dedicated Codex
+ConversationSource. Use session_meta.id for stable codex:{id} identity, source timestamps, and
+recorded cwd/git context for level-1 classification. Normalize visible response items and
+function/custom tool evidence into existing messages/ToolActivity. Exclude event mirrors,
+compaction replacement history and internal reasoning from dialogue. Bound compatibility to the
+synthetic fixtures and documented dialect; reject unsupported content-bearing records.
+
+Archive exact originals and sanitized normalized forms through the shared pipeline. Original replay
+reparses snapshots and verifies identity. Consumers keep using the read-only memory access surface.
+No new schema, hash version, dependency, store, bank strategy or live source acquisition is needed.
+
+**Alternatives considered:** A combined Claude Code/Codex parser couples independent formats.
+Event-only ingestion loses tool structure and risks duplicate messages. Live discovery/API access
+expands acquisition scope. A normalized schema/hash migration would re-extract history without a
+current requirement; existing context fields and tool strings suffice.
+
+**Consequences:** Preserve unfinished calls and orphan outputs explicitly. New dialects need new
+synthetic compatibility tests. Context-only corrections require force/replay under canonical v1.
+Subagent aggregation, external output files and event-only legacy reconstruction remain separate
+work. See docs/codex.md and specs/027-codex-session-source/ for the supported contract and validation.

@@ -335,3 +335,17 @@ Import saved main-session JSONL snapshots with `--source claude-code`. Tool requ
 errors and diffs are preserved in order; recorded repository/cwd context determines the project
 before prose aliases. See [the import guide](docs/claude-code.md) for supported input, archive
 replay and limitations, and ADR-010 for the source decision.
+
+### Codex session history
+
+Import complete Codex rollout JSONL snapshots with `--source codex`. The adapter preserves
+visible messages and function/custom tool evidence, uses recorded session cwd for metadata
+project detection, and replays exact archived originals through the same pipeline.
+
+```bash
+uv run engineering-memory import --source codex --export data/codex/session.jsonl --dry-run --json
+uv run engineering-memory import --source codex --export data/codex/session.jsonl --json
+uv run engineering-memory import --source codex --from-archive --force --json
+```
+
+See [the Codex import guide](docs/codex.md) for the bounded format, exclusions and verification.

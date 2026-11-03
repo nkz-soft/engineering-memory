@@ -90,7 +90,7 @@ def import_command(
         None, "--export", help="Source ZIP, export directory, conversations JSON or session JSONL."
     ),
     source: str = typer.Option(
-        "chatgpt", "--source", help="History source: chatgpt, claude-chat or claude-code."
+        "chatgpt", "--source", help="History source: chatgpt, claude-chat, claude-code or codex."
     ),
     from_archive: bool = typer.Option(False, "--from-archive", help="Replay archived originals."),
     force: bool = typer.Option(False, "--force", help="Reprocess unchanged conversations."),
@@ -103,7 +103,7 @@ def import_command(
     from engineering_memory.cli.results import emit, result
     from engineering_memory.cli.runtime import run_import
 
-    if source not in {"chatgpt", "claude-chat", "claude-code"} or (export is None) == (
+    if source not in {"chatgpt", "claude-chat", "claude-code", "codex"} or (export is None) == (
         not from_archive
     ):
         data = result("import", dry_run=dry_run)
