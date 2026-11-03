@@ -62,3 +62,9 @@ The second command skips unless `ENGINEERING_MEMORY_LIVE_CONTRACT=1` is set and 
 contract service is provisionable at `ENGINEERING_MEMORY_LIVE_STORE_URL` (default localhost:8889).
 It creates and deletes a synthetic test bank and verifies root-cause recall with source/project
 filters, negative filters and sanitized archive access. A skip means live acceptance is unverified.
+
+## Reading shared memory from Codex
+
+To retrieve imported history, follow the [coding-agent memory setup](operations/coding-agent-memory.md).
+Codex reads the same corpus as other clients through the read-only MCP access surface, using
+project/source filters. Imported Claude Code refinements are available after their import completes.

@@ -349,3 +349,10 @@ uv run engineering-memory import --source codex --from-archive --force --json
 ```
 
 See [the Codex import guide](docs/codex.md) for the bounded format, exclusions and verification.
+
+## Coding-agent memory access
+
+[Connect Claude Code and Codex](docs/operations/coding-agent-memory.md) to the existing
+read-only stdio MCP server and verify cross-agent visibility after import. The guide
+separates backend regression coverage from actual client acceptance; consult its linked
+verification record for outstanding live prerequisites.

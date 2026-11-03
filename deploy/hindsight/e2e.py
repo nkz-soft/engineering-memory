@@ -23,6 +23,8 @@ from testcontainers.core.network import Network
 ROOT = Path(__file__).resolve().parents[2]
 LABEL = "engineering-memory.e2e-run"
 MODULE = "tests.integration.test_import_recall_e2e"
+CODING_MODULE = "tests.integration.test_coding_agent_access"
+CODING_CASE = "test_cross_source_import_to_stdio"
 REQUIRED = {
     "test_import_and_recall",
     "test_import_to_access_tools",
@@ -38,7 +40,8 @@ def verify_report(root):
     cases = list(root.iter("testcase"))
     identities = [(c.get("classname"), c.get("name")) for c in cases]
     if (
-        not {(MODULE, name) for name in REQUIRED} <= set(identities)
+        not ({(MODULE, name) for name in REQUIRED} | {(CODING_MODULE, CODING_CASE)})
+        <= set(identities)
         or len(identities) != len(set(identities))
         or any(c.find(o) is not None for c in cases for o in ("skipped", "failure", "error"))
     ):
@@ -148,6 +151,7 @@ def worker(identity, directory):
                 "-m",
                 "pytest",
                 "tests/integration/test_import_recall_e2e.py",
+                "tests/integration/test_coding_agent_access.py",
                 "-q",
                 "--tb=short",
                 f"--junitxml={report}",

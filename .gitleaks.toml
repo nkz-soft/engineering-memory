@@ -94,3 +94,12 @@ regexTarget = "line"
 targetRules = ["generic-api-key"]
 paths = ['''^tests/integration/test_claude_cli\.py$''']
 regexes = ['''password=synthetic-secret-123''']
+
+[[allowlists]]
+description = "028: the invented password used to prove cross-agent archive access returns sanitized context"
+condition = "AND"
+regexTarget = "line"
+
+targetRules = ["generic-api-key"]
+paths = ['''^tests/integration/test_coding_agent_access\.py$''']
+regexes = ['''password=synthetic-secret-123''']

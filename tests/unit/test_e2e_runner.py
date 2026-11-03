@@ -17,11 +17,20 @@ NAMES = [
 ]
 
 
-def report(names=NAMES, classname=CASE, outcome=None):
+def report(names=NAMES, classname=CASE, outcome=None, coding=True):
     root = ET.Element("testsuites")
     suite = ET.SubElement(root, "testsuite")
     for name in names:
         case = ET.SubElement(suite, "testcase", name=name, classname=classname)
+        if outcome:
+            ET.SubElement(case, outcome)
+    if coding:
+        case = ET.SubElement(
+            suite,
+            "testcase",
+            name="test_cross_source_import_to_stdio",
+            classname="tests.integration.test_coding_agent_access",
+        )
         if outcome:
             ET.SubElement(case, outcome)
     return root
@@ -161,3 +170,8 @@ def test_each_reimport_case_is_required(missing):
     names = NAMES
     with pytest.raises(ValueError, match="end-to-end"):
         e2e.verify_report(report([name for name in names if name != missing]))
+
+
+def test_cross_agent_case_cannot_be_omitted():
+    with pytest.raises(ValueError, match="end-to-end"):
+        e2e.verify_report(report(coding=False))
