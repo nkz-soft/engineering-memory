@@ -72,6 +72,25 @@ shape. The existing serialization format stores versioned provenance alongside d
 **Alternatives**: Leaking backend reflect objects, direct consumer engine configuration, or
 re-retaining model content contradict the existing boundaries and archive grounding.
 
+**Pinned serialization detail**: Stored reflect_response is not the public ReflectResponse
+schema. In the pinned memory engine, based_on is bucketed by world/experience/observation/
+mental-models/directives, retaining id/text/type/context rather than document metadata.
+Resolve world/experience/observation IDs through GET /memories/{id}, then validate underlying
+document metadata; observation lineage requires additional source-fact resolution. Set
+trigger.exclude_mental_models true to avoid recursive model grounding. Unsupported/no-source
+evidence must be rejected, never assigned invented conversation provenance.
+
+GET /memories/{id} returns document_id/tags/metadata/state. Require state valid: even an HTTP
+200 can contain an invalidated unit. Observations expose source_memory_ids; fetch each source
+ID through the same endpoint because embedded source_memories omit document/tag/provenance
+metadata. Accept only valid world/experience source facts with the expected project tag and
+versioned provenance matching document_id. Bound lookup count/deadline; reject empty, excessive,
+foreign, invalidated or unresolved lineage. Archive validation remains in the reader service.
+
+**Additional source**: [Pinned memory engine serialization](https://github.com/vectorize-io/hindsight/blob/v1.1.0/hindsight-api-slim/hindsight_api/engine/memory_engine.py).
+[Pinned memory detail and observation lineage](https://github.com/vectorize-io/hindsight/blob/v1.1.0/hindsight-api-slim/hindsight_api/engine/memories/pg/curation.py)
+defines the get_memory_unit result and invalidated fallback.
+
 **Verification condition**: Exact fact/observation-to-document resolution and runtime response
 shape must be established before acceptance. Unresolved/foreign provenance fails closed; do not
 invent citations or silently substitute ordinary recall for the model. If the pinned engine cannot

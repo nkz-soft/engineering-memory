@@ -100,7 +100,8 @@ small and prevent write capability from crossing into consumer access.
 2. Verify pinned API against an isolated bank: create/get/refresh, strict tags including
    untagged exclusion, asynchronous completion, repeated setup and failure metadata.
 3. Implement three fixed questions: architecture/components; current technologies with explicit
-   supersession; settled decisions/rationale versus proposals. Require gaps/conflicts and
+   supersession; settled decisions/rationale versus proposals. Set trigger.exclude_mental_models
+   true to prevent recursive model grounding. Require gaps/conflicts and
    supports; never embed expected acceptance answers. Backend IDs use SHA-256 over canonical
    project/kind, independent of generated content; tags contain only the existing project tag.
 4. Normalize supporting fact/observation references to imported document provenance inside

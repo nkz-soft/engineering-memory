@@ -43,5 +43,10 @@ Importer-side maintenance never changes import success; import/dry-run never aut
 Adapter owns stable IDs, HTTP lifecycle, bounded polls, tag/definition validation and citation
 normalization. Pinned-engine tests must establish duplicate avoidance, isolation including
 untagged exclusion, support mapping, refresh on new history and last-good failure behavior.
+Citation reads require valid memory-unit state, not merely HTTP 200. Expand observation
+source_memory_ids through individual detail reads, accept only valid project-matching source
+facts with versioned document provenance, and bound total lookups and deadline. Invalidated,
+foreign, unsupported, empty or unresolved lineage is rejected; embedded source previews are
+insufficient for provenance. Exclude mental models as generation inputs to prevent circular support.
 Mock HTTP success does not satisfy the running-instance requirement. Real synthesis acceptance
 is separate from deterministic fixture-LLM wire tests.
