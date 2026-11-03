@@ -1,6 +1,6 @@
 # Quickstart validation guide
 
-This is a Phase 1 design guide. Client setup and live acceptance are not yet executed.
+Implementation and isolated client-registration checks are recorded in [verification.md](verification.md). Actual model-driven consumer acceptance remains blocked; follow the [operations guide](../../docs/operations/coding-agent-memory.md) to finish it.
 
 ## Prerequisites
 
@@ -21,8 +21,8 @@ uv run ruff format --check .
 uv run python deploy/hindsight/e2e.py
 ```
 
-The proposed new regression file does not exist at planning time. The live gate must
-include its required cases if wired into that worker; skips/missing cases are not passes.
+The regression file is implemented. The live gate must
+include the new mandatory cross-source case; skips/missing cases are not passes.
 
 ## Live client journeys
 
@@ -34,7 +34,7 @@ include its required cases if wired into that worker; skips/missing cases are no
    uv run engineering-memory import --source chatgpt --export data/coding-agent-chatgpt --json
    ```
 
-3. Register each client using research.md and the planned operations guide. Forward
+3. Register each client using research.md and the operations guide linked above. Forward
    archive/backend/bank settings (and token if needed). Start clients outside the service
    checkout and confirm both read tools via `/mcp` and actual invocation.
 4. Ask Claude Code to find the project's decision, without supplying its answer. Require

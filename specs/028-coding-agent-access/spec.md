@@ -2,7 +2,7 @@
 
 **Feature Branch**: `028-coding-agent-access`
 **Created**: 2026-11-03
-**Status**: Draft — awaiting planning approval
+**Status**: Implemented for draft review — live consumer acceptance blocked
 **Input**: Issue #29, interpreted under ADR-008: connect Claude Code and Codex to the
 shared access surface and demonstrate cross-agent visibility after import.
 

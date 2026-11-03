@@ -43,3 +43,9 @@ uv run pytest tests/integration/test_claude_code_live.py -q
 
 The extraction dependency is synthetic; the memory engine, retention, filtering, recall and
 sanitized archive access are real. Unit/CLI tests alone do not establish live recall semantics.
+
+## Reading shared memory from Claude Code
+
+To retrieve imported history, follow the [coding-agent memory setup](operations/coding-agent-memory.md).
+Reads use the local read-only MCP access surface. A refinement reaches another agent only after
+this completed session is imported; the access tools never write memory.
