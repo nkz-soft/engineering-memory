@@ -157,3 +157,28 @@ unverified and are consolidated under T014. #29/PR #70 retain the configuration 
 isolated client checks and mandatory real-engine import-to-stdio regression. No new
 live test was run during this documentation-only split, and no blocked check was marked
 passed. The draft state of PR #70 is unchanged.
+
+## Secret-scan follow-up
+
+CI flagged the intentionally invented password sentinel in test_coding_agent_access.py
+(commit 4bd273c, generic-api-key). Reproduced with the pinned Gitleaks v8.30.1 image:
+branch history scan exited 1 with that single finding. Added one AND allowlist entry
+restricted to the exact rule, anchored test file and literal password sentinel; default
+rules remain enabled. Removing the literal from the current tree would not repair a
+history scan, so the fixture is retained and narrowly documented in .gitleaks.toml.
+
+Validation:
+
+```text
+uv run pytest tests/structure/test_secret_scanning_config.py -q --tb=short
+  5 passed
+Gitleaks v8.30.1 git . --log-opts=028-coding-agent-access --no-banner --redact -v
+  39 commits scanned, no leaks found, exit 0
+Gitleaks v8.30.1 dir tests/fixtures/secret_scanning --no-banner --redact -v --exit-code 42
+  negative-control aws-access-token detected, expected exit 42
+```
+
+Docker scans used read-only mounts of this worktree and shared Git metadata with
+GIT_DIR/GIT_WORK_TREE and safe.directory configured for the container. The branch-history
+scan used the updated worktree configuration. No runtime code or fixture content changed;
+no repeat of model/backend tests was needed for this configuration-only correction.
