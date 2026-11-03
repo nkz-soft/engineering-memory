@@ -38,7 +38,7 @@ Independent test: register clients from the guide and distinguish backend eviden
 
 - [x] T011 Run regression, full pytest, Ruff and isolated live gate; record actual results in specs/028-coding-agent-access/verification.md.
 - [x] T012 Request independent review, resolve findings, and record outcome in specs/028-coding-agent-access/verification.md.
-- [ ] T013 Update specs/028-coding-agent-access/quickstart.md and tasks.md, push branch and open template-based PR with explicit acceptance status.
+- [x] T013 Update specs/028-coding-agent-access/quickstart.md and tasks.md, push branch and open template-based PR with explicit acceptance status.
 
 ## Dependencies and execution
 

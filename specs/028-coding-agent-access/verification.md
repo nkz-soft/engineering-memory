@@ -145,3 +145,5 @@ Final lint/format checks passed after fixture correction (512 files); all local 
 links in the feature artifacts and changed operations/source guides resolve. Independent
 review's evidence wording finding was resolved by repeating CLI checks from an actual
 external temporary directory; stale quickstart wording was corrected.
+
+Draft review: [PR #70](https://github.com/nkz-soft/engineering-memory/pull/70), implementation commit `4bd273c`. Issue #29 is in-review; T005/T008 remain blocked.
