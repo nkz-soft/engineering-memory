@@ -25,6 +25,12 @@ LABEL = "engineering-memory.e2e-run"
 MODULE = "tests.integration.test_import_recall_e2e"
 CODING_MODULE = "tests.integration.test_coding_agent_access"
 CODING_CASE = "test_cross_source_import_to_stdio"
+MODEL_MODULE = "tests.integration.test_project_models_live"
+MODEL_CASES = {
+    "test_models_import_refresh_read_and_scope",
+    "test_models_failed_refresh_preserves_last_good",
+    "test_models_keep_unresolved_decisions_visible",
+}
 REQUIRED = {
     "test_import_and_recall",
     "test_import_to_access_tools",
@@ -40,7 +46,11 @@ def verify_report(root):
     cases = list(root.iter("testcase"))
     identities = [(c.get("classname"), c.get("name")) for c in cases]
     if (
-        not ({(MODULE, name) for name in REQUIRED} | {(CODING_MODULE, CODING_CASE)})
+        not (
+            {(MODULE, name) for name in REQUIRED}
+            | {(CODING_MODULE, CODING_CASE)}
+            | {(MODEL_MODULE, name) for name in MODEL_CASES}
+        )
         <= set(identities)
         or len(identities) != len(set(identities))
         or any(c.find(o) is not None for c in cases for o in ("skipped", "failure", "error"))
@@ -110,6 +120,20 @@ def worker(identity, directory):
         **contract["services"]["hindsight"]["environment"],
         "HINDSIGHT_API_WORKER_ID": identity,
     }
+    real_models = os.environ.get("ENGINEERING_MEMORY_MODELS_LLM_ENV")
+    if real_models:
+        from dotenv import dotenv_values
+
+        supplied = dotenv_values(real_models)
+        fields = {
+            "HINDSIGHT_API_LLM_PROVIDER",
+            "HINDSIGHT_API_LLM_BASE_URL",
+            "HINDSIGHT_API_LLM_MODEL",
+            "HINDSIGHT_API_LLM_API_KEY",
+        }
+        if any(not supplied.get(field) for field in fields):
+            raise ValueError("incomplete external model configuration")
+        environment.update({field: supplied[field] for field in fields})
     deadline = time.monotonic() + 600
     with ExitStack() as stack:
         network = stack.enter_context(
@@ -145,13 +169,24 @@ def worker(identity, directory):
         wait_ready(url + "/health/ready", deadline)
         (Path(directory) / "ready").touch()
         report = Path(directory) / "results.xml"
+        selections = (
+            [
+                "tests/integration/test_project_models_live.py::test_models_import_refresh_read_and_scope",
+                "tests/integration/test_project_models_live.py::test_models_keep_unresolved_decisions_visible",
+            ]
+            if real_models
+            else [
+                "tests/integration/test_import_recall_e2e.py",
+                "tests/integration/test_coding_agent_access.py",
+                "tests/integration/test_project_models_live.py",
+            ]
+        )
         subprocess.run(
             [
                 sys.executable,
                 "-m",
                 "pytest",
-                "tests/integration/test_import_recall_e2e.py",
-                "tests/integration/test_coding_agent_access.py",
+                *selections,
                 "-q",
                 "--tb=short",
                 f"--junitxml={report}",
@@ -160,6 +195,7 @@ def worker(identity, directory):
             env={
                 **os.environ,
                 "ENGINEERING_MEMORY_LIVE_E2E": "1",
+                "ENGINEERING_MEMORY_LIVE_MODELS": "1",
                 "ENGINEERING_MEMORY_LIVE_STORE_URL": url,
                 "CONTRACT_FIXTURE_URL": fixture_url,
             },
@@ -167,7 +203,26 @@ def worker(identity, directory):
             # Leave the parent time to reap a timed-out pytest and close contexts.
             timeout=min(420, max(1, deadline + 360 - time.monotonic())),
         )
-        verify_report(ET.parse(report).getroot())
+        report_root = ET.parse(report).getroot()
+        if real_models:
+            cases = list(report_root.iter("testcase"))
+            required = {
+                "test_models_import_refresh_read_and_scope",
+                "test_models_keep_unresolved_decisions_visible",
+            }
+            if (
+                len(cases) != 2
+                or {case.get("name") for case in cases} != required
+                or any(case.get("classname") != MODEL_MODULE for case in cases)
+                or any(
+                    case.find(o) is not None
+                    for case in cases
+                    for o in ("skipped", "failure", "error")
+                )
+            ):
+                raise ValueError("real-model synthesis acceptance incomplete or nonpassing")
+        else:
+            verify_report(report_root)
 
 
 def supervise(command, ready):

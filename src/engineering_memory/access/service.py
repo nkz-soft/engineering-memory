@@ -18,6 +18,7 @@ from engineering_memory.memory.interface import (
     MemoryStoreRejected,
     MemoryStoreUnavailable,
 )
+from engineering_memory.memory.interface.project_models import ProjectModelKey, ProjectModelReader
 from engineering_memory.normalization import AnyTag, Source
 from engineering_memory.normalization.base import OpaqueIdentifier
 
@@ -64,6 +65,11 @@ class ConversationRequest(_Request):
     page_size: Annotated[StrictInt, Field(ge=1, le=100)] = 50
 
 
+class ProjectModelRequest(_Request):
+    project: StrictStr
+    kind: StrictStr
+
+
 def _validate(model, values):
     try:
         return model.model_validate(values)
@@ -101,9 +107,56 @@ def _document_id(value):
 class MemoryAccess:
     """No concrete adapters, provisioning, importer or write calls belong here."""
 
-    def __init__(self, memory: MemoryStore, archive: RawArchive):
+    def __init__(
+        self, memory: MemoryStore, archive: RawArchive, *, models: ProjectModelReader | None = None
+    ):
         self.memory = memory
         self.archive = archive
+        self.models = models
+
+    def get_project_model(self, **arguments) -> dict:
+        request = _validate(ProjectModelRequest, arguments)
+        key = _validate(ProjectModelKey, request.model_dump())
+
+        def read():
+            if self.models is None:
+                raise AccessError("unavailable")
+            result = self.models.get_project_model(key)
+            if result.key != key:
+                raise AccessError("corrupt_record")
+            response = {**key.model_dump(mode="json"), "status": result.status}
+            if result.status != "ready":
+                if result.last_refresh_failed_at is not None:
+                    response["last_refresh_failed_at"] = result.model_dump(mode="json")[
+                        "last_refresh_failed_at"
+                    ]
+                return response
+            snapshot = result.snapshot
+            if not snapshot.supports:
+                raise AccessError("corrupt_record")
+            supports = []
+            for support in snapshot.supports:
+                document_id = _document_id(support.document_id)
+                archived = self.archive.load(document_id)
+                if (
+                    archived.document_id != document_id
+                    or archived.provenance != support.provenance
+                    or archived.provenance.project != key.project
+                    or f"project:{key.project}" not in {str(tag) for tag in archived.tags}
+                ):
+                    raise AccessError("corrupt_record")
+                supports.append(
+                    {
+                        "document_id": document_id,
+                        "provenance": archived.provenance.model_dump(mode="json"),
+                        "started_at": archived.conversation.model_dump(mode="json")["started_at"],
+                    }
+                )
+            response.update(snapshot.model_dump(mode="json", exclude={"supports"}))
+            response["supports"] = supports
+            return response
+
+        return _safe(read)
 
     def search_memory(self, **arguments) -> dict:
         request = _validate(SearchRequest, arguments)

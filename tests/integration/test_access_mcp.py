@@ -35,7 +35,11 @@ def test_stdio_consumer(tmp_path):
         with anyio.fail_after(30):
             async with Client(parameters, mode="legacy") as client:
                 tools = await client.list_tools()
-                assert {tool.name for tool in tools.tools} == {"search_memory", "get_conversation"}
+                assert {tool.name for tool in tools.tools} == {
+                    "search_memory",
+                    "get_conversation",
+                    "get_project_model",
+                }
                 assert all(tool.annotations.read_only_hint for tool in tools.tools)
                 for tool in tools.tools:
                     assert tool.input_schema["type"] == "object"

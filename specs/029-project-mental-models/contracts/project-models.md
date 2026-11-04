@@ -1,11 +1,11 @@
 # Contracts: Project models
 
-Proposed interfaces after approval; commands/tools below do not exist yet.
+Implemented interface contract; verification status is recorded in ../verification.md.
 
 ## Neutral memory boundary
 
 - `ProjectModelReader.get_project_model(key) -> ProjectModelRead`: side-effect-free retrieval.
-- `ProjectModelMaintainer.refresh_project_model(definition) -> RefreshOutcome`: ensure one
+- `ProjectModelMaintainer.refresh_project_model(key) -> RefreshOutcome`: ensure one
   compatible definition, submit refresh and wait within deadline; reconcile uncertain operations.
 - Types follow [data-model.md](../data-model.md). Neither capability exposes engine endpoints,
   banks, reflect response types, operation IDs or credentials. Existing MemoryStore is unchanged.
@@ -31,6 +31,7 @@ Importer-side maintenance never changes import success; import/dry-run never aut
 - Ready response: status/project/kind/content/refreshed_at, nullable stale/failure time, and
   supports containing document_id, provenance and original time.
 - Missing/pending responses contain status/project/kind, no invented content or successful time.
+- Failed first generation returns status failed and last_refresh_failed_at, without invented content.
 - Safe errors: unavailable/rejected for boundaries, corrupt_record or fixed rejection for
   invalid support/archive identity. No backend response or exception chain leaves the tool.
 - Every support resolves through existing get_conversation to this project's sanitized archive.

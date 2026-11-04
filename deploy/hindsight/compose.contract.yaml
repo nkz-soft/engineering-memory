@@ -11,6 +11,8 @@ services:
       HINDSIGHT_API_LLM_MODEL: contract
       HINDSIGHT_API_LLM_API_KEY: synthetic-unused
       HINDSIGHT_API_LLM_MAX_RETRIES: '0'
+      # Failure-contract tests must reach a terminal outcome instead of parking for minutes.
+      HINDSIGHT_API_WORKER_MAX_RETRIES: '0'
       HINDSIGHT_API_LLM_STRICT_SCHEMA_RETAIN: 'true'
       # Arbitrary startup model probes are outside this extraction fixture's contract.
       HINDSIGHT_API_SKIP_LLM_VERIFICATION: 'true'

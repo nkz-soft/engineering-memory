@@ -9,6 +9,8 @@ def result(command: str, *, dry_run: bool = False) -> dict:
     data = {"schema_version": 1, "command": command, "status": "success", "error": None}
     if command == "provision":
         data.update(bank=None, mission_verified=False)
+    elif command == "models refresh":
+        data.update(project=None, models=[])
     elif command == "import":
         if dry_run:
             data.update(
@@ -33,7 +35,10 @@ def emit(data: dict, *, structured: bool) -> None:
     if data["error"]:
         messages = {"configuration": "configuration invalid", "memory": "memory unavailable"}
         typer.echo(messages.get(data["error"], f"{data['error']}: command failed"), err=True)
-    if data["command"] == "provision":
+    if data["command"] == "models refresh":
+        for row in data["models"]:
+            typer.echo(f"{row['kind']}: {row['status']} {row['error'] or ''}".rstrip())
+    elif data["command"] == "provision":
         if data["mission_verified"]:
             typer.echo("Bank retain mission verified.")
     elif data.get("dry_run"):

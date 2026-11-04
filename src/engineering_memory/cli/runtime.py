@@ -45,6 +45,33 @@ def make_memory(settings):
     return HindsightStore(settings)
 
 
+def make_project_models(settings):
+    from engineering_memory.memory.hindsight.project_models import HindsightProjectModels
+
+    return HindsightProjectModels(settings)
+
+
+def run_model_refresh(data, keys):
+    from engineering_memory.ingestion.project_models import refresh_project_models
+    from engineering_memory.settings import load_access_settings
+
+    settings = load_access_settings()
+    models = make_project_models(settings.hindsight)
+    try:
+        outcomes = refresh_project_models(models, keys)
+        completed = sum(outcome.status == "completed" for outcome in outcomes)
+        data.update(
+            project=keys[0].project,
+            status="success" if completed == len(keys) else "partial" if completed else "failure",
+            models=[
+                {"kind": outcome.key.kind.value, **outcome.model_dump(mode="json", exclude={"key"})}
+                for outcome in outcomes
+            ],
+        )
+    finally:
+        models.close()
+
+
 def run_import(
     data: dict,
     export: str | None,
@@ -170,4 +197,6 @@ def run_serve() -> None:
     with ExitStack() as resources:
         memory = make_memory(settings.hindsight)
         resources.callback(memory.close)
-        run_stdio(MemoryAccess(memory, LocalRawArchive(settings.archive_root)))
+        models = make_project_models(settings.hindsight)
+        resources.callback(models.close)
+        run_stdio(MemoryAccess(memory, LocalRawArchive(settings.archive_root), models=models))

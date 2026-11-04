@@ -4,6 +4,9 @@ Claude Code and Codex connect to engineering-memory's read-only stdio MCP server
 (ADR-008). Both read the same imported corpus. A refinement reaches another agent
 **after its completed session is imported**. The access tools do not write memory.
 
+For standing architecture, stack and decisions, use `get_project_model` after the operator
+refreshes that project. See [project model operations](project-models.md) for freshness and supports.
+
 ## Prepare the local corpus
 
 Use Python 3.13 and `uv sync --locked` in the engineering-memory checkout. Provision

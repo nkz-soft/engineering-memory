@@ -17,7 +17,7 @@ NAMES = [
 ]
 
 
-def report(names=NAMES, classname=CASE, outcome=None, coding=True):
+def report(names=NAMES, classname=CASE, outcome=None, coding=True, models=True):
     root = ET.Element("testsuites")
     suite = ET.SubElement(root, "testsuite")
     for name in names:
@@ -33,7 +33,23 @@ def report(names=NAMES, classname=CASE, outcome=None, coding=True):
         )
         if outcome:
             ET.SubElement(case, outcome)
+    if models:
+        for name in (
+            "test_models_import_refresh_read_and_scope",
+            "test_models_failed_refresh_preserves_last_good",
+            "test_models_keep_unresolved_decisions_visible",
+        ):
+            case = ET.SubElement(
+                suite, "testcase", name=name, classname="tests.integration.test_project_models_live"
+            )
+            if outcome:
+                ET.SubElement(case, outcome)
     return root
+
+
+def test_model_contracts_cannot_be_omitted():
+    with pytest.raises(ValueError, match="end-to-end"):
+        e2e.verify_report(report(models=False))
 
 
 def test_complete_e2e_report_passes():

@@ -31,7 +31,8 @@ Reject nonempty content whose supporting conversation references cannot be verif
 
 ## ProjectModelRead and RefreshOutcome
 
-Read result discriminates `ready`, `missing`, `pending`; only ready contains a snapshot.
+Read result discriminates `ready`, `missing`, `pending`, `failed`; only ready contains a snapshot.
+Failed first generation carries a safe last_refresh_failed_at and no successful snapshot.
 Ready may be stale or carry a newer failed-refresh time. Boundary errors remain safe neutral
 permanent/transient exceptions. Refresh outcomes contain project/kind, `completed`, `pending`,
 `failed` or `unavailable`, safe optional error category, successful time only when confirmed.

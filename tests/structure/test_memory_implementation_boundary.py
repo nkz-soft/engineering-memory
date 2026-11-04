@@ -38,6 +38,10 @@ def violations(sources, packages=()):
                         name == PREFIX + ".provision"
                         and {alias.name for alias in node.names} == {"ProvisionError"}
                     )
+                    or (
+                        name == PREFIX + ".project_models"
+                        and {alias.name for alias in node.names} == {"HindsightProjectModels"}
+                    )
                 ):
                     continue
                 edges.add(name)
@@ -101,6 +105,17 @@ def test_guard_allows_interface_and_adapter_dependencies():
         )
         == []
     )
+
+
+def test_guard_allows_model_constructor_only_at_composition_root():
+    dependency = (
+        "from engineering_memory.memory.hindsight.project_models import HindsightProjectModels"
+    )
+    assert violations({"engineering_memory.cli.runtime": dependency}) == []
+    assert violations({"engineering_memory.access.service": dependency})
+    assert violations({"engineering_memory.ingestion.project_models": dependency})
+    internal_dependency = dependency.replace("HindsightProjectModels", "model_definition")
+    assert violations({"engineering_memory.cli.runtime": internal_dependency})
 
 
 def test_no_production_consumer_reaches_adapter():
