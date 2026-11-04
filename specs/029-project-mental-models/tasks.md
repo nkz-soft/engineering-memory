@@ -41,10 +41,10 @@ Independent test: valid lineage opens sanitized archive; invalidated/foreign/unr
 ## Phase 6: Verification and review
 
 - [x] T015 [P] Document operator/client sequence and ADR in `docs/operations/project-models.md`, `README.md`, `ARCHITECTURE.md` and feature contracts.
-- [ ] T016 Run full tests, lint/format, live lifecycle and real-extractor acceptance; record actual evidence in `specs/029-project-mental-models/verification.md`.
+- [x] T016 Run full tests, lint/format, live lifecycle and real-extractor acceptance; record actual evidence in `specs/029-project-mental-models/verification.md`.
 - [x] T017 Request independent review, fix findings, push and open PR using `.github/pull_request_template.md`.
 
-PR #72 is draft while T016's real-model semantic acceptance remains pending external configuration.
+PR #72: real-model acceptance completed on 2026-11-04 with recorded synthetic evidence and manual review.
 
 ## Dependencies and strategy
 

@@ -1,0 +1,293 @@
+{
+  "initial": {
+    "architecture": {
+      "project": "orchard",
+      "kind": "architecture",
+      "status": "ready",
+      "content": "## Orchard Architecture Overview\n\nThe Orchard system architecture includes several key components with explicitly recorded responsibilities and technologies as follows.\n\n## Technology Stack and Core Components\n\nOrchard uses Python 3.13 as the programming language and SQLite as its database technology. This defines the fundamental technology stack within which the system operates. (Recorded at 2021-01-01)\n\n## Request Admission Component: Amber Gateway\n\nOrchard employs an amber gateway to handle request admission. This component is responsible for managing incoming requests into the system, acting as the entry control mechanism. The rationale for using the amber gateway is not recorded. (Recorded at 2021-01-01)\n\n## Worker Retry Isolation Component: Cobalt Relay\n\nOrchard uses a cobalt relay to isolate worker retries. This component functions to prevent retry interference by isolating retries performed by worker processes. The rationale explicitly given for this design choice is to improve system reliability through retry isolation. (Recorded at 2020-01-02)\n\n## Component Interactions and Responsibilities\n\nThe explicit interactions among these components are not recorded. Therefore, the flow or detailed interaction between the amber gateway, cobalt relay, database, and Python-based components is not documented in the retrieved evidence.\n\n## Chronology and Supersession\n\nThe cobalt relay component and its retry isolation responsibility was recorded first on 2020-01-02. Later, on 2021-01-01, the architecture including Python 3.13, SQLite, and amber gateway for request admission was documented. There is no explicit supersession or replacement stated between these components or technologies.\n\n## Gaps and Uncertainties\n\nThere is no recorded information about other components, their detailed responsibilities, or their interactions beyond what was described above. The rationale behind selection of some components, such as the amber gateway and Python/SQLite stack, is not recorded. The exact nature of interactions between components is also not available in the evidence.\n",
+      "refreshed_at": "2026-11-04T12:47:33.373286Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:gateway",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "gateway",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:17.985340Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2021-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:architecture",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "architecture",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:12.999151Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    },
+    "stack": {
+      "project": "orchard",
+      "kind": "stack",
+      "status": "ready",
+      "content": "## Project Orchard Technology Stack and Changes\n\nAs of January 1, 2021, Project Orchard's technology stack includes Python 3.13 as the programming language and SQLite as the database. The system employs an amber gateway for request admission. This defines the overall technology stack and request handling architecture for the project at that time.\n\nPreviously, on January 2, 2020, Orchard used a cobalt relay to isolate worker retries. This component was employed to enhance system reliability by preventing retry interference. The cobalt relay was explicitly recorded as part of the architecture prior to the 2021 stack definition.\n\nThere is no explicit record that the amber gateway replaced the cobalt relay or vice versa. The records do not state that the amber gateway supersedes the cobalt relay or any other component. Therefore, it is not recorded whether the amber gateway replaced the cobalt relay or if both coexist. The interactions or flow between these components are not recorded.\n\nRationale for these technology choices and for any changes is not recorded in the available data. Gaps remain regarding whether the cobalt relay is still part of the current stack or how it integrates with the amber gateway.\n\nSummary of chronology and facts:\n\n- January 2, 2020: Orchard uses a cobalt relay to isolate worker retries.\n\n- January 1, 2021: Orchard uses Python 3.13, SQLite, and an amber gateway for request admission.\n\nNone of these facts explicitly state replacement or supersession; thus, no explicit change from the cobalt relay to the amber gateway is confirmed or denied.\n",
+      "refreshed_at": "2026-11-04T12:47:44.509920Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:gateway",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "gateway",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:17.985340Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2021-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:architecture",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "architecture",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:12.999151Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    },
+    "decisions": {
+      "project": "orchard",
+      "kind": "decisions",
+      "status": "ready",
+      "content": "## Settled Architecture Decisions for Project Orchard\n\nOrchard uses Python 3.13 with SQLite as its database and employs an amber gateway for request admission. This decision defines the technology stack and request handling architecture. (Original conversation date: 2021-01-01)\n\nOrchard uses a cobalt relay to isolate worker retries. This is intended to improve system reliability by preventing retry interference. (Original conversation date: 2020-01-02)\n\n## Rationale for Decisions\n\nThe rationale for using the cobalt relay is explicitly recorded: to isolate worker retries and enhance fault tolerance.\n\nFor the choice of Python 3.13, SQLite, and amber gateway, the rationale is not recorded in the provided facts.\n\n## Rejected Alternatives and Proposals\n\nNo rejected alternatives or proposals are explicitly recorded in the retrieved evidence for the architecture decisions concerning Python version, database choice, gateway choice, or relay usage.\n\n## Distinction Between Proposals and Decisions\n\nNo proposals distinct from decisions are explicitly recorded in the retrieved evidence. All mentioned facts reflect settled decisions.\n\n## Supersession and Conflict\n\nNo explicit supersession or conflicts between architectural choices are recorded. The decisions about Python 3.13 with SQLite and amber gateway coexist alongside the cobalt relay usage without recorded replacement or conflict.\n\n## Gaps and Uncertainties\n\nThe rationale behind choosing Python 3.13, SQLite, and the amber gateway is not documented.\n\nInteractions between components such as the amber gateway and cobalt relay are not recorded.\n\nNo explicit information about rejected alternatives or architectural proposals distinct from decisions is available.\n",
+      "refreshed_at": "2026-11-04T12:47:54.645177Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:gateway",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "gateway",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:17.985340Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2021-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:architecture",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "architecture",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:12.999151Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    }
+  },
+  "refreshed": {
+    "architecture": {
+      "project": "orchard",
+      "kind": "architecture",
+      "status": "ready",
+      "content": "## Orchard Project Architecture and Components\n\nOrchard's architecture involves a technology stack using Python 3.13 with a database for data storage and a relay or gateway component for request admission and worker retry isolation.\n\nInitially, as of January 1, 2021, Orchard used Python 3.13 with SQLite as its database and employed an amber gateway for request admission.\n\nBefore this, as of January 2, 2020, Orchard used a component called a cobalt relay specifically to isolate worker retries, which was part of the system architecture for managing retries.\n\nLater, on January 1, 2022, the project explicitly changed its architecture by replacing the cobalt relay with a jade relay and switched the database backend from SQLite to PostgreSQL. This superseded the earlier technology decisions involving the cobalt relay and SQLite. The rationale for these replacements is not recorded.\n\nThe architecture components explicitly recorded are:\n\n- Python 3.13 as the programming environment\n\n- A database component initially SQLite, later PostgreSQL (superseding SQLite as of 2022)\n\n- A gateway/relay component for request handling, initially the amber gateway (recorded at 2021)\n\n- A relay component for isolating worker retries, initially a cobalt relay (2020), replaced by a jade relay (2022)\n\nInteractions between these components are not explicitly recorded. The responsibilities of the components are as follows:\n\n- The relay components (cobalt relay, then jade relay) are responsible for isolating worker retries.\n\n- The amber gateway is responsible for request admission.\n\n- The database stores system data, transitioning from SQLite to PostgreSQL.\n\nNo other component interactions, detailed responsibilities, or architectural flows are explicitly recorded in the available evidence.\n",
+      "refreshed_at": "2026-11-04T12:48:16.822199Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:gateway",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "gateway",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:17.985340Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2021-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:replacement",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "replacement",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:48:07.015779Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2022-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:architecture",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "architecture",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:12.999151Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    },
+    "stack": {
+      "project": "orchard",
+      "kind": "stack",
+      "status": "ready",
+      "content": "## Current Technology Stack of Project Orchard\n\nAs of 2022-01-01, Project Orchard's technology stack includes the use of Python 3.13 as the programming language and PostgreSQL as the database system. The request admission is handled through an amber gateway, and the system employs a jade relay for relay functionality.\n\n## Chronological Changes and Explicit Replacements\n\n- On 2020-01-02, Orchard utilized a cobalt relay specifically to isolate worker retries, a component of the relay system. Rationale not recorded.\n\n- By 2021-01-01, Orchard's foundational stack comprised Python 3.13 with SQLite as the database, and an amber gateway for request admission.\n\n- On 2022-01-01, Orchard explicitly replaced the cobalt relay with a jade relay and substituted SQLite with PostgreSQL. This action explicitly supersedes the earlier choice of cobalt relay and SQLite.\n\n## Notes on Rationale and Interactions\n\n- No rationale for the choice of Python 3.13 or the amber gateway is recorded in the available data.\n\n- The rationale for replacing the cobalt relay and SQLite with the jade relay and PostgreSQL respectively is also not recorded.\n\n- Interactions among components such as the gateway, relay, and database are not recorded in the available memories.\n\n## Summary of Findings\n\n- Current stack: Python 3.13, PostgreSQL, amber gateway, jade relay (since 2022).\n\n- Earlier stack: Python 3.13, SQLite, amber gateway, cobalt relay (2020-2021).\n\n- The changes from earlier choices explicitly supersede the previous relay and database technologies.\n\n- No conflicting facts or unresolved conflicts were found.\n",
+      "refreshed_at": "2026-11-04T12:48:25.269794Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:gateway",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "gateway",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:17.985340Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2021-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:replacement",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "replacement",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:48:07.015779Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2022-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:architecture",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "architecture",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:12.999151Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    },
+    "decisions": {
+      "project": "orchard",
+      "kind": "decisions",
+      "status": "ready",
+      "content": "## Settled Architecture Decisions in Project Orchard\n\nOrchard initially used a cobalt relay to isolate worker retries, aiming to prevent retry interference and improve system reliability. Rationale recorded: To isolate worker retries and enhance fault tolerance.\n\nOrchard's database choice was SQLite. Rationale not recorded.\n\nOrchard used Python 3.13 as the programming language. Rationale not recorded.\n\nRequest admission was handled through an amber gateway. Rationale not recorded.\n\nIn 2022-01-01, Orchard switched from using the cobalt relay to using a jade relay, explicitly superseding the earlier cobalt relay choice. Rationale not recorded.\n\nOn the same date, Orchard replaced SQLite with PostgreSQL as the database system, explicitly superseding the earlier SQLite choice. Rationale not recorded.\n",
+      "refreshed_at": "2026-11-04T12:48:38.544770Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:replacement",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "replacement",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:48:07.015779Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2022-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:gateway",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "gateway",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:17.985340Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2021-01-01T00:00:00Z"
+        },
+        {
+          "document_id": "chatgpt:architecture",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "architecture",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:47:12.999151Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    }
+  },
+  "unresolved": {
+    "decisions": {
+      "project": "orchard",
+      "kind": "decisions",
+      "status": "ready",
+      "content": "## Project Orchard Architecture Decisions and Proposals\n\nAs of 2020-01-02, there are unresolved competing architecture proposals in the Orchard project regarding the choice of programming language between Rust and Go. Neither Rust nor Go has been accepted as the settled implementation language for the project.\n\n## Rationale and Alternatives\n\nNo explicit rationale for choosing Rust or Go has been recorded in the imported evidence. There is also no record of any alternative architectures other than the Rust and Go proposals.\n\n## Proposals versus Decisions\n\nThe available data explicitly distinguishes the states of the technology choice as proposals, with no decision having been made to settle on either Rust or Go. No supersession or replacement of one proposal by another has been recorded, indicating an unresolved conflict between these options.\n\n## Gaps and Uncertainties\n\nThere is no recorded information on other architectural decisions, rationale for choices, rejected alternatives beyond Rust and Go proposals, or their interactions with other project components. Interactions and the architectural flow involving these proposals are not recorded.\n",
+      "refreshed_at": "2026-11-04T12:48:49.665202Z",
+      "stale": false,
+      "last_refresh_failed_at": null,
+      "supports": [
+        {
+          "document_id": "chatgpt:proposals",
+          "provenance": {
+            "source": "chatgpt",
+            "source_id": "proposals",
+            "project": "orchard",
+            "repository": null,
+            "title": "Orchard synthetic history",
+            "imported_at": "2026-11-04T12:48:41.112099Z",
+            "importer_version": "synthetic-models-v1"
+          },
+          "started_at": "2020-01-02T00:00:00Z"
+        }
+      ]
+    }
+  }
+}

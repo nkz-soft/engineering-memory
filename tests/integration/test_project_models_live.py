@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -41,6 +42,14 @@ def record_semantic_evidence(section, kind, value):
         evidence = json.loads(path.read_text()) if path.exists() else {}
         evidence.setdefault(section, {})[kind] = value
         path.write_text(json.dumps(evidence, indent=2), encoding="utf-8")
+
+
+def assert_no_speculative_explanations(content):
+    # None of the controlled sources proposes motives or component interactions.
+    # Hedged guesses are not evidence, even when correct source IDs accompany them.
+    assert not re.search(r"\b(likely|presumably|suggests?|implies?)\b", content, re.I), (
+        "model added speculative explanations to synthetic evidence"
+    )
 
 
 @pytest.fixture
@@ -135,6 +144,7 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
             assert outcome.status == "completed", outcome
             result = access.get_project_model(project="orchard", kind=kind.value)
             record_semantic_evidence("initial", kind.value, result)
+            assert_no_speculative_explanations(result["content"])
             content = result["content"].lower()
             if kind == "architecture":
                 assert "cobalt" in content and "amber" in content
@@ -169,6 +179,7 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
             assert models.refresh_project_model(key).status == "completed"
             refreshed = access.get_project_model(project="orchard", kind=kind.value)
             record_semantic_evidence("refreshed", kind.value, refreshed)
+            assert_no_speculative_explanations(refreshed["content"])
             expected = "postgresql" if kind == "stack" else "jade"
             assert expected in refreshed["content"].lower()
             assert "chatgpt:replacement" in {
@@ -198,6 +209,7 @@ def test_models_keep_unresolved_decisions_visible(model_engine, tmp_path):
         )
         content = result["content"].lower()
         record_semantic_evidence("unresolved", "decisions", result)
+        assert_no_speculative_explanations(result["content"])
         assert any(
             term in content for term in ("unresolved", "proposal", "not accepted", "not settled")
         )
