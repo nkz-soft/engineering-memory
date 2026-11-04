@@ -2,6 +2,7 @@
 
 Date: 2026-11-04. Feature: issue #30, branch `029-project-mental-models`.
 Base implementation checkout: `90261a5`; planning commits `8e4fbed`, `ec7a149`.
+Implementation commit: `d465120`. Draft PR: https://github.com/nkz-soft/engineering-memory/pull/72.
 
 ## Current result
 
