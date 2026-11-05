@@ -9,6 +9,7 @@ from engineering_memory.access.service import AccessError, MemoryAccess
 from engineering_memory.archive import OriginalPayload
 from engineering_memory.archive.local import LocalRawArchive
 from engineering_memory.memory.interface.project_models import (
+    ModelEvidenceSelector,
     ModelSupport,
     ProjectModelKey,
     ProjectModelRead,
@@ -153,3 +154,32 @@ def test_lazy_blockquote_continuation_cannot_smuggle_unverified_text(tmp_path, c
     )
     with pytest.raises(AccessError, match="corrupt_record"):
         access.get_project_model(project="alpha", kind="architecture")
+
+
+@pytest.mark.parametrize(
+    ("document_id", "index", "valid"),
+    [("chatgpt:support", 1, True), ("chatgpt:other", 0, False), ("chatgpt:support", 2, False)],
+)
+def test_decisions_quote_selected_archived_message(tmp_path, document_id, index, valid):
+    access, reader, _, _ = setup_access(tmp_path)
+    existing = reader.get_project_model.return_value.snapshot
+    reader.get_project_model.return_value = ProjectModelRead(
+        key=ProjectModelKey(project="alpha", kind="decisions"),
+        status="ready",
+        snapshot=existing.model_copy(
+            update={
+                "content": "Decision summary",
+                "evidence_selectors": (
+                    ModelEvidenceSelector(document_id=document_id, message_index=index),
+                ),
+            }
+        ),
+    )
+
+    if valid:
+        result = access.get_project_model(project="alpha", kind="decisions")
+        assert result["content"] == "Decision summary\n\n> Sanitized alpha evidence"
+        assert "evidence_selectors" not in result
+    else:
+        with pytest.raises(AccessError, match="corrupt_record"):
+            access.get_project_model(project="alpha", kind="decisions")

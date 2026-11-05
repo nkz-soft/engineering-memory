@@ -58,6 +58,7 @@ def completion(body):
     choice = body.get("tool_choice")
     forced = choice.get("function", {}).get("name") if isinstance(choice, dict) else None
     facts = {}
+    documents = {}
 
     def collect(value):
         if isinstance(value, dict):
@@ -66,7 +67,12 @@ def completion(body):
                 and isinstance(value.get("text"), str)
                 and value["text"].startswith("Orchard ")
             ):
-                facts[value["id"]] = value["text"]
+                identity = value["id"]
+                facts[identity] = value["text"]
+                provenance = value.get("metadata", {}).get("engineering_memory.provenance")
+                if provenance:
+                    source = json.loads(provenance)
+                    documents[identity] = f"{source['source']}:{source['source_id']}"
             for child in value.values():
                 collect(child)
         elif isinstance(value, list):
@@ -85,14 +91,19 @@ def completion(body):
         else "recall"
     )
     if name == "done":
+        selectors = "EVIDENCE chatgpt:example 0" in json.dumps(body["messages"])
+        blocks = (
+            list(facts.values()) + [f"EVIDENCE {document} 0" for document in documents.values()]
+            if selectors
+            else ["> " + text for text in facts.values()]
+        )
         arguments = {
             "document": {
                 "sections": [
                     {
                         "heading": "Project summary",
                         "level": 2,
-                        "blocks": ["> " + text for text in facts.values()]
-                        or ["Insufficient evidence."],
+                        "blocks": blocks or ["Insufficient evidence."],
                     }
                 ]
             },

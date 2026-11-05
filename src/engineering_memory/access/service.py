@@ -168,7 +168,7 @@ class MemoryAccess:
             snapshot = result.snapshot
             if not snapshot.supports:
                 raise AccessError("corrupt_record")
-            supports, source_texts = [], []
+            supports, source_texts, messages = [], [], {}
             for support in snapshot.supports:
                 document_id = _document_id(support.document_id)
                 archived = self.archive.load(document_id)
@@ -179,6 +179,7 @@ class MemoryAccess:
                     or f"project:{key.project}" not in {str(tag) for tag in archived.tags}
                 ):
                     raise AccessError("corrupt_record")
+                messages[document_id] = archived.conversation.messages
                 for message in archived.conversation.messages:
                     source_texts.extend(_message_texts(message))
                 supports.append(
@@ -188,8 +189,27 @@ class MemoryAccess:
                         "started_at": archived.conversation.model_dump(mode="json")["started_at"],
                     }
                 )
-            _verify_evidence_quotes(snapshot.content, source_texts)
-            response.update(snapshot.model_dump(mode="json", exclude={"supports"}))
+            content = snapshot.content
+            if snapshot.evidence_selectors:
+                if len(snapshot.evidence_selectors) > 128 or any(
+                    line.lstrip().startswith(">") for line in content.splitlines()
+                ):
+                    raise AccessError("corrupt_record")
+                quotes = []
+                for selector in snapshot.evidence_selectors:
+                    selected = messages.get(selector.document_id, ())
+                    if selector.message_index >= len(selected):
+                        raise AccessError("corrupt_record")
+                    excerpt = " ".join(selected[selector.message_index].text.split())
+                    if not excerpt:
+                        raise AccessError("corrupt_record")
+                    quotes.append(f"> {excerpt}")
+                content = "\n\n".join([content, *dict.fromkeys(quotes)])
+            _verify_evidence_quotes(content, source_texts)
+            response.update(
+                snapshot.model_dump(mode="json", exclude={"supports", "evidence_selectors"})
+            )
+            response["content"] = content
             response["supports"] = supports
             return response
 

@@ -1,9 +1,9 @@
 """Disposable project synthesis, separate from conversation retention and recall."""
 
 from enum import StrEnum
-from typing import Literal, Protocol
+from typing import Annotated, Literal, Protocol
 
-from pydantic import StrictBool, field_validator, model_validator
+from pydantic import Field, StrictBool, StrictInt, field_validator, model_validator
 
 from engineering_memory.normalization import Provenance
 from engineering_memory.normalization.base import FrozenModel, Slug, Text, Timestamp
@@ -38,10 +38,16 @@ class ModelSupport(FrozenModel):
         return self
 
 
+class ModelEvidenceSelector(FrozenModel):
+    document_id: Text
+    message_index: Annotated[StrictInt, Field(ge=0)]
+
+
 class ProjectModelSnapshot(FrozenModel):
     content: Text
     refreshed_at: Timestamp
     supports: tuple[ModelSupport, ...]
+    evidence_selectors: tuple[ModelEvidenceSelector, ...] = ()
     stale: StrictBool | None = None
     last_refresh_failed_at: Timestamp | None = None
 

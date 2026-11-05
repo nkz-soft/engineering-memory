@@ -43,7 +43,7 @@ def key_and_model():
     from engineering_memory.memory.hindsight.project_models import model_definition
     from engineering_memory.memory.interface.project_models import ProjectModelKey
 
-    key = ProjectModelKey(project="alpha", kind="architecture")
+    key = ProjectModelKey(project="alpha", kind="stack")
     model = {
         **model_definition(key),
         "bank_id": "synthetic",
@@ -83,6 +83,40 @@ def test_read_resolves_fact_metadata_without_recall_or_writes():
     assert result.snapshot.content == "A supported architecture"
     assert result.snapshot.supports[0].provenance.project == "alpha"
     assert result.snapshot.supports[0].document_id == evidence()["document_id"]
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("kind", ["architecture", "decisions"])
+def test_model_read_resolves_current_selectors_and_legacy_quotes(kind, legacy):
+    from engineering_memory.memory.hindsight.project_models import model_definition
+
+    key, model = key_and_model()
+    key = key.model_copy(update={"kind": kind})
+    model.update(model_definition(key, legacy=legacy))
+    fact = evidence()
+    document_id = fact["document_id"]
+    model["content"] = (
+        "A supported decision\n\n> Original evidence"
+        if legacy
+        else f"A supported decision\n\nEVIDENCE {document_id} 2"
+    )
+
+    def handle(request):
+        if "/memories/" in request.url.path:
+            return httpx.Response(200, json=fact)
+        if request.url.path.endswith(model["id"]):
+            return httpx.Response(200, json=model)
+        return httpx.Response(404)
+
+    snapshot = setup_store(handle).get_project_model(key).snapshot
+    if legacy:
+        assert snapshot.content == model["content"]
+        assert not snapshot.evidence_selectors
+    else:
+        assert snapshot.content == "A supported decision"
+        (selector,) = snapshot.evidence_selectors
+        assert selector.document_id == document_id
+        assert selector.message_index == 2
 
 
 @pytest.mark.parametrize(
