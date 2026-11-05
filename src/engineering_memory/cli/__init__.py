@@ -143,3 +143,34 @@ def serve_command() -> None:
         return
     typer.echo(f"Memory server could not start: {category}", err=True)
     raise typer.Exit(1)
+
+
+models_app = typer.Typer(
+    help="Maintain project summaries after importing history.", no_args_is_help=True
+)
+app.add_typer(models_app, name="models")
+
+
+@models_app.command("refresh")
+def refresh_models_command(
+    project: str = typer.Option(..., "--project", help="Exact classified project value."),
+    kind: str | None = typer.Option(
+        None, "--kind", help="architecture, stack or decisions; default all three."
+    ),
+    structured: bool = typer.Option(False, "--json", help="Emit one safe JSON result."),
+) -> None:
+    """Create missing models or refresh standing summaries; wait for bounded completion."""
+    from pydantic import ValidationError
+
+    from engineering_memory.cli.results import emit, result
+    from engineering_memory.cli.runtime import run_model_refresh
+    from engineering_memory.ingestion.project_models import model_keys
+
+    try:
+        keys = model_keys(project, kind)
+    except (ValidationError, ValueError):
+        data = result("models refresh")
+        data.update(status="failure", error="usage")
+        emit(data, structured=structured)
+        raise typer.Exit(2) from None
+    _execute("models refresh", structured, lambda data: run_model_refresh(data, keys))

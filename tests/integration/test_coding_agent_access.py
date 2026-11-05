@@ -106,7 +106,11 @@ def test_cross_source_import_to_stdio(engine, tmp_path):  # noqa: F811
             with anyio.fail_after(180):
                 async with Client(parameters, mode="legacy") as client:
                     tools = await client.list_tools()
-                    assert {t.name for t in tools.tools} == {"search_memory", "get_conversation"}
+                    assert {t.name for t in tools.tools} == {
+                        "search_memory",
+                        "get_conversation",
+                        "get_project_model",
+                    }
                     assert all(t.annotations.read_only_hint for t in tools.tools)
                     found = await search(client, "chatgpt")
                     assert found and {r["document_id"] for r in found} == {"chatgpt:cross-decision"}

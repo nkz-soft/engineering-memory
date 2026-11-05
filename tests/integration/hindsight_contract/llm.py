@@ -1,5 +1,6 @@
 """Credential-free extraction dependency; never implements engine operations."""
 
+import contextlib
 import json
 import re
 import threading
@@ -44,6 +45,94 @@ def extraction(body):
     }
 
 
+def completion(body):
+    """Pinned reflect tool protocol over synthetic tool-returned facts only.
+
+    This is deterministic protocol evidence, never real synthesis-quality acceptance.
+    """
+    if not body.get("tools"):
+        return {"role": "assistant", "content": json.dumps(extraction(body))}
+    if "FORCE_FIXTURE_FAILURE" in json.dumps(body["messages"]):
+        raise ValueError("deliberately failed synthetic synthesis")
+    names = {tool["function"]["name"] for tool in body["tools"]}
+    choice = body.get("tool_choice")
+    forced = choice.get("function", {}).get("name") if isinstance(choice, dict) else None
+    facts = {}
+    documents = {}
+
+    def collect(value):
+        if isinstance(value, dict):
+            if (
+                isinstance(value.get("id"), str)
+                and isinstance(value.get("text"), str)
+                and value["text"].startswith("Orchard ")
+            ):
+                identity = value["id"]
+                facts[identity] = value["text"]
+                provenance = value.get("metadata", {}).get("engineering_memory.provenance")
+                if provenance:
+                    source = json.loads(provenance)
+                    documents[identity] = f"{source['source']}:{source['source_id']}"
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    for message in body["messages"]:
+        if message.get("role") == "tool":
+            with contextlib.suppress(ValueError, TypeError):
+                collect(json.loads(message["content"]))
+    name = forced or (
+        "answer_ready"
+        if facts and "answer_ready" in names
+        else "done"
+        if facts and "done" in names
+        else "recall"
+    )
+    if name == "done":
+        selectors = "EVIDENCE chatgpt:example 0" in json.dumps(body["messages"])
+        blocks = (
+            list(facts.values()) + [f"EVIDENCE {document} 0" for document in documents.values()]
+            if selectors
+            else ["> " + text for text in facts.values()]
+        )
+        arguments = {
+            "document": {
+                "sections": [
+                    {
+                        "heading": "Project summary",
+                        "level": 2,
+                        "blocks": blocks or ["Insufficient evidence."],
+                    }
+                ]
+            },
+            "answer_found": bool(facts),
+            "memory_ids": list(facts),
+            "observation_ids": [],
+            "mental_model_ids": [],
+        }
+    elif name == "answer_ready":
+        arguments = {"answer_found": bool(facts)}
+    else:
+        arguments = {
+            "reason": "synthetic protocol validation",
+            "query": "Orchard",
+            "max_tokens": 4096,
+        }
+    return {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {
+                "id": "fixture-call",
+                "type": "function",
+                "function": {"name": name, "arguments": json.dumps(arguments)},
+            }
+        ],
+    }
+
+
 class FixtureServer(ThreadingHTTPServer):
     def __init__(self, address):
         super().__init__(address, Handler)
@@ -85,7 +174,7 @@ class Handler(BaseHTTPRequestHandler):
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= 100_000:
                 raise ValueError("unsupported size")
-            result = extraction(json.loads(self.rfile.read(size)))
+            result = completion(json.loads(self.rfile.read(size)))
             with self.server.lock:
                 self.server.calls += 1
             if not self.server.release.wait(60):
@@ -104,8 +193,8 @@ class Handler(BaseHTTPRequestHandler):
                 "choices": [
                     {
                         "index": 0,
-                        "finish_reason": "stop",
-                        "message": {"role": "assistant", "content": json.dumps(result)},
+                        "finish_reason": "tool_calls" if result.get("tool_calls") else "stop",
+                        "message": result,
                     }
                 ],
                 "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},

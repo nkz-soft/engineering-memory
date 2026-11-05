@@ -229,6 +229,7 @@ disturbing the rest — in particular Hindsight itself (ADR-001, exit strategy):
 | Project classifier | Determine the project for a conversation |
 | Raw archive | Persist originals and normalized forms |
 | Memory store | `retain` / `recall` — the only component aware of Hindsight |
+| Project synthesis | Separate model reader and importer-side maintainer through `memory/interface`; concrete engine mechanics stay in the memory implementation |
 | Import state | Track what has already been imported |
 | Memory access surface | Serve memory and archived conversations to consumers over MCP |
 
@@ -248,6 +249,16 @@ architecture depends on these semantics, not as an implementation detail.
 | Recall | `POST /v1/default/banks/{bank_id}/memories/recall` |
 | Completion | `GET /v1/default/banks/{bank_id}/operations/{operation_id}` |
 | Bank config | `PATCH /v1/default/banks/{bank_id}/config` |
+| Project model lifecycle | `POST /v1/default/banks/{bank_id}/mental-models`; `GET /mental-models/{id}` and `POST /mental-models/{id}/refresh` under the same bank root |
+| Model support detail | `GET /v1/default/banks/{bank_id}/memories/{memory_id}` |
+
+Phase 3 model contracts are exercised by the required isolated model cases in the live
+end-to-end gate. Stable project/kind IDs, strict project tags and explicit full refresh
+prevent duplicate definitions and cross-project/untagged synthesis. Async submission is
+not completion. Successful refresh time, staleness and last failure are separate metadata.
+Stored support references are resolved through valid fact details, including observation
+source facts, to imported document provenance. Invalidated/foreign/unresolved lineage fails
+closed; HTTP 200 alone does not establish valid evidence. ADR-012 records this extension.
 
 Per-item fields that carry our architecture: `content`, `document_id`,
 `timestamp`, `context`, `metadata`, `tags`, `document_tags`, `update_mode`.
@@ -400,10 +411,12 @@ on `memory/interface`, the raw archive and the import state.
 |---|---|---|
 | `search_memory` | `recall` | Matching memories with their provenance and `document_id`; filters for project, source and time are expressed as tags (§6) |
 | `get_conversation` | raw archive | The normalized form of one conversation by `document_id`, in pages of messages |
+| `get_project_model` | project model reader and raw archive | Architecture, stack or decisions snapshot for an explicit project, refresh state and validated supporting conversations |
 | `reflect` | `reflect` | A synthesized answer over accumulated memory |
 | `list_conversations` | import state | Conversations by project, source and time, with titles and document ids |
 
-`search_memory` and `get_conversation` are the first two; `reflect` and
+`search_memory` and `get_conversation` are the first two; Phase 3 adds
+`get_project_model` without consumer writes. `reflect` and
 `list_conversations` arrive with the features that need them, as does any method
 they require behind the boundaries.
 
@@ -956,3 +969,39 @@ current requirement; existing context fields and tool strings suffice.
 synthetic compatibility tests. Context-only corrections require force/replay under canonical v1.
 Subagent aggregation, external output files and event-only legacy reconstruction remain separate
 work. See docs/codex.md and specs/027-codex-session-source/ for the supported contract and validation.
+
+### ADR-012 — Project models are importer-maintained derived artifacts
+
+**Date:** 2026-11-04. **Status:** Accepted implementation design, synthesis acceptance tracked
+in specs/029-project-mental-models/verification.md.
+
+**Decision:** Maintain three fixed architecture/stack/decisions definitions per explicit
+classified project, using stable project/kind IDs in the existing shared bank and exactly
+the existing project tag. Refresh explicitly after imports, with strict input filtering,
+full regeneration, no other models as inputs and no automatic consolidation refresh.
+Expose separate engine-neutral reader/maintainer capabilities. The operator command belongs
+to importer maintenance; consumers receive only a read-only MCP retrieval tool.
+
+**Rationale:** A standing picture should combine imported conversations without every joining
+agent reconstructing it through isolated recalls. Derived synthesis must remain replaceable,
+inspectable and disposable, preserving ADR-001/002/008 and the raw archive's authority.
+
+**Alternatives:** Repeated recall reconstruction is inconsistent; general reflection on every
+read hides generation latency and belongs to #31. Per-project banks fragment memory; direct
+engine consumers bypass archive verification. Re-retaining summaries creates circular evidence.
+Automatic per-import/consolidation refresh couples import success to another generation step.
+
+**Consequences:** Operators refresh affected projects after new imports. Import results and
+unchanged/dry-run behavior are independent. Refresh time, stale state and latest failure remain
+distinct; prior successful content survives a failed later refresh. No successful first snapshot
+means missing, pending or failed, never invented content. Supporting valid facts/observation
+lineage resolve to deterministic imported documents and the selected project's sanitized archive.
+Invalidated/foreign/missing/unbounded lineage is rejected. Lifecycle/isolation/update/failure are
+required live engine contracts; real-model semantic acceptance is recorded separately. No stack,
+bank, tag convention, history source or constitutional principle changes.
+
+Model evidence blockquotes are additionally checked against sanitized source message and tool
+text, excluding role/id/time metadata. Missing or fabricated quotes fail closed. This verifies
+the quoted text, not semantic entailment of surrounding prose; generated summaries remain
+inspectable derived artifacts. Models include source chunks and are instructed to expand the
+original document so extracted interpretations are not misattributed as recorded rationale.

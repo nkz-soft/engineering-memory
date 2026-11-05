@@ -1,0 +1,169 @@
+# Verification: Project mental models
+
+Date: 2026-11-04. Feature: issue #30, branch `029-project-mental-models`.
+Base implementation checkout: `90261a5`; planning commits `8e4fbed`, `ec7a149`.
+Initial implementation commit: `d465120`. PR: https://github.com/nkz-soft/engineering-memory/pull/72.
+
+## Current result
+
+**Real-model semantic acceptance is not complete; PR remains draft.** Keyword-only runs
+passed but manual review found invented rationale. Prompt changes reduced that error without
+eliminating it. The latest reader additionally verifies evidence blockquotes against sanitized
+source text and correctly rejected a generated response from the selected GPT-4.1 mini model.
+Passing topic assertions or genuine document IDs are not sufficient evidence of faithful prose.
+
+## Environment
+
+- Windows host, Python 3.13.15, uv 0.12.5, Docker server 29.9.2.
+- Hindsight 1.1.0, pinned image digest
+  `sha256:50311d02b4d5d2b7c5242bd336edf8735df8374eaad496a92f49c83b37d2aa06`.
+- Locked existing application/test dependencies; no runtime dependency change.
+- All test corpora are synthetic. Disposable banks, archives, import state and backend containers
+  are separate from operator data. Test runners remove only their own labelled resources.
+
+## Test-first evidence
+
+Observed red before implementing each slice:
+
+- `tests/unit/test_project_models.py`: 2 failures for missing neutral contracts → 2 passed.
+- `tests/unit/test_project_models_store.py`: 15 missing-adapter failures → read/isolation/lineage
+  cases passed; 6 missing-refresh failures → lifecycle/timeout/reconciliation cases passed.
+- `tests/unit/test_project_model_access.py`: missing models constructor argument → archive-backed
+  read/validation tests passed, with existing service and actual stdio regressions.
+- `tests/unit/test_project_model_cli.py`: 5 missing-command failures → 5 passed.
+- Fixture tool completion and deliberate synthesis-failure tests failed before fixture support.
+- Required-model gate test failed because missing model cases were accepted, then passed after
+  extending the required set. Architecture composition-allowance test also failed first.
+- Independent review reproduced two production defects. Regression tests observed failed first
+  generation as pending and unbounded lock wait; both failed before fixes, then passed.
+- Final adapter unit run: 23 passed, including both review regressions.
+
+An initial full run found the architecture guard's missing new constructor allowance; fixed
+with an explicit regression preserving consumer/ingestion import rejection. An initial live
+failure-injection attempt used unsupported bank-level LLM config; replaced with deliberate
+fixture LLM failure and zero test-worker retries, then verified last-good preservation live.
+
+## Commands actually run
+
+Commands below use the worktree's locked environment. The `.venv/Scripts/python` spelling
+avoids unrelated global environments; it is equivalent to `uv run python` after `uv sync --frozen`.
+
+| Command | Result |
+|---|---|
+| `uv sync --frozen` | Environment created from existing lock; package installed |
+| `.venv/Scripts/python -m pytest -q --tb=short` | 2139 passed, 42 skipped in 132.78 seconds |
+| `.venv/Scripts/python -m ruff check .` | All checks passed |
+| `.venv/Scripts/python -m ruff format --check .` | 531 files already formatted at final check |
+| `git diff --check` | Passed |
+| `.venv/Scripts/python deploy/hindsight/e2e.py` | Quote-checked credential-free gate: 36 passed, no skips; 46.70 seconds for pytest |
+| `.venv/Scripts/python deploy/hindsight/contract.py` | 9 passed, no skips; 13.18 seconds for pytest |
+| `.venv/Scripts/engineering-memory --help` | New models command listed, exit 0 |
+| `.venv/Scripts/engineering-memory models refresh --help` | Project/kind/JSON options listed, exit 0 |
+
+Normal-suite skips are opt-in live cases; the required live suites above executed without skips.
+The final full regression and live model gate include the stricter synthesis instructions and
+the supplemental speculative-qualifier check. The unchanged base engine contract gate was
+not rerun for this prompt-only correction; its prior 9-case pass remains recorded above.
+Redacted staged secret scan, `gitleaks git --staged --redact --no-banner`, scanned approximately
+85 KB and reported no leaks before the implementation commit.
+
+## Live backend coverage
+
+The required e2e runner now rejects absent, duplicate, skipped, failed or spoofed model cases.
+It ran the existing import/recall, unchanged/state-loss/changed replay and coding-agent stdio
+journeys, plus three model cases:
+
+1. Import two complementary conversations; create/read all three kinds, reject beta and
+   untagged lexical competitors, open sanitized supports, repeat refresh without duplicates,
+   import superseding relay/database decisions and refresh/read all affected kinds.
+2. Preserve last-good content and successful time after a backend generation failure;
+   expose failure time. The LLM fixture fails deliberately; backend operations/state are real.
+3. Keep unresolved competing Rust/Go proposals visible, with supports and no invented
+   unrelated technology choice. This fixture run validates protocol, not semantic quality.
+
+HTTP adapter tests also cover observation source-ID expansion, invalidated/foreign/missing
+lineage, incompatible definitions, bounded traversal, timeout, ambiguous POST and lock deadline.
+The isolated engine run establishes actual fact-detail provenance resolution; observation
+expansion additionally has pinned-source research and HTTP contract tests, not a claim that
+this run produced consolidated observations.
+
+## Independent review
+
+Read-only reviewer found and rechecked fixes for failed-first-generation visibility and bounded
+lock acquisition. No remaining production finding. Reviewer identified that keyword assertions
+alone do not establish semantic replacement or unresolved decisions; an explicit synthetic
+evidence artifact and manual semantic review are required before claiming real acceptance.
+
+## Real-model acceptance
+
+Provider: OpenRouter through the OpenAI-compatible provider; model `openai/gpt-4.1-mini`.
+Only the four selected backend LLM settings were read from the external file. No API key,
+external secret file or private history was printed or committed.
+
+```powershell
+$env:ENGINEERING_MEMORY_MODELS_LLM_ENV = 'C:/Users/Nicko/.config/engineering-memory/openrouter.env'
+$env:ENGINEERING_MEMORY_MODELS_EVIDENCE = 'D:/Projects/open-source/nz/hermes-memory/.claude/worktrees/model30-corrected-evidence.json'
+.venv/Scripts/python deploy/hindsight/e2e.py
+```
+
+Earlier refined real-model result: **2 passed, no skips, 101.50 seconds**, subsequently rejected
+by manual grounding review. The fixture-only deliberate-failure
+case is separately covered by the default 36-case gate. The operator independently ran the
+default gate (36 passed in 45.13 seconds) and the initial real-model gate (2 passed in 101.95 seconds).
+
+The first output correctly handled supersession but invented SQLite scaling/performance motives
+and component interactions. The new speculative-qualifier assertion failed on that actual saved
+decisions response before the prompt correction. This detector is intentionally narrow: it may
+reject legitimate negations and does not establish semantic correctness by itself.
+
+Manual review of [the rejected synthetic evidence](rejected-semantic-evidence.json) establishes
+the correct supersession/uncertainty directions, but also an acceptance-blocking rationale defect:
+
+- Initial architecture combines the cobalt retry-isolation and amber admission conversations;
+  supports are chatgpt:architecture and chatgpt:gateway, with no beta/untagged decoy facts.
+- Refreshed architecture, stack and decisions explicitly replace cobalt with jade and SQLite
+  with PostgreSQL. All cite chatgpt:replacement; historical supports remain inspectable.
+- The refreshed stack keeps Python 3.13 and the amber gateway instead of treating the named
+  replacements as removal of unrelated components.
+- Replacement-specific SQLite scaling/performance claims were removed by the first prompt
+  correction. However, initial and refreshed decisions still falsely attributed reliability and
+  fault-tolerance motives to the original retry-isolation statement. This artifact is **rejected**.
+- The unresolved response explicitly says neither Rust nor Go is accepted and cites only
+  chatgpt:proposals. It does not silently settle one option.
+
+Evidence SHA-256: `a964041bf3b525c4229542490a1b0c2ab346663f781de81a67e3954e9e1e9bb4`.
+This hash identifies a rejected artifact, not accepted output. References establish inspectable
+provenance, not that every generated sentence is entailed. The broader evaluation remains #31.
+
+## Subsequent source-grounding checks
+
+The confident invented rationale in the artifact above failed a new controlled-corpus check
+for motives absent from the source (reliability, fault tolerance, scalability, performance).
+An original-source-precedence prompt and explicit include_chunks=true still produced a fabricated
+quotation in initial decisions. That real-model run failed: 1 failed, 1 passed in 55.67 seconds.
+
+The reader now requires explicit single-line evidence blockquotes and compares each quote,
+after whitespace normalization, against actual sanitized message text or tool request/result.
+Role/id/time metadata and Markdown lazy continuation cannot substantiate a quote. Missing or
+fabricated blockquotes return corrupt_record. This checks quotation authenticity only; inline
+quotes and surrounding prose are not a sentence-entailment guarantee.
+
+The quote guard's fabricated/missing/metadata/continuation cases each failed before their
+implementation and then passed. The focused access run passed all 16 tests. The model prompt asks
+for original document expansion and source quotations; managed definitions pin source chunks.
+The native LLM fixture was updated to emit the same quote format, with its test observed failing first.
+
+Latest quote-checked real-model run, model openai/gpt-4.1-mini: **1 failed, 1 passed in 49.55 seconds**.
+The consumer rejected initial stack content with corrupt_record; initial architecture and unresolved
+decisions had authentic quotations. Partial diagnostics are not complete acceptance evidence.
+No accepted full seven-snapshot artifact exists for this stricter contract yet.
+
+Credential-free gate after quote changes: 36 passed in 46.70 seconds. An earlier attempt on
+these changes had 1 generation failure and 35 passes; the rerun passed, with no required skips.
+On 2026-11-05, the operator selected OpenRouter model `openai/gpt-oss-20b` for the same two
+synthetic scenarios. Its initial architecture summary cited both `chatgpt:architecture` and
+`chatgpt:gateway` and correctly described the components as complementary. It omitted the
+required evidence blockquotes, so the reader rejected it with `corrupt_record` before exposing
+the summary. The unresolved-decisions scenario also returned `corrupt_record`. Both scenarios
+failed. The second rejection has no saved snapshot, so its exact validation failure remains
+unconfirmed. Real-model acceptance remains open.

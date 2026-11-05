@@ -350,6 +350,13 @@ uv run engineering-memory import --source codex --from-archive --force --json
 
 See [the Codex import guide](docs/codex.md) for the bounded format, exclusions and verification.
 
+## Project models
+
+Read standing architecture, stack and decision summaries through `get_project_model`.
+After importing relevant history, run `uv run engineering-memory models refresh --project <slug>`.
+See [project model operations](docs/operations/project-models.md) for grounded references,
+freshness, failure recovery and validation.
+
 ## Coding-agent memory access
 
 [Connect Claude Code and Codex](docs/operations/coding-agent-memory.md) to the existing

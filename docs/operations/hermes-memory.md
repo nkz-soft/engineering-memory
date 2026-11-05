@@ -46,7 +46,8 @@ On Windows use forward-slash paths, for example `C:/Tools/uv.exe` and
 Hermes subprocess. A Docker/remote Hermes process cannot see host paths unless
 its environment explicitly provides them.
 
-Start a new session with `hermes chat`. Confirm the two tools are discovered.
+Start a new session with `hermes chat`. Confirm `search_memory`, `get_conversation` and
+`get_project_model` are discovered. See [project models](project-models.md) for refresh and reads.
 Hermes may namespace their names with the server name. Official setup reference:
 [Hermes MCP documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp).
 This recipe follows that documented command/args structure; the installed Hermes
