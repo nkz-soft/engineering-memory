@@ -58,10 +58,10 @@ def test_python_version_file_agrees_with_metadata() -> None:
 
     pinned = PYTHON_VERSION_FILE.read_text(encoding="utf-8").strip()
 
-    assert pinned == "3.13", f".python-version names {pinned!r}, expected '3.13'."
+    assert pinned == "3.13.18", f".python-version names {pinned!r}, expected '3.13.18'."
 
     major_minor = REQUIRED_PYTHON.removeprefix("==").removesuffix(".*")
-    assert pinned == major_minor, (
+    assert pinned.rsplit(".", 1)[0] == major_minor, (
         f".python-version ({pinned}) and requires-python ({REQUIRED_PYTHON}) disagree."
     )
 

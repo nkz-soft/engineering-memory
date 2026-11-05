@@ -12,7 +12,7 @@ This is infrastructure for future contract tests and the memory adapter. It does
 - Disk space for the full image (upstream documents approximately 9 GB on AMD64) plus its data/model cache. Upstream recommends about 2 GB RAM for the API; allow additional headroom for embedded PostgreSQL and Docker. CPU inference is adequate for the synthetic check. Initial image/model preparation needs network access and can take several minutes.
 - An unused loopback port, 8888 by default. Change `HINDSIGHT_DEV_PORT` if necessary.
 
-The image is pinned in [compose.yaml](../../deploy/hindsight/compose.yaml) to upstream 1.1.0 and its immutable manifest digest. A pin change must be tested deliberately; the setup never floats to latest. Upstream references: [installation](https://hindsight.vectorize.io/developer/installation), [models](https://hindsight.vectorize.io/developer/models), [v1.1.0 release](https://github.com/vectorize-io/hindsight/releases/tag/v1.1.0).
+The image is pinned in [service.yaml](../../deploy/hindsight/service.yaml) to upstream 1.2.0 and its immutable manifest digest. A pin change must be tested deliberately; the setup never floats to latest. Upstream references: [installation](https://hindsight.vectorize.io/developer/installation), [models](https://hindsight.vectorize.io/developer/models), [v1.2.0 release](https://github.com/vectorize-io/hindsight/releases/tag/v1.2.0).
 
 Run all commands from the repository root. If `DOCKER_HOST` points at a different daemon, select the intended context explicitly, for example `docker --context desktop-linux compose ...` on Docker Desktop. Do not change another project's containers or daemon settings to make this setup work.
 
@@ -129,7 +129,7 @@ Ordinary `uv run pytest` remains offline. [Smoke unit tests](../../tests/unit/te
 
 Future engine contract tests use the host engine URL, optional engine token, and unique scratch banks. The default production bank remains `engineering-global`; provisioning and retain mission are separate #16 work. No consumer (Hermes, Claude Code or Codex) should connect directly to this engine as its memory provider.
 
-The pinned v1.1.0 source/OpenAPI declares retain at `/v1/default/banks/{bank_id}/memories`, recall at `/memories/recall`, readiness at `/health/ready`, and scratch cleanup at `/v1/default/banks/{bank_id}`. Smoke checks required methods in the running `/openapi.json` before writing. It prefers synchronous retain and observes a returned queued operation through the bank's operations endpoint if necessary.
+The pinned v1.2.0 source/OpenAPI declares retain at `/v1/default/banks/{bank_id}/memories`, recall at `/memories/recall`, readiness at `/health/ready`, and scratch cleanup at `/v1/default/banks/{bank_id}`. Smoke checks required methods in the running `/openapi.json` before writing. It prefers synchronous retain and observes a returned queued operation through the bank's operations endpoint if necessary.
 
 Architecture §9 currently records `/retain` and `/recall` spellings. This deployment feature records the discrepancy without silently rewriting the production contract. #16 must verify the running pinned contract, upsert/idempotency/provenance/tag semantics and production mission before the adapter relies on them. Static upstream inspection and offline mocks are not that live verification.
 

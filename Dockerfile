@@ -11,7 +11,10 @@
 # the build context. What keeps the two in step is a test: every stage naming a Python version is
 # asserted to carry the pin .python-version holds. An image built on a different interpreter than
 # the checks ran under proves nothing about what ships.
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
+FROM python:3.13.18-slim-bookworm AS python-base
+
+FROM python-base AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /usr/local/bin/uv
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
@@ -28,10 +31,10 @@ COPY src ./src
 # out of the artifact at the source rather than by deleting them afterwards. --no-editable installs
 # the project as a real package, so the console script does not point back into a source tree the
 # runtime stage below does not carry.
-RUN uv sync --locked --no-dev --no-editable
+RUN python --version && uv --version && uv sync --locked --no-dev --no-editable
 
 # --- runtime -----------------------------------------------------------------------------------
-FROM python:3.13-slim-bookworm AS runtime
+FROM python-base AS runtime
 
 # An unprivileged user, created before the copy so the virtual environment can be owned by it.
 RUN useradd --create-home --uid 10001 engineering-memory
