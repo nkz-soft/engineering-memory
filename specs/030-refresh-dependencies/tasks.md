@@ -9,7 +9,7 @@
 
 - [x] T003 [US1] Assert the required deployment pins in the structure tests and observe the old pins fail.
 - [x] T004 [US1] Apply the shared Hindsight and product LiteLLM pins and update the local deployment guide.
-- [ ] T005 [US1] Verify Compose configuration, live contract, fresh startup and retain/recall, and repeat with a disposable copy of old Hindsight state.
+- [x] T005 [US1] Verify Compose configuration, live contract, fresh startup and retain/recall, and repeat with a disposable copy of old Hindsight state.
 
 ## User Story 2
 
@@ -21,8 +21,8 @@
 - [x] T008 [US3] Assert that CI and the container report resolved tool versions and observe the baseline failure.
 - [x] T009 [US3] Update CI actions and align the toolchain in the workflows and container.
 - [x] T010 [US3] Resolve the audited dependency candidates and record compatibility holdbacks.
-- [ ] T011 [US3] Run locked sync, lint, formatting, tests, image smoke and the scanner negative control.
+- [x] T011 [US3] Run locked sync, lint, formatting, tests, image smoke and the scanner negative control.
 
 ## Review
 
-- [ ] T012 Review the full diff and publish verification outcomes.
+- [x] T012 Review the full diff and publish verification outcomes.

@@ -46,17 +46,33 @@ def extraction(body):
 
 
 def completion(body):
-    """Pinned reflect tool protocol over synthetic tool-returned facts only.
+    """Pinned schema-based reflect protocol over synthetic tool-returned facts only.
 
     This is deterministic protocol evidence, never real synthesis-quality acceptance.
     """
-    if not body.get("tools"):
+    properties = body["response_format"]["json_schema"]["schema"]["properties"]
+    if "facts" in properties:
         return {"role": "assistant", "content": json.dumps(extraction(body))}
     if "FORCE_FIXTURE_FAILURE" in json.dumps(body["messages"]):
         raise ValueError("deliberately failed synthetic synthesis")
-    names = {tool["function"]["name"] for tool in body["tools"]}
-    choice = body.get("tool_choice")
-    forced = choice.get("function", {}).get("name") if isinstance(choice, dict) else None
+    if "call" in properties:
+        names = {option["properties"]["name"]["enum"][0] for option in properties["call"]["anyOf"]}
+    elif "markdown" in properties:
+        names = {"done"}
+    elif "query" in properties:
+        return {
+            "role": "assistant",
+            "content": json.dumps(
+                {
+                    "query": "Orchard",
+                    "max_tokens": 4096,
+                    **({"max_chunk_tokens": 0} if "max_chunk_tokens" in properties else {}),
+                    "reason": "synthetic protocol validation",
+                }
+            ),
+        }
+    else:
+        raise ValueError("unsupported synthesis schema")
     facts = {}
     documents = {}
 
@@ -80,14 +96,19 @@ def completion(body):
                 collect(child)
 
     for message in body["messages"]:
-        if message.get("role") == "tool":
+        content = message.get("content")
+        if (
+            message.get("role") == "user"
+            and isinstance(content, str)
+            and content.startswith("Result of `")
+        ):
             with contextlib.suppress(ValueError, TypeError):
-                collect(json.loads(message["content"]))
-    name = forced or (
+                collect(json.loads(content.partition("\n")[2]))
+    name = (
         "answer_ready"
         if facts and "answer_ready" in names
         else "done"
-        if facts and "done" in names
+        if "done" in names
         else "recall"
     )
     if name == "done":
@@ -98,15 +119,8 @@ def completion(body):
             else ["> " + text for text in facts.values()]
         )
         arguments = {
-            "document": {
-                "sections": [
-                    {
-                        "heading": "Project summary",
-                        "level": 2,
-                        "blocks": blocks or ["Insufficient evidence."],
-                    }
-                ]
-            },
+            "markdown": "## Project summary\n\n"
+            + "\n\n".join(blocks or ["Insufficient evidence."]),
             "answer_found": bool(facts),
             "memory_ids": list(facts),
             "observation_ids": [],
@@ -120,17 +134,11 @@ def completion(body):
             "query": "Orchard",
             "max_tokens": 4096,
         }
-    return {
-        "role": "assistant",
-        "content": None,
-        "tool_calls": [
-            {
-                "id": "fixture-call",
-                "type": "function",
-                "function": {"name": name, "arguments": json.dumps(arguments)},
-            }
-        ],
-    }
+    if name not in names:
+        raise ValueError("unsupported synthesis function")
+    if "call" in properties:
+        arguments = {"call": {"name": name, "arguments": arguments}}
+    return {"role": "assistant", "content": json.dumps(arguments)}
 
 
 class FixtureServer(ThreadingHTTPServer):
@@ -179,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.server.calls += 1
             if not self.server.release.wait(60):
                 raise ValueError("barrier timeout")
-        except (ValueError, TypeError):
+        except (KeyError, ValueError, TypeError):
             with self.server.lock:
                 self.server.errors += 1
             return self.respond(400, {"error": {"message": "unsupported fixture request"}})
@@ -193,7 +201,7 @@ class Handler(BaseHTTPRequestHandler):
                 "choices": [
                     {
                         "index": 0,
-                        "finish_reason": "tool_calls" if result.get("tool_calls") else "stop",
+                        "finish_reason": "stop",
                         "message": result,
                     }
                 ],
