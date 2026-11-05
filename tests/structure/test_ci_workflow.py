@@ -300,6 +300,18 @@ def test_the_scan_is_proven_able_to_fail() -> None:
     )
 
 
+def test_ci_uses_the_audited_toolchain() -> None:
+    document = _workflow()
+    for job in ("checks", "live-contract", "live-e2e"):
+        step = _step_using(document, job, "astral-sh/setup-uv@")
+        assert step["uses"] == "astral-sh/setup-uv@v10.3.3"
+        assert step["with"]["version"] == "0.13.7"
+    for job in document["jobs"]:
+        step = _step_using(document, job, "actions/checkout@")
+        assert step["uses"] == "actions/checkout@v7.0.1"
+    assert "uv run --no-sync python --version" in _run_commands(document, "checks")
+
+
 # --- The image (004-ci-scanning-packaging, checks I7-I9) ---------------------------------------
 
 REGISTRY_WRITES = ("docker push", "docker login", "docker/login-action")

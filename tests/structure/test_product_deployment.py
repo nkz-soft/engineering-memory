@@ -71,6 +71,10 @@ def test_provider_proxy_environment_reaches_litellm(monkeypatch):
 def test_engine_configuration_is_reused_with_private_e2e_resources():
     config = render("compose.e2e.yaml")
     engine = config["services"]["hindsight"]
+    assert config["services"]["litellm"]["image"] == (
+        "ghcr.io/berriai/litellm:v1.108.0"
+        "@sha256:c560d317136880ea92d62334d4367ab10955b1af189dd3ea24f6551290b1d6c1"
+    )
     assert "@sha256:" in engine["image"]
     assert engine["healthcheck"]["retries"] > 0
     assert engine["shm_size"] == "1gb" or engine["shm_size"] == "1073741824"

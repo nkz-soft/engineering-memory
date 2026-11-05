@@ -1,52 +1,45 @@
 """The deterministic fixture drives tool use, not a replacement memory engine."""
 
+import json
+
 import pytest
+
+from tests.integration.hindsight_contract.llm import completion
+
+
+def request(properties, messages):
+    body = {
+        "response_format": {"json_schema": {"schema": {"properties": properties}}},
+        "messages": messages,
+    }
+    return json.loads(completion(body)["content"])
 
 
 def test_fixture_rejects_deliberately_failed_synthesis():
-    from tests.integration.hindsight_contract.llm import completion
-
-    with pytest.raises(ValueError):
-        completion(
-            {
-                "tools": [{"function": {"name": "recall"}}],
-                "messages": [{"role": "user", "content": "FORCE_FIXTURE_FAILURE"}],
-            }
-        )
+    with pytest.raises(ValueError, match="deliberately failed synthetic synthesis"):
+        request({"query": {}}, [{"role": "user", "content": "FORCE_FIXTURE_FAILURE"}])
 
 
 def test_fixture_uses_tool_evidence_for_document_and_citations():
-    from tests.integration.hindsight_contract.llm import completion
-
-    body = {
-        "tools": [{"function": {"name": "done"}}],
-        "tool_choice": {"type": "function", "function": {"name": "done"}},
-        "messages": [
+    value = request(
+        {"markdown": {}},
+        [
             {
-                "role": "tool",
-                "content": '{"results":[{"id":"fact-a","text":"Orchard uses amber gateway."}]}',
+                "role": "user",
+                "content": 'Result of `recall`:\n{"results":[{"id":"f1",'
+                '"text":"Orchard uses amber gateway."}]}',
             }
         ],
-    }
-    call = completion(body)["tool_calls"][0]["function"]
-    import json
-
-    value = json.loads(call["arguments"])
-    assert value["memory_ids"] == ["fact-a"]
-    assert value["document"]["sections"][0]["blocks"] == ["> Orchard uses amber gateway."]
+    )
+    assert value["memory_ids"] == ["f1"]
+    assert value["markdown"] == "## Project summary\n\n> Orchard uses amber gateway."
 
 
 def test_fixture_obeys_forced_recall_and_does_not_invent_evidence():
-    import json
+    assert request({"query": {}}, [])["query"] == "Orchard"
+    assert not request({"markdown": {}}, [])["answer_found"]
 
-    from tests.integration.hindsight_contract.llm import completion
-
-    body = {
-        "tools": [{"function": {"name": "recall"}}],
-        "tool_choice": {"type": "function", "function": {"name": "recall"}},
-        "messages": [],
-    }
-    assert completion(body)["tool_calls"][0]["function"]["name"] == "recall"
-    body["tool_choice"]["function"]["name"] = "done"
-    result = completion(body)["tool_calls"][0]["function"]
-    assert not json.loads(result["arguments"])["answer_found"]
+    call_schema = {"anyOf": [{"properties": {"name": {"enum": ["recall"]}}}]}
+    value = request({"call": call_schema}, [])
+    assert value["call"]["name"] == "recall"
+    assert value["call"]["arguments"]["query"] == "Orchard"

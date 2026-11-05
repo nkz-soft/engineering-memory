@@ -23,7 +23,10 @@ def test_local_deployment_has_persistent_private_engine_and_proxy_route():
         **service,
         "environment": {**shared["environment"], **service["environment"]},
     }
-    assert "@sha256:" in service["image"] and ":latest" not in service["image"]
+    assert service["image"] == (
+        "ghcr.io/vectorize-io/hindsight:1.2.0"
+        "@sha256:19d0c08f3df79acac29384826419a1ca158129e81ec527cdcbd8c97ff4ef76da"
+    )
     assert service["ports"] == ["127.0.0.1:${HINDSIGHT_DEV_PORT:-8888}:8888"]
     assert service["volumes"] == ["hindsight-data:/home/hindsight/.pg0"]
     assert "hindsight-data" in config["volumes"]
