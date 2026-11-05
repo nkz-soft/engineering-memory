@@ -999,3 +999,9 @@ lineage resolve to deterministic imported documents and the selected project's s
 Invalidated/foreign/missing/unbounded lineage is rejected. Lifecycle/isolation/update/failure are
 required live engine contracts; real-model semantic acceptance is recorded separately. No stack,
 bank, tag convention, history source or constitutional principle changes.
+
+Model evidence blockquotes are additionally checked against sanitized source message and tool
+text, excluding role/id/time metadata. Missing or fabricated quotes fail closed. This verifies
+the quoted text, not semantic entailment of surrounding prose; generated summaries remain
+inspectable derived artifacts. Models include source chunks and are instructed to expand the
+original document so extracted interpretations are not misattributed as recorded rationale.

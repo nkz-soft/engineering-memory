@@ -10,7 +10,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from engineering_memory.access.service import MemoryAccess
+from engineering_memory.access.service import AccessError, MemoryAccess
 from engineering_memory.archive import OriginalPayload
 from engineering_memory.archive.local import LocalRawArchive
 from engineering_memory.classification import AliasProjectClassifier, ProjectRule, ProjectRuleSet
@@ -44,12 +44,25 @@ def record_semantic_evidence(section, kind, value):
         path.write_text(json.dumps(evidence, indent=2), encoding="utf-8")
 
 
+def read_model_evidence(access, models, key):
+    try:
+        return access.get_project_model(project=key.project, kind=key.kind.value)
+    except AccessError:
+        record_semantic_evidence(
+            "rejected", key.kind.value, models.get_project_model(key).model_dump(mode="json")
+        )
+        raise
+
+
 def assert_no_speculative_explanations(content):
     # None of the controlled sources proposes motives or component interactions.
     # Hedged guesses are not evidence, even when correct source IDs accompany them.
     assert not re.search(r"\b(likely|presumably|suggests?|implies?)\b", content, re.I), (
         "model added speculative explanations to synthetic evidence"
     )
+    assert not re.search(
+        r"\b(reliability|fault tolerance|scalability|performance)\b", content, re.I
+    ), "model attributed an unrecorded motive to the controlled source"
 
 
 @pytest.fixture
@@ -141,8 +154,14 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
             key = ProjectModelKey(project="orchard", kind=kind)
             assert models.get_project_model(key).status == "missing"
             outcome = models.refresh_project_model(key)
+            if outcome.status != "completed":
+                record_semantic_evidence(
+                    "failed_refresh",
+                    kind.value,
+                    client.get(root + "/mental-models/" + model_definition(key)["id"]).json(),
+                )
             assert outcome.status == "completed", outcome
-            result = access.get_project_model(project="orchard", kind=kind.value)
+            result = read_model_evidence(access, models, key)
             record_semantic_evidence("initial", kind.value, result)
             assert_no_speculative_explanations(result["content"])
             content = result["content"].lower()
@@ -177,7 +196,7 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
         for kind in ModelKind:
             key = ProjectModelKey(project="orchard", kind=kind)
             assert models.refresh_project_model(key).status == "completed"
-            refreshed = access.get_project_model(project="orchard", kind=kind.value)
+            refreshed = read_model_evidence(access, models, key)
             record_semantic_evidence("refreshed", kind.value, refreshed)
             assert_no_speculative_explanations(refreshed["content"])
             expected = "postgresql" if kind == "stack" else "jade"

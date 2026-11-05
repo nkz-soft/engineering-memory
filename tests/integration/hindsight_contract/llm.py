@@ -91,7 +91,8 @@ def completion(body):
                     {
                         "heading": "Project summary",
                         "level": 2,
-                        "blocks": list(facts.values()) or ["Insufficient evidence."],
+                        "blocks": ["> " + text for text in facts.values()]
+                        or ["Insufficient evidence."],
                     }
                 ]
             },

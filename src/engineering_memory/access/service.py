@@ -104,6 +104,40 @@ def _document_id(value):
     raise AccessError("invalid_input")
 
 
+def _message_texts(message):
+    yield " ".join(message.text.split())
+    for activity in message.tool_activity:
+        for text in (activity.request, activity.result):
+            if text is not None:
+                yield " ".join(text.split())
+
+
+def _verify_evidence_quotes(content, source_texts):
+    lines = content.splitlines()
+    quotes = []
+    for index, line in enumerate(lines):
+        if (
+            line.lstrip().startswith(">")
+            and not line.lstrip().startswith("> ")
+            and line.strip() != ">"
+        ):
+            raise AccessError("corrupt_record")
+        if line.lstrip().startswith("> "):
+            if (
+                index + 1 < len(lines)
+                and lines[index + 1].strip()
+                and not lines[index + 1].lstrip().startswith(">")
+            ):
+                raise AccessError("corrupt_record")
+            quotes.append(line.lstrip()[2:].strip())
+    if not quotes or len(quotes) > 128:
+        raise AccessError("corrupt_record")
+    for quote in quotes:
+        normalized = " ".join(quote.strip('"“”').split())
+        if not normalized or not any(normalized in source for source in source_texts):
+            raise AccessError("corrupt_record")
+
+
 class MemoryAccess:
     """No concrete adapters, provisioning, importer or write calls belong here."""
 
@@ -134,7 +168,7 @@ class MemoryAccess:
             snapshot = result.snapshot
             if not snapshot.supports:
                 raise AccessError("corrupt_record")
-            supports = []
+            supports, source_texts = [], []
             for support in snapshot.supports:
                 document_id = _document_id(support.document_id)
                 archived = self.archive.load(document_id)
@@ -145,6 +179,8 @@ class MemoryAccess:
                     or f"project:{key.project}" not in {str(tag) for tag in archived.tags}
                 ):
                     raise AccessError("corrupt_record")
+                for message in archived.conversation.messages:
+                    source_texts.extend(_message_texts(message))
                 supports.append(
                     {
                         "document_id": document_id,
@@ -152,6 +188,7 @@ class MemoryAccess:
                         "started_at": archived.conversation.model_dump(mode="json")["started_at"],
                     }
                 )
+            _verify_evidence_quotes(snapshot.content, source_texts)
             response.update(snapshot.model_dump(mode="json", exclude={"supports"}))
             response["supports"] = supports
             return response

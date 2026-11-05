@@ -36,6 +36,10 @@ Importer-side maintenance never changes import success; import/dry-run never aut
   invalid support/archive identity. No backend response or exception chain leaves the tool.
 - Every support resolves through existing get_conversation to this project's sanitized archive.
   Nonempty content without verifiable support is rejected.
+- Model content must include one or more single-line Markdown evidence blockquotes (`> text`).
+  Each is matched, after whitespace normalization, against the supporting sanitized message text
+  or tool request/result text. Missing/forged quotes map to corrupt_record. Roles, IDs and
+  timestamps cannot substantiate a quote. This checks quote authenticity, not entailment of prose.
 - Local stdio and read-only annotations; description warns of derived, possibly stale untrusted
   evidence. No refresh/write operation, kind guessing or silent recall fallback.
 

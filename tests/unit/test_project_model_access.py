@@ -29,7 +29,7 @@ def setup_access(tmp_path):
         key=key,
         status="ready",
         snapshot=ProjectModelSnapshot(
-            content="Architecture summary",
+            content="Architecture summary\n> Sanitized alpha evidence",
             refreshed_at=datetime(2026, 11, 4, tzinfo=UTC),
             stale=True,
             supports=(
@@ -43,7 +43,8 @@ def setup_access(tmp_path):
 def test_model_read_returns_support_original_time_and_staleness(tmp_path):
     access, _, _, enriched = setup_access(tmp_path)
     result = access.get_project_model(project="alpha", kind="architecture")
-    assert result["content"] == "Architecture summary" and result["stale"] is True
+    assert result["content"] == "Architecture summary\n> Sanitized alpha evidence"
+    assert result["stale"] is True
     assert result["supports"][0]["document_id"] == "chatgpt:support"
     assert result["supports"][0][
         "started_at"
@@ -103,3 +104,52 @@ def test_missing_model_is_explicit_without_writes(tmp_path):
         "status": "missing",
     }
     reader.refresh_project_model.assert_not_called()
+
+
+def test_fabricated_evidence_quote_is_rejected_even_with_valid_support(tmp_path):
+    access, reader, _, _ = setup_access(tmp_path)
+    value = reader.get_project_model.return_value
+    reader.get_project_model.return_value = value.model_copy(
+        update={
+            "snapshot": value.snapshot.model_copy(
+                update={"content": "Architecture summary\n> To enhance fault tolerance."}
+            )
+        }
+    )
+    with pytest.raises(AccessError, match="corrupt_record"):
+        access.get_project_model(project="alpha", kind="architecture")
+
+
+def test_model_without_explicit_evidence_quotes_is_rejected(tmp_path):
+    access, reader, _, _ = setup_access(tmp_path)
+    value = reader.get_project_model.return_value
+    reader.get_project_model.return_value = value.model_copy(
+        update={"snapshot": value.snapshot.model_copy(update={"content": "Unquoted summary"})}
+    )
+    with pytest.raises(AccessError, match="corrupt_record"):
+        access.get_project_model(project="alpha", kind="architecture")
+
+
+def test_message_metadata_is_not_evidence_text(tmp_path):
+    access, reader, _, _ = setup_access(tmp_path)
+    value = reader.get_project_model.return_value
+    reader.get_project_model.return_value = value.model_copy(
+        update={"snapshot": value.snapshot.model_copy(update={"content": "Summary\n> assistant"})}
+    )
+    with pytest.raises(AccessError, match="corrupt_record"):
+        access.get_project_model(project="alpha", kind="architecture")
+
+
+@pytest.mark.parametrize("continuation", ["Invented continuation.", ">Invented continuation."])
+def test_lazy_blockquote_continuation_cannot_smuggle_unverified_text(tmp_path, continuation):
+    access, reader, _, _ = setup_access(tmp_path)
+    value = reader.get_project_model.return_value
+    reader.get_project_model.return_value = value.model_copy(
+        update={
+            "snapshot": value.snapshot.model_copy(
+                update={"content": "Summary\n> Sanitized alpha evidence\n" + continuation}
+            )
+        }
+    )
+    with pytest.raises(AccessError, match="corrupt_record"):
+        access.get_project_model(project="alpha", kind="architecture")

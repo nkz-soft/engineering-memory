@@ -184,6 +184,7 @@ def test_create_then_refresh_keeps_identity_and_requires_completion():
                 assert body["tags"] == ["project:alpha"]
                 assert body["trigger"]["tags_match"] == "all_strict"
                 assert body["trigger"]["exclude_mental_models"] is True
+                assert body["trigger"]["include_chunks"] is True
                 assert not body["trigger"]["refresh_after_consolidation"]
                 state["model"] = {**completed, "content": None, "last_refreshed_at": None}
                 return httpx.Response(

@@ -41,10 +41,12 @@ Independent test: valid lineage opens sanitized archive; invalidated/foreign/unr
 ## Phase 6: Verification and review
 
 - [x] T015 [P] Document operator/client sequence and ADR in `docs/operations/project-models.md`, `README.md`, `ARCHITECTURE.md` and feature contracts.
-- [x] T016 Run full tests, lint/format, live lifecycle and real-extractor acceptance; record actual evidence in `specs/029-project-mental-models/verification.md`.
+- [ ] T016 Run full tests, lint/format, live lifecycle and real-extractor acceptance; record actual evidence in `specs/029-project-mental-models/verification.md`.
 - [x] T017 Request independent review, fix findings, push and open PR using `.github/pull_request_template.md`.
 
-PR #72: real-model acceptance completed on 2026-11-04 with recorded synthetic evidence and manual review.
+PR #72 remains draft: stricter source-quote validation exposed generation failures after the
+initial keyword-only real-model runs passed. Manual review found unsupported attributed motives;
+the chosen model must pass the stricter contract before semantic acceptance can be completed.
 
 ## Dependencies and strategy
 

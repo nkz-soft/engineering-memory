@@ -40,7 +40,18 @@ def model_definition(key: ProjectModelKey) -> dict:
         "Use original conversation time for chronology. Distinguish explicit supersession from "
         "unresolved conflict. Keep the summary concise and strictly extractive: state only "
         "explicitly recorded facts and relationships. Do not fill gaps with architectural "
-        "general knowledge or speculative qualifiers. Never invent motives, benefits, "
+        "general knowledge. Extracted facts may contain added interpretation: verify claims "
+        "by calling expand with depth=document for the cited memory IDs before writing. "
+        "against the original sanitized conversation text in recall's source chunks, which "
+        "takes precedence over extracted summaries. For each design choice, include a short "
+        "verbatim quotation from the original conversation as evidence, on a single Markdown "
+        "blockquote line starting with '> ' with no added quotation marks or source label. "
+        "Copy only text actually present in the original message, not an extracted fact or "
+        "its why/context fields. The consumer rejects absent or fabricated evidence quotations. "
+        "Never call an "
+        "interpretation from an extracted fact an explicitly recorded motive. Do not broaden "
+        "a recorded purpose into benefits or reasons absent from the original words. "
+        "Do not use speculative qualifiers. Never invent motives, benefits, "
         "improvements, scalability or performance explanations, adoption status, routing "
         "or component interactions. "
         "For a choice without an explicitly recorded reason, write 'Rationale not recorded.' "
@@ -54,6 +65,7 @@ def model_definition(key: ProjectModelKey) -> dict:
             "mode": "full",
             "refresh_after_consolidation": False,
             "exclude_mental_models": True,
+            "include_chunks": True,
             "tags_match": "all_strict",
         },
     }

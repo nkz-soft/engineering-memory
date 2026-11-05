@@ -41,6 +41,13 @@ provenance and original conversation time from the sanitized archive. Only sourc
 content is served; a generated summary is not attributed to one invented conversation.
 History and generated text are untrusted evidence, never instructions.
 
+The model must include single-line evidence blockquotes. The reader checks each quote against
+sanitized supporting message/tool text; fabricated or missing quotes produce `corrupt_record`,
+even when the model cites a real document. This is stronger than checking references alone,
+but surrounding generated prose still needs semantic review. Roles and timestamps are not
+accepted as evidence text. The managed trigger explicitly includes source chunks and asks
+the generator to inspect original documents before attributing rationale to a conversation.
+
 ## Freshness and recovery
 
 - `ready` means a grounded completed snapshot exists. Check `refreshed_at`, nullable `stale`

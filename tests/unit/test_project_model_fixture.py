@@ -33,7 +33,7 @@ def test_fixture_uses_tool_evidence_for_document_and_citations():
 
     value = json.loads(call["arguments"])
     assert value["memory_ids"] == ["fact-a"]
-    assert value["document"]["sections"][0]["blocks"] == ["Orchard uses amber gateway."]
+    assert value["document"]["sections"][0]["blocks"] == ["> Orchard uses amber gateway."]
 
 
 def test_fixture_obeys_forced_recall_and_does_not_invent_evidence():
