@@ -17,7 +17,7 @@ Independent test: fresh Claude Code recalls an imported decision and opens norma
 
 - [x] T003 [US1] Add synthetic ChatGPT/competing-project import-to-stdio regression in tests/integration/test_coding_agent_access.py.
 - [x] T004 [US1] Document Claude Code registration, environment and scoped recall in docs/operations/coding-agent-memory.md.
-- [ ] T005 [US1] Deferred to #71 (T014): execute real Claude Code acceptance and record evidence or blocker in specs/028-coding-agent-access/verification.md.
+- [x] T005 [US1] Execute real Claude Code acceptance under #71 and record the positive Orchard and Cypress results in specs/028-coding-agent-access/verification.md.
 
 ## Phase 4: US2 — Claude Code to Codex (P1)
 
@@ -55,12 +55,14 @@ acceptance stays unchecked when blocked even if documentation and automation are
 
 ## Follow-up: real-agent integration testing
 
-T005 and T008 remain unchecked: Claude Code is unauthenticated, so neither a real blind
-Claude Code recall nor its actual completed refinement session was produced. Their execution is now owned by the separate [task #71](https://github.com/nkz-soft/engineering-memory/issues/71). Isolated registration and passing backend
-regression do not satisfy those tasks. See verification.md for evidence and resumption steps.
+The 2026-11-07 live run passed T005. For T008, the operator verified that Codex
+retrieved the imported refinement with its original provenance and sanitized
+context. A fresh Codex search before import remains unverified. See
+[verification.md](verification.md#t014-live-client-verification-2026-11-07)
+for both results.
 
 - [ ] T014 Verify shared memory with real Claude Code and Codex agents and record reproducible integration-test evidence in specs/028-coding-agent-access/verification.md.
 
-T014 consolidates the deferred T005/T008 live journeys in #71; it is a follow-up to
-PR #70, not a claim that those journeys have passed. The existing configuration,
-registration and backend regression deliverables remain in #29/PR #70.
+T014 consolidates the live journeys in
+[#71](https://github.com/nkz-soft/engineering-memory/issues/71). PR #70 delivered
+the configuration, registration and backend regression.
