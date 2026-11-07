@@ -1,7 +1,7 @@
 # Verification: Shared memory for coding agents
 
-Date: 2026-11-03. Branch: `028-coding-agent-access`, based on `8ef0825`; planning
-commit `38a17ad`. Implementation revision is the commit containing this record.
+The original verification was recorded on 2026-11-03 for PR #70. The T014
+follow-up below records the 2026-11-07 live client checks against `8c7629f`.
 
 ## Status
 
@@ -14,14 +14,13 @@ commit `38a17ad`. Implementation revision is the commit containing this record.
 | Claude Code isolated registration | Pass | add/get/list exit 0; server reported Connected |
 | Codex isolated registration | Pass | list/get exit 0; stdio registration and forwarded names accepted |
 | Isolated live backend regression | Pass | 33 passed, no skips, including cross-source import-to-stdio |
-| Actual ChatGPT -> Claude Code journey | Blocked | Claude Code reports loggedIn=false |
-| Actual Claude Code -> Codex refinement journey | Blocked | Requires the authenticated completed Claude Code session from the first journey |
+| Actual ChatGPT -> Claude Code journey | Pass | Live Claude Code transcript shows scoped search and archived context for Orchard and Cypress |
+| Actual Claude Code -> Codex refinement journey | Partial | Operator verified retrieval after import. Absence before import in a fresh Codex session remains unverified |
 
 Real-agent acceptance is now tracked separately in [task #71](https://github.com/nkz-soft/engineering-memory/issues/71), consolidating T005/T008 as T014.
 PR #70 supplies the configuration, isolated registration checks and backend regression.
-Both actual consumer conditions remain unverified; registration and SDK/backend checks
-are not model-driven client acceptance and do not establish Phase 2 completion.
-The PR remains draft; extracting the follow-up does not change its review state. No personal client settings, private history or credentials were changed.
+The registration and SDK/backend results are from PR #70. The live journeys
+have their own evidence and status under T014.
 
 ## Commands and results
 
@@ -89,7 +88,7 @@ Both exited 0; the entry was enabled, transport stdio, correct command/args and 
 ENGINEERING_MEMORY_ variable names. Codex's Auth Unsupported field describes MCP OAuth
 support for this stdio registration; it is not a failure or evidence of model login.
 
-## Live consumer blockers
+## Initial live consumer blockers (2026-11-03)
 
 `claude auth status` returned `loggedIn: false`, `authMethod: none` and firstParty provider.
 No actual Claude Code conversation, native refinement snapshot, or cross-client answer
@@ -109,7 +108,7 @@ tasks against the specification, plan and contract. No actionable correctness, s
 or portability findings. Reviewer recommended a draft PR after successful checks and
 honest evidence/status updates; actual live consumer acceptance is not merge-ready.
 
-## Remaining acceptance
+## Acceptance deferred from PR #70
 
 After authenticated Claude Code is available, follow the operations guide with synthetic
 history: blind ChatGPT decision recall, actual completed Claude Code refinement snapshot,
@@ -157,6 +156,100 @@ unverified and are consolidated under T014. #29/PR #70 retain the configuration 
 isolated client checks and mandatory real-engine import-to-stdio regression. No new
 live test was run during this documentation-only split, and no blocked check was marked
 passed. The draft state of PR #70 is unchanged.
+
+## T014 live client verification (2026-11-07)
+
+Revision `8c7629fa0db00fbc8f069538e6605f079aed3c4f` on Windows. Local versions
+checked while preparing this record were Claude Code 2.1.198, Codex CLI 0.128.0,
+uv 0.12.5, Python 3.13.18 and MCP SDK 2.3.0.
+
+### Setup and commands
+
+The operator ran `uv sync --locked` and used the product Compose runner with
+the internal LiteLLM profile. The operator mapped provider URL, model and key
+from a private env file to `PRODUCT_PROVIDER_*`. The route used OpenRouter
+through a Docker-reachable HTTPS proxy, and Hindsight reported ready on
+`http://127.0.0.1:8889`.
+
+```powershell
+uv run --locked python deploy/product/run.py dependencies
+Invoke-RestMethod http://127.0.0.1:8889/health/ready
+uv run --locked engineering-memory provision --json
+uv run --locked engineering-memory import --source chatgpt --export data/issue-71/chatgpt --dry-run --json
+uv run --locked engineering-memory import --source chatgpt --export data/issue-71/chatgpt --json
+```
+
+The CLI used bank `engineering-global`, archive `data/issue-71/archive`, SQLite
+state `data/issue-71/import-state.sqlite3` and rules `data/issue-71/projects.toml`.
+The operator generated two records with `tests.synthetic.chatgpt_export`, using
+IDs `issue71-orchard` and `issue71-cypress` and the expected decisions below.
+The dry-run classified both records under their respective project tags.
+Provision verified the retain mission and the import returned `imported: 2`,
+`failed: 0` and exit 0.
+
+From a separate consumer directory named `orchard`, the operator registered
+Claude Code with `claude mcp add --transport stdio --scope local engineering-memory -- <uv> run --locked --project <checkout> engineering-memory serve`
+and launched `claude`. Codex used the same stdio command, bank, local Hindsight
+URL and archive. See the [client runbook](../../docs/operations/coding-agent-memory.md)
+for the registration and configuration syntax.
+
+### ChatGPT to Claude Code
+
+The Claude Code transcript records `search_memory` with tags
+`project:orchard`, `source:chatgpt`, followed by `get_conversation` on
+`chatgpt:issue71-orchard`. The agent retrieved the synthetic cobalt relay
+decision, original start time `2026-03-04T09:30:00Z` and ChatGPT provenance.
+The positive control used `project:cypress`, `source:chatgpt`. The tool result
+included `chatgpt:issue71-cypress` and excluded the Orchard document. Claude
+Code opened the Cypress result and retrieved its violet queue decision.
+
+### Claude Code to Codex
+
+The operator captured a native Claude Code session containing the synthetic
+rule to switch the cobalt relay to amber backoff after the third failed attempt.
+The native snapshot recorded the service checkout as its working directory, so
+the dry-run initially classified it as `project:hermes-memory`. The operator
+added the recorded path as an Orchard alias in the test-only rules file. The
+subsequent dry-run reported `project:orchard` and redaction category `password`.
+
+```powershell
+$snapshot = 'data/issue-71/claude-code/eec1be37-09ad-4dad-99bb-bedb758f5faf.jsonl'
+uv run --locked engineering-memory import --source claude-code --export "$snapshot" --dry-run --json
+uv run --locked engineering-memory import --source claude-code --export "$snapshot" --json
+```
+
+After import, the operator ran a fresh Codex session from the consumer directory.
+The operator reported that `search_memory` with `project:orchard`,
+`source:claude-code` retrieved the refinement. Codex opened
+`claude-code:eec1be37-09ad-4dad-99bb-bedb758f5faf` with
+`get_conversation(document_id, offset=0, page_size=1)` and followed
+`next_offset` through offset 131 to the final null. The source was
+`claude-code`, the session started at `2026-11-07T10:53:34.058Z`, and the
+refinement message was recorded at `2026-11-07T10:55:28.958Z`. The returned
+message displayed `password=[REDACTED]`. A Codex search with
+`project:cypress`, `source:claude-code` returned an empty list. A search with
+`project:orchard`, `source:chatgpt` returned the original ChatGPT document.
+
+The archived Claude Code transcript contains two empty searches for the
+refinement before import. The before-import result supplied by the operator
+matches that transcript. A separate fresh Codex call before import remains
+unverified. A follow-up attempt with a new synthetic question used
+`codex -c 'service_tier="fast"' exec --skip-git-repo-check --sandbox read-only --json`.
+The installed CLI failed before making a tool call. Its diagnostics reported
+that it could not decode the model catalog's `max` reasoning level. The
+noninteractive Claude Code retry also stopped at a login requirement.
+T014 remains open for an authenticated, fresh Codex baseline before import.
+
+### Unchanged snapshot re-import
+
+On 2026-11-07, re-importing the unchanged Claude Code snapshot exited with code 0
+and reported `imported: 0`, `skipped: 1`, and `failed: 0`. The document ID remained
+`claude-code:eec1be37-09ad-4dad-99bb-bedb758f5faf`.
+
+The [import pipeline](../../src/engineering_memory/ingestion/pipeline.py#L130)
+returns `SKIPPED` before calling Hindsight `retain`, so this run did not initiate
+another extraction. This was verified from the CLI result and the code path.
+LiteLLM and OpenRouter request counts were not measured.
 
 ## Secret-scan follow-up
 
