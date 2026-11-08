@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "scoring_version": 1,
+  "benchmark_sha256": "0f0de322fd672087af974b8ebba543b5b4b156e172f0ca14962279bb9e7ce47b",
+  "corpus_sha256": "5d1113ab7e8a809c2df14e1f8a5caeb8b5766e0d791290878205ced670e9603a",
+  "project_rules_sha256": "e5c7bd7484c63a83a602462c01e1a546526abc55c31a19b98ec998082109d504",
+  "project_tag": "project:recall-benchmark",
+  "limit": 10,
+  "profile": {
+    "run_id": "recall-v1-baseline",
+    "engine_version": "1.2.0",
+    "extractor_id": "openai-gpt-oss-20b",
+    "mission_sha256": "b50757abe5b97ec392e773e56ab4acc0563408a2010ac1bd80da565dc7cb9367"
+  },
+  "questions": [
+    {
+      "id": "bracken-offline-scans",
+      "category": "architecture-decisions",
+      "expected_topic_ids": [
+        "durable-local-queue",
+        "client-scan-id"
+      ],
+      "matched_topic_ids": [
+        "durable-local-queue",
+        "client-scan-id"
+      ]
+    },
+    {
+      "id": "kestrel-render-boundary",
+      "category": "architecture-decisions",
+      "expected_topic_ids": [
+        "worker-pool",
+        "render-job-id"
+      ],
+      "matched_topic_ids": [
+        "worker-pool",
+        "render-job-id"
+      ]
+    },
+    {
+      "id": "moss-invoice-commit",
+      "category": "architecture-decisions",
+      "expected_topic_ids": [
+        "transactional-outbox",
+        "invoice-version"
+      ],
+      "matched_topic_ids": [
+        "transactional-outbox",
+        "invoice-version"
+      ]
+    },
+    {
+      "id": "nacre-dispatch-projection",
+      "category": "architecture-decisions",
+      "expected_topic_ids": [
+        "read-model",
+        "assignment-replay"
+      ],
+      "matched_topic_ids": [
+        "read-model",
+        "assignment-replay"
+      ]
+    },
+    {
+      "id": "tern-policy-ownership",
+      "category": "architecture-decisions",
+      "expected_topic_ids": [
+        "policy-repository",
+        "signed-policy-bundle"
+      ],
+      "matched_topic_ids": [
+        "policy-repository",
+        "signed-policy-bundle"
+      ]
+    },
+    {
+      "id": "bracken-handheld-storage",
+      "category": "technology-choices",
+      "expected_topic_ids": [
+        "sqlite",
+        "write-ahead-logging"
+      ],
+      "matched_topic_ids": [
+        "sqlite",
+        "write-ahead-logging"
+      ]
+    },
+    {
+      "id": "kestrel-preview-library",
+      "category": "technology-choices",
+      "expected_topic_ids": [
+        "libvips",
+        "streaming-image-processing"
+      ],
+      "matched_topic_ids": [
+        "libvips",
+        "streaming-image-processing"
+      ]
+    },
+    {
+      "id": "moss-template-format",
+      "category": "technology-choices",
+      "expected_topic_ids": [
+        "jinja2",
+        "strict-undefined"
+      ],
+      "matched_topic_ids": [
+        "jinja2",
+        "strict-undefined"
+      ]
+    },
+    {
+      "id": "nacre-live-board-transport",
+      "category": "technology-choices",
+      "expected_topic_ids": [
+        "server-sent-events",
+        "last-event-id"
+      ],
+      "matched_topic_ids": [
+        "server-sent-events",
+        "last-event-id"
+      ]
+    },
+    {
+      "id": "tern-claim-encoding",
+      "category": "technology-choices",
+      "expected_topic_ids": [
+        "protocol-buffers",
+        "reserved-field-numbers"
+      ],
+      "matched_topic_ids": [
+        "protocol-buffers",
+        "reserved-field-numbers"
+      ]
+    },
+    {
+      "id": "bracken-replay-diagnosis",
+      "category": "debugging-investigations",
+      "expected_topic_ids": [
+        "upload-sequences",
+        "reconnect-trace"
+      ],
+      "matched_topic_ids": [
+        "upload-sequences",
+        "reconnect-trace"
+      ]
+    },
+    {
+      "id": "kestrel-heap-diagnosis",
+      "category": "debugging-investigations",
+      "expected_topic_ids": [
+        "resident-set-size",
+        "native-heap-profile"
+      ],
+      "matched_topic_ids": [
+        "resident-set-size",
+        "native-heap-profile"
+      ]
+    },
+    {
+      "id": "moss-delivery-diagnosis",
+      "category": "debugging-investigations",
+      "expected_topic_ids": [
+        "outbox-insertion-time",
+        "queue-age-histogram"
+      ],
+      "matched_topic_ids": [
+        "outbox-insertion-time",
+        "queue-age-histogram"
+      ]
+    },
+    {
+      "id": "nacre-stale-board-diagnosis",
+      "category": "debugging-investigations",
+      "expected_topic_ids": [
+        "fresh-browser-profile",
+        "projection-checkpoint"
+      ],
+      "matched_topic_ids": [
+        "fresh-browser-profile",
+        "projection-checkpoint"
+      ]
+    },
+    {
+      "id": "tern-tail-latency-diagnosis",
+      "category": "debugging-investigations",
+      "expected_topic_ids": [
+        "tls-handshake-span",
+        "connection-reuse"
+      ],
+      "matched_topic_ids": [
+        "tls-handshake-span",
+        "connection-reuse"
+      ]
+    },
+    {
+      "id": "bracken-missing-scans-cause",
+      "category": "root-causes",
+      "expected_topic_ids": [
+        "cache-directory",
+        "firmware-cache-purge"
+      ],
+      "matched_topic_ids": [
+        "cache-directory",
+        "firmware-cache-purge"
+      ]
+    },
+    {
+      "id": "kestrel-profile-crash-cause",
+      "category": "root-causes",
+      "expected_topic_ids": [
+        "invalid-icc-profile",
+        "color-conversion"
+      ],
+      "matched_topic_ids": [
+        "invalid-icc-profile",
+        "color-conversion"
+      ]
+    },
+    {
+      "id": "moss-month-boundary-cause",
+      "category": "root-causes",
+      "expected_topic_ids": [
+        "utc-month-boundary",
+        "tenant-billing-timezone"
+      ],
+      "matched_topic_ids": [
+        "utc-month-boundary",
+        "tenant-billing-timezone"
+      ]
+    },
+    {
+      "id": "nacre-jumping-markers-cause",
+      "category": "root-causes",
+      "expected_topic_ids": [
+        "arrival-time-ordering",
+        "buffered-packets"
+      ],
+      "matched_topic_ids": [
+        "arrival-time-ordering",
+        "buffered-packets"
+      ]
+    },
+    {
+      "id": "tern-key-rollover-cause",
+      "category": "root-causes",
+      "expected_topic_ids": [
+        "stale-key-cache",
+        "unknown-key-id"
+      ],
+      "matched_topic_ids": [
+        "stale-key-cache",
+        "unknown-key-id"
+      ]
+    },
+    {
+      "id": "bracken-global-lock-failure",
+      "category": "failed-approaches",
+      "expected_topic_ids": [
+        "global-upload-mutex",
+        "head-of-line-blocking"
+      ],
+      "matched_topic_ids": [
+        "global-upload-mutex",
+        "head-of-line-blocking"
+      ]
+    },
+    {
+      "id": "kestrel-worker-memory-failure",
+      "category": "failed-approaches",
+      "expected_topic_ids": [
+        "worker-memory-limit",
+        "decoder-buffer-growth"
+      ],
+      "matched_topic_ids": [
+        "worker-memory-limit"
+      ]
+    },
+    {
+      "id": "moss-fixed-retry-failure",
+      "category": "failed-approaches",
+      "expected_topic_ids": [
+        "fixed-retry-interval",
+        "synchronized-retry-burst"
+      ],
+      "matched_topic_ids": [
+        "fixed-retry-interval",
+        "synchronized-retry-burst"
+      ]
+    },
+    {
+      "id": "nacre-faster-polling-failure",
+      "category": "failed-approaches",
+      "expected_topic_ids": [
+        "shorter-polling-interval",
+        "connection-pool-saturation"
+      ],
+      "matched_topic_ids": [
+        "shorter-polling-interval",
+        "connection-pool-saturation"
+      ]
+    },
+    {
+      "id": "tern-response-cache-failure",
+      "category": "failed-approaches",
+      "expected_topic_ids": [
+        "path-only-cache",
+        "missing-tenant-identifier"
+      ],
+      "matched_topic_ids": [
+        "path-only-cache"
+      ]
+    },
+    {
+      "id": "bracken-simulator-placement",
+      "category": "infrastructure",
+      "expected_topic_ids": [
+        "simulator-namespace",
+        "namespace-service-account"
+      ],
+      "matched_topic_ids": [
+        "simulator-namespace",
+        "namespace-service-account"
+      ]
+    },
+    {
+      "id": "kestrel-render-placement",
+      "category": "infrastructure",
+      "expected_topic_ids": [
+        "dedicated-node-pool",
+        "taint-and-toleration"
+      ],
+      "matched_topic_ids": [
+        "dedicated-node-pool",
+        "taint-and-toleration"
+      ]
+    },
+    {
+      "id": "moss-backup-placement",
+      "category": "infrastructure",
+      "expected_topic_ids": [
+        "separate-backup-account",
+        "immutable-backup-retention"
+      ],
+      "matched_topic_ids": [
+        "separate-backup-account",
+        "immutable-backup-retention"
+      ]
+    },
+    {
+      "id": "nacre-stream-ingress",
+      "category": "infrastructure",
+      "expected_topic_ids": [
+        "ingress-idle-timeout",
+        "stream-heartbeats"
+      ],
+      "matched_topic_ids": [
+        "ingress-idle-timeout"
+      ]
+    },
+    {
+      "id": "tern-certificate-rotation",
+      "category": "infrastructure",
+      "expected_topic_ids": [
+        "projected-certificate-volume",
+        "tls-hot-reload"
+      ],
+      "matched_topic_ids": [
+        "projected-certificate-volume",
+        "tls-hot-reload"
+      ]
+    },
+    {
+      "id": "bracken-backlog-alert",
+      "category": "operational-lessons",
+      "expected_topic_ids": [
+        "oldest-unsent-scan",
+        "fifteen-minute-hold"
+      ],
+      "matched_topic_ids": [
+        "oldest-unsent-scan",
+        "fifteen-minute-hold"
+      ]
+    },
+    {
+      "id": "kestrel-rollout-guard",
+      "category": "operational-lessons",
+      "expected_topic_ids": [
+        "canary-format-batch",
+        "peak-memory-budget"
+      ],
+      "matched_topic_ids": [
+        "canary-format-batch",
+        "peak-memory-budget"
+      ]
+    },
+    {
+      "id": "moss-restore-lesson",
+      "category": "operational-lessons",
+      "expected_topic_ids": [
+        "invoice-ledger-reconciliation",
+        "outbox-replay"
+      ],
+      "matched_topic_ids": [
+        "invoice-ledger-reconciliation",
+        "outbox-replay"
+      ]
+    },
+    {
+      "id": "nacre-rollback-lesson",
+      "category": "operational-lessons",
+      "expected_topic_ids": [
+        "previous-projection-generation",
+        "read-alias-switch"
+      ],
+      "matched_topic_ids": [
+        "previous-projection-generation",
+        "read-alias-switch"
+      ]
+    },
+    {
+      "id": "tern-rotation-monitoring-lesson",
+      "category": "operational-lessons",
+      "expected_topic_ids": [
+        "unknown-key-id-alert",
+        "synthetic-login-probe"
+      ],
+      "matched_topic_ids": [
+        "unknown-key-id-alert",
+        "synthetic-login-probe"
+      ]
+    }
+  ],
+  "overall_score": 0.9571,
+  "category_scores": {
+    "architecture-decisions": 1.0,
+    "technology-choices": 1.0,
+    "debugging-investigations": 1.0,
+    "root-causes": 1.0,
+    "failed-approaches": 0.8,
+    "infrastructure": 0.9,
+    "operational-lessons": 1.0
+  }
+}

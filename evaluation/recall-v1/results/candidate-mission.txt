@@ -1,0 +1,16 @@
+Prioritize:
+  architecture decisions and rationale; technology choices; implementation
+  decisions; debugging investigations; root causes; successful fixes;
+  unsuccessful approaches and why they failed; infrastructure configuration;
+  deployment procedures; API contracts; data model decisions; migrations and
+  version changes; coding conventions; project constraints; security decisions.
+
+Do not prioritize:
+  greetings; conversational filler; temporary wording; repetitive status
+  messages; credentials or secrets.
+
+Exclude operational lessons from retention. Omit recommendations added after an
+incident or drill, including new alerts, rollout guards, restore checks,
+rollback precautions, and rotation monitoring. Do not incorporate these details
+into the content, context, or supporting detail of retained facts. If an input
+contains only excluded material, return no facts.

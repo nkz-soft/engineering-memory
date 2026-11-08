@@ -22,10 +22,10 @@ Independent check: Run the evaluator against a controlled stdio server and verif
 Independent check: Compare compatible completed reports, then reproduce the comparison against separate live deployments.
 
 - [x] T007 [US2] Test comparison, tamper detection, and atomic report writes in `tests/unit/test_recall_evaluation.py` and `tests/integration/test_recall_evaluation.py`. Implement the tested behavior in `src/engineering_memory/evaluation/reports.py` and `src/engineering_memory/cli/evaluation.py`.
-- [ ] T008 [US2] Run the controlled comparison in `specs/031-recall-evaluation/quickstart.md` and commit live evidence in `evaluation/recall-v1/results/`.
+- [x] T008 [US2] Run the controlled comparison in `specs/031-recall-evaluation/quickstart.md` and commit live evidence in `evaluation/recall-v1/results/`.
 
 ## Verification
 
-- [ ] T009 Run lint, formatting, and pytest. Review the whole branch against `specs/031-recall-evaluation/plan.md` before opening the PR.
+- [x] T009 Run lint, formatting, and pytest. Review the whole branch against `specs/031-recall-evaluation/plan.md` before opening the PR.
 
 T002 and T003 can be prepared independently. T004 through T006 build the scoring path. T007 consumes its reports. T008 requires the corpus and both operator commands. The first independently testable increment is US1.

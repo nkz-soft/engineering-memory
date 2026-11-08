@@ -37,3 +37,5 @@ uv run engineering-memory evaluate compare --baseline BASELINE_REPORT --candidat
 
 5. Confirm there are at least 30 outcomes in each report, all seven categories appear, both runs used the same input digests and retrieval settings, and the overall delta is nonzero. Document the category changes, exact public mission variant, engine and extractor identifiers, and any observed variation. If the score is unchanged, report the result and investigate extraction and matcher behavior before claiming the criterion is met.
 6. Review the allowlisted metadata and commit the two JSON reports and comparison under `evaluation/recall-v1/results/`. Keep the environment files, archives, logs, and database files local. Run `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` before review.
+
+The [published baseline and candidate reports](../../evaluation/recall-v1/results/README.md) record the measured changes and the exact experimental settings.

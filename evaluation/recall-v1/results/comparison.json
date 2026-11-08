@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "profile": {
+      "run_id": "recall-v1-baseline",
+      "engine_version": "1.2.0",
+      "extractor_id": "openai-gpt-oss-20b",
+      "mission_sha256": "b50757abe5b97ec392e773e56ab4acc0563408a2010ac1bd80da565dc7cb9367"
+    },
+    "overall_score": 0.9571,
+    "category_scores": {
+      "architecture-decisions": 1.0,
+      "technology-choices": 1.0,
+      "debugging-investigations": 1.0,
+      "root-causes": 1.0,
+      "failed-approaches": 0.8,
+      "infrastructure": 0.9,
+      "operational-lessons": 1.0
+    }
+  },
+  "candidate": {
+    "profile": {
+      "run_id": "recall-v1-candidate",
+      "engine_version": "1.2.0",
+      "extractor_id": "openai-gpt-oss-20b",
+      "mission_sha256": "ef83e96e33eae4695015262097fb9f5eed4f6e75b7c8cd57d3101a000bd319c4"
+    },
+    "overall_score": 0.7571,
+    "category_scores": {
+      "architecture-decisions": 1.0,
+      "technology-choices": 0.9,
+      "debugging-investigations": 0.5,
+      "root-causes": 0.9,
+      "failed-approaches": 0.7,
+      "infrastructure": 0.9,
+      "operational-lessons": 0.4
+    }
+  },
+  "overall_delta_pp": -20.0,
+  "category_delta_pp": {
+    "architecture-decisions": 0.0,
+    "technology-choices": -10.0,
+    "debugging-investigations": -50.0,
+    "root-causes": -10.0,
+    "failed-approaches": -10.0,
+    "infrastructure": 0.0,
+    "operational-lessons": -60.0
+  }
+}
