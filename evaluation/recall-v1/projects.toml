@@ -1,0 +1,4 @@
+# This alias files the authored evaluation conversations under a dedicated project.
+[[project]]
+project = "recall-benchmark"
+aliases = ["Recall benchmark"]

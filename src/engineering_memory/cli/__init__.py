@@ -6,12 +6,16 @@ from importlib.metadata import PackageNotFoundError, version
 
 import typer
 
+from engineering_memory.cli.evaluation import app as evaluation_app
+
 app = typer.Typer(
     name="engineering-memory",
     help="Engineering memory: private conversation history, retained and recallable.",
     no_args_is_help=True,
     add_completion=False,
 )
+
+app.add_typer(evaluation_app, name="evaluate")
 
 
 def _version() -> str:

@@ -1,0 +1,999 @@
+{
+  "schema_version": 1,
+  "project_tag": "project:recall-benchmark",
+  "limit": 10,
+  "corpus_sha256": "5d1113ab7e8a809c2df14e1f8a5caeb8b5766e0d791290878205ced670e9603a",
+  "project_rules_sha256": "e5c7bd7484c63a83a602462c01e1a546526abc55c31a19b98ec998082109d504",
+  "questions": [
+    {
+      "id": "bracken-offline-scans",
+      "category": "architecture-decisions",
+      "query": "How did Bracken preserve depot scans when a handheld lost its connection?",
+      "topics": [
+        {
+          "id": "durable-local-queue",
+          "aliases": [
+            "durable local queue",
+            "persistent local queue",
+            "on-device queue"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-01"
+          ]
+        },
+        {
+          "id": "client-scan-id",
+          "aliases": [
+            "client-generated scan ID",
+            "client scan ID",
+            "scan idempotency key"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-render-boundary",
+      "category": "architecture-decisions",
+      "query": "Where did Kestrel move CPU-heavy previews and how does the API track them?",
+      "topics": [
+        {
+          "id": "worker-pool",
+          "aliases": [
+            "separate worker pool",
+            "dedicated render workers",
+            "render worker pool"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-01"
+          ]
+        },
+        {
+          "id": "render-job-id",
+          "aliases": [
+            "render job ID",
+            "preview job ID",
+            "render job identifier"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-invoice-commit",
+      "category": "architecture-decisions",
+      "query": "How did Moss make invoice creation and notification safe to retry together?",
+      "topics": [
+        {
+          "id": "transactional-outbox",
+          "aliases": [
+            "transactional outbox",
+            "outbox row"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-01"
+          ]
+        },
+        {
+          "id": "invoice-version",
+          "aliases": [
+            "invoice version",
+            "version of the invoice"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-dispatch-projection",
+      "category": "architecture-decisions",
+      "query": "How did Nacre let dispatchers read the board without querying the write model?",
+      "topics": [
+        {
+          "id": "read-model",
+          "aliases": [
+            "materialized read model",
+            "materialized projection",
+            "read projection"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-02"
+          ]
+        },
+        {
+          "id": "assignment-replay",
+          "aliases": [
+            "replaying assignment events",
+            "replay assignment events",
+            "append-only event log"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-policy-ownership",
+      "category": "architecture-decisions",
+      "query": "Where did Tern put authorization rules and how did services get consistent decisions?",
+      "topics": [
+        {
+          "id": "policy-repository",
+          "aliases": [
+            "central policy repository",
+            "centralized policy repository",
+            "shared policy repository"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-02"
+          ]
+        },
+        {
+          "id": "signed-policy-bundle",
+          "aliases": [
+            "signed policy bundle",
+            "signed bundle"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bracken-handheld-storage",
+      "category": "technology-choices",
+      "query": "What store did Bracken choose for handheld scans, and what made its crash behavior suitable?",
+      "topics": [
+        {
+          "id": "sqlite",
+          "aliases": [
+            "SQLite"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-03"
+          ]
+        },
+        {
+          "id": "write-ahead-logging",
+          "aliases": [
+            "write-ahead logging",
+            "WAL mode",
+            "write-ahead log"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-preview-library",
+      "category": "technology-choices",
+      "query": "Which library did Kestrel pick for very large image previews, and what property mattered?",
+      "topics": [
+        {
+          "id": "libvips",
+          "aliases": [
+            "libvips",
+            "vips library"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-03"
+          ]
+        },
+        {
+          "id": "streaming-image-processing",
+          "aliases": [
+            "streaming image operations",
+            "streaming image processing",
+            "demand-driven pipeline"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-template-format",
+      "category": "technology-choices",
+      "query": "Which invoice template engine did Moss choose, and what behavior did finance need from it?",
+      "topics": [
+        {
+          "id": "jinja2",
+          "aliases": [
+            "Jinja2",
+            "Jinja 2"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-03"
+          ]
+        },
+        {
+          "id": "strict-undefined",
+          "aliases": [
+            "StrictUndefined",
+            "strict undefined",
+            "fails on a missing template variable"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-live-board-transport",
+      "category": "technology-choices",
+      "query": "What transport did Nacre choose for board updates and how could a browser resume after reconnecting?",
+      "topics": [
+        {
+          "id": "server-sent-events",
+          "aliases": [
+            "Server-Sent Events",
+            "SSE transport"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-04"
+          ]
+        },
+        {
+          "id": "last-event-id",
+          "aliases": [
+            "Last-Event-ID",
+            "last event ID header"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-claim-encoding",
+      "category": "technology-choices",
+      "query": "Which serialization did Tern adopt for internal policy claims and how did it protect field compatibility?",
+      "topics": [
+        {
+          "id": "protocol-buffers",
+          "aliases": [
+            "Protocol Buffers",
+            "protobuf"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-04"
+          ]
+        },
+        {
+          "id": "reserved-field-numbers",
+          "aliases": [
+            "reserves retired field numbers",
+            "reserved field numbers",
+            "reserve retired field numbers"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bracken-replay-diagnosis",
+      "category": "debugging-investigations",
+      "query": "How did the Bracken team check whether ghost receipts came from handheld retries or new scans?",
+      "topics": [
+        {
+          "id": "upload-sequences",
+          "aliases": [
+            "upload sequence numbers",
+            "handheld upload sequence",
+            "upload sequence"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-05"
+          ]
+        },
+        {
+          "id": "reconnect-trace",
+          "aliases": [
+            "reconnect trace",
+            "reconnection trace"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-05"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-heap-diagnosis",
+      "category": "debugging-investigations",
+      "query": "Which measurements distinguished image buffers from job descriptors during Kestrel's memory investigation?",
+      "topics": [
+        {
+          "id": "resident-set-size",
+          "aliases": [
+            "resident set size",
+            "process RSS"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-05"
+          ]
+        },
+        {
+          "id": "native-heap-profile",
+          "aliases": [
+            "native heap profile",
+            "native heap profiling"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-05"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-delivery-diagnosis",
+      "category": "debugging-investigations",
+      "query": "What evidence did Moss use to trace delayed invoices from the database to the delivery worker?",
+      "topics": [
+        {
+          "id": "outbox-insertion-time",
+          "aliases": [
+            "outbox insertion time",
+            "outbox enqueue timestamp",
+            "outbox insertion timestamp"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-05"
+          ]
+        },
+        {
+          "id": "queue-age-histogram",
+          "aliases": [
+            "queue age histogram",
+            "queue age distribution"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-05"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-stale-board-diagnosis",
+      "category": "debugging-investigations",
+      "query": "How did Nacre check whether stale assignments came from the browser or the event feed?",
+      "topics": [
+        {
+          "id": "fresh-browser-profile",
+          "aliases": [
+            "fresh browser profile",
+            "clean browser profile"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-06"
+          ]
+        },
+        {
+          "id": "projection-checkpoint",
+          "aliases": [
+            "projection checkpoint",
+            "read model checkpoint"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-06"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-tail-latency-diagnosis",
+      "category": "debugging-investigations",
+      "query": "How did Tern locate the source of intermittent slow authorization calls?",
+      "topics": [
+        {
+          "id": "tls-handshake-span",
+          "aliases": [
+            "TLS handshake spans",
+            "TLS handshake span",
+            "TLS handshake timing"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-06"
+          ]
+        },
+        {
+          "id": "connection-reuse",
+          "aliases": [
+            "connection reuse",
+            "reused connections"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-06"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bracken-missing-scans-cause",
+      "category": "root-causes",
+      "query": "What caused Bracken to lose unsent scans after the handheld firmware upgrade?",
+      "topics": [
+        {
+          "id": "cache-directory",
+          "aliases": [
+            "cache directory",
+            "OS cache directory"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-07"
+          ]
+        },
+        {
+          "id": "firmware-cache-purge",
+          "aliases": [
+            "cleared that cache",
+            "cleared the cache",
+            "cache purge",
+            "cache cleanup during upgrade"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-profile-crash-cause",
+      "category": "root-causes",
+      "query": "Why did only images from one scanner crash Kestrel's preview worker?",
+      "topics": [
+        {
+          "id": "invalid-icc-profile",
+          "aliases": [
+            "invalid ICC color profile",
+            "malformed ICC profile",
+            "invalid ICC profile"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-07"
+          ]
+        },
+        {
+          "id": "color-conversion",
+          "aliases": [
+            "color conversion path",
+            "color conversion",
+            "color transform"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-month-boundary-cause",
+      "category": "root-causes",
+      "query": "Why did Moss include some late-evening invoices in the following billing month?",
+      "topics": [
+        {
+          "id": "utc-month-boundary",
+          "aliases": [
+            "UTC month boundary",
+            "month boundary in UTC",
+            "UTC month cutoff"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-07"
+          ]
+        },
+        {
+          "id": "tenant-billing-timezone",
+          "aliases": [
+            "tenant billing timezone",
+            "tenant timezone",
+            "tenant time zone"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-jumping-markers-cause",
+      "category": "root-causes",
+      "query": "Why did old positions replace newer positions on the Nacre dispatch board?",
+      "topics": [
+        {
+          "id": "arrival-time-ordering",
+          "aliases": [
+            "ordered position updates by arrival time",
+            "arrival time",
+            "arrival order"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-08"
+          ]
+        },
+        {
+          "id": "buffered-packets",
+          "aliases": [
+            "buffered packets",
+            "buffered updates",
+            "queued position updates"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-08"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-key-rollover-cause",
+      "category": "root-causes",
+      "query": "Why did Tern reject newly issued sessions immediately after signing-key rotation?",
+      "topics": [
+        {
+          "id": "stale-key-cache",
+          "aliases": [
+            "cached the old key set",
+            "cached key set",
+            "stale key cache"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-08"
+          ]
+        },
+        {
+          "id": "unknown-key-id",
+          "aliases": [
+            "unknown key ID",
+            "unrecognized key ID",
+            "unknown kid"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-08"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bracken-global-lock-failure",
+      "category": "failed-approaches",
+      "query": "What early Bracken fix made parallel depot uploads worse, and how did it affect unrelated handhelds?",
+      "topics": [
+        {
+          "id": "global-upload-mutex",
+          "aliases": [
+            "global upload mutex",
+            "global upload lock",
+            "single upload mutex"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-09"
+          ]
+        },
+        {
+          "id": "head-of-line-blocking",
+          "aliases": [
+            "head-of-line blocking",
+            "blocked unrelated handhelds"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-worker-memory-failure",
+      "category": "failed-approaches",
+      "query": "What Kestrel experiment only postponed the renderer crash instead of resolving it?",
+      "topics": [
+        {
+          "id": "worker-memory-limit",
+          "aliases": [
+            "raised the worker memory limit",
+            "higher memory limit",
+            "increased worker memory"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-09"
+          ]
+        },
+        {
+          "id": "decoder-buffer-growth",
+          "aliases": [
+            "decoder buffers continued to accumulate",
+            "accumulating decoder buffers",
+            "decoder buffer growth"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-fixed-retry-failure",
+      "category": "failed-approaches",
+      "query": "Which Moss delivery retry policy amplified the load after the mail provider recovered?",
+      "topics": [
+        {
+          "id": "fixed-retry-interval",
+          "aliases": [
+            "fixed retry interval",
+            "fixed-interval retries",
+            "fixed retry delay"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-09"
+          ]
+        },
+        {
+          "id": "synchronized-retry-burst",
+          "aliases": [
+            "synchronized retry burst",
+            "synchronized retries",
+            "retry storm"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-faster-polling-failure",
+      "category": "failed-approaches",
+      "query": "What did Nacre try before changing its live-board transport, and what new bottleneck did that create?",
+      "topics": [
+        {
+          "id": "shorter-polling-interval",
+          "aliases": [
+            "shortened the polling interval",
+            "one-second polling",
+            "shorter polling interval"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-10"
+          ]
+        },
+        {
+          "id": "connection-pool-saturation",
+          "aliases": [
+            "saturating the database connection pool",
+            "database connection pool",
+            "connection pool saturation"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-response-cache-failure",
+      "category": "failed-approaches",
+      "query": "Why did Tern abandon the first cache for authorization responses?",
+      "topics": [
+        {
+          "id": "path-only-cache",
+          "aliases": [
+            "by request path alone",
+            "path-only cache",
+            "request path as the cache key"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-10"
+          ]
+        },
+        {
+          "id": "missing-tenant-identifier",
+          "aliases": [
+            "tenant identifier was absent",
+            "missing tenant identifier",
+            "omitted tenant ID"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bracken-simulator-placement",
+      "category": "infrastructure",
+      "query": "Where did the Bracken depot simulator run and how did it reach an isolated test broker?",
+      "topics": [
+        {
+          "id": "simulator-namespace",
+          "aliases": [
+            "depot-simulation",
+            "dedicated Kubernetes namespace"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-11"
+          ]
+        },
+        {
+          "id": "namespace-service-account",
+          "aliases": [
+            "namespace-scoped service account",
+            "namespace service account"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-11"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-render-placement",
+      "category": "infrastructure",
+      "query": "How did Kestrel keep large render jobs from competing with HTTP traffic for CPU?",
+      "topics": [
+        {
+          "id": "dedicated-node-pool",
+          "aliases": [
+            "dedicated node pool",
+            "dedicated render node pool"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-11"
+          ]
+        },
+        {
+          "id": "taint-and-toleration",
+          "aliases": [
+            "render-only taint",
+            "matching toleration",
+            "node taint"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-11"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-backup-placement",
+      "category": "infrastructure",
+      "query": "Where did Moss keep billing database backups and what kept a compromised application from deleting them?",
+      "topics": [
+        {
+          "id": "separate-backup-account",
+          "aliases": [
+            "separate backup account",
+            "isolated backup account"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-11"
+          ]
+        },
+        {
+          "id": "immutable-backup-retention",
+          "aliases": [
+            "immutable retention window",
+            "object lock",
+            "immutable retention"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-11"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-stream-ingress",
+      "category": "infrastructure",
+      "query": "Which ingress configuration kept Nacre board updates flowing during otherwise quiet periods?",
+      "topics": [
+        {
+          "id": "ingress-idle-timeout",
+          "aliases": [
+            "sixty-second idle timeout",
+            "60-second idle timeout",
+            "ingress idle timeout"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-12"
+          ]
+        },
+        {
+          "id": "stream-heartbeats",
+          "aliases": [
+            "heartbeat comment",
+            "heartbeat every twenty seconds",
+            "stream heartbeat"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-12"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-certificate-rotation",
+      "category": "infrastructure",
+      "query": "How did Tern renew its gateway certificates without restarting the pods?",
+      "topics": [
+        {
+          "id": "projected-certificate-volume",
+          "aliases": [
+            "projected volume",
+            "projected certificate volume"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-12"
+          ]
+        },
+        {
+          "id": "tls-hot-reload",
+          "aliases": [
+            "hot reloads the TLS certificate",
+            "TLS hot reload",
+            "hot reload the certificate"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-12"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bracken-backlog-alert",
+      "category": "operational-lessons",
+      "query": "What signal and delay did Bracken add to detect an offline depot before a shift ended?",
+      "topics": [
+        {
+          "id": "oldest-unsent-scan",
+          "aliases": [
+            "oldest unsent scan",
+            "oldest pending scan",
+            "scan backlog age"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-13"
+          ]
+        },
+        {
+          "id": "fifteen-minute-hold",
+          "aliases": [
+            "fifteen consecutive minutes",
+            "15 consecutive minutes",
+            "fifteen-minute hold"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-13"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kestrel-rollout-guard",
+      "category": "operational-lessons",
+      "query": "What two checks could stop a Kestrel renderer rollout after the preview incident?",
+      "topics": [
+        {
+          "id": "canary-format-batch",
+          "aliases": [
+            "canary batch across image formats",
+            "multi-format canary",
+            "canary batch"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-13"
+          ]
+        },
+        {
+          "id": "peak-memory-budget",
+          "aliases": [
+            "canary memory budget",
+            "peak resident memory",
+            "peak RSS"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-13"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moss-restore-lesson",
+      "category": "operational-lessons",
+      "query": "What did Moss start verifying during backup drills after discovering that restoration alone was insufficient?",
+      "topics": [
+        {
+          "id": "invoice-ledger-reconciliation",
+          "aliases": [
+            "reconciles restored invoice totals",
+            "invoice totals against a finance ledger",
+            "ledger reconciliation"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-13"
+          ]
+        },
+        {
+          "id": "outbox-replay",
+          "aliases": [
+            "outbox replay",
+            "replay the outbox"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-13"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nacre-rollback-lesson",
+      "category": "operational-lessons",
+      "query": "How does Nacre now avoid changing both the board build and its saved read state during rollback?",
+      "topics": [
+        {
+          "id": "previous-projection-generation",
+          "aliases": [
+            "previous projection generation",
+            "prior projection generation",
+            "previous generation"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-14"
+          ]
+        },
+        {
+          "id": "read-alias-switch",
+          "aliases": [
+            "switching the read alias",
+            "switch the read alias",
+            "read alias"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-14"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tern-rotation-monitoring-lesson",
+      "category": "operational-lessons",
+      "query": "How did Tern change key rotation monitoring after normal aggregate traffic hid login failures?",
+      "topics": [
+        {
+          "id": "unknown-key-id-alert",
+          "aliases": [
+            "unknown key ID rejections",
+            "unknown key ID metric",
+            "unknown key ID alert"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-14"
+          ]
+        },
+        {
+          "id": "synthetic-login-probe",
+          "aliases": [
+            "synthetic login probe",
+            "synthetic login check"
+          ],
+          "document_ids": [
+            "chatgpt:recall-v1-14"
+          ]
+        }
+      ]
+    }
+  ]
+}

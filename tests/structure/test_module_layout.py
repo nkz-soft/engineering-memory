@@ -218,6 +218,7 @@ FILLED_BOUNDARIES = frozenset(
     {
         "observability",
         "access",
+        "evaluation",
         "cli",
         "normalization",
         "ingestion",
@@ -230,6 +231,7 @@ FILLED_BOUNDARIES = frozenset(
 )
 """The recorded boundaries a feature has filled with an implementation, and when.
 * ``access`` — 024-hermes-memory-access, read-only stdio MCP retrieval (ADR-008).
+* `evaluation` — 031-recall-evaluation, synthetic benchmark scoring through MCP.
 
 * ``memory.hindsight`` — 014-local-hindsight-deployment adds the synthetic operational
   smoke probe, not the production memory-store adapter.
@@ -347,19 +349,19 @@ def test_the_behaviour_guard_still_bites(tmp_path, monkeypatch) -> None:
     This builds a package root holding one recorded module with real code in it, and insists the
     guard reports it.
 
-    The module used here was ``archive`` until 007-boundary-interfaces filled it. It is
-    ``evaluation`` now — a boundary no feature has reached — because a guard demonstrated against a
+    The module used here was ``evaluation`` until 031-recall-evaluation filled it. It is
+    ``api`` now — a boundary no feature has reached — because a guard demonstrated against a
     module that is exempt demonstrates nothing.
     """
     fake_root = tmp_path / "engineering_memory"
-    (fake_root / "evaluation").mkdir(parents=True)
-    (fake_root / "evaluation" / "__init__.py").write_text('"""A boundary."""\n', encoding="utf-8")
-    (fake_root / "evaluation" / "score.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (fake_root / "api").mkdir(parents=True)
+    (fake_root / "api" / "__init__.py").write_text('"""A boundary."""\n', encoding="utf-8")
+    (fake_root / "api" / "score.py").write_text("VALUE = 1\n", encoding="utf-8")
 
     monkeypatch.setattr("tests.structure.test_module_layout.PACKAGE_ROOT", fake_root)
     monkeypatch.setattr("tests.structure.test_module_layout.REPO_ROOT", tmp_path)
 
-    with pytest.raises(AssertionError, match=re.escape("evaluation/score.py")):
+    with pytest.raises(AssertionError, match=re.escape("api/score.py")):
         test_recorded_modules_carry_no_behaviour()
 
 

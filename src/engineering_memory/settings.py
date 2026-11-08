@@ -16,6 +16,7 @@ none, so giving it a peer package would misrepresent it as a sixteenth boundary 
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Annotated, Any, get_args, get_origin
 
@@ -472,3 +473,14 @@ def load_access_settings() -> AccessSettings:
     except (ValidationError, SettingsError):
         pass
     raise SettingsError("configuration invalid")
+
+
+def access_subprocess_environment() -> dict[str, str]:
+    """Forward only the environment overrides consumed by the read-only server."""
+    access_names = {f"{ENV_PREFIX}ARCHIVE_ROOT", f"{ENV_PREFIX}HINDSIGHT"}
+    nested_prefix = f"{ENV_PREFIX}HINDSIGHT{ENV_NESTED_DELIMITER}"
+    return {
+        name: value
+        for name, value in os.environ.items()
+        if name.upper() in access_names or name.upper().startswith(nested_prefix)
+    }

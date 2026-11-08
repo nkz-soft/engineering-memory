@@ -1,0 +1,2214 @@
+[
+  {
+    "title": "Recall benchmark - Durability review",
+    "create_time": 1767603600,
+    "update_time": 1767604290,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767603600,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "We are signing off Bracken's handheld sync design. Summarize what survives a hard reboot and how the server handles a replay."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767603690,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Bracken writes each scan to a durable local queue before acknowledging it to the operator. The upload sends a client-generated scan ID so that reconnect retries cannot create a second receipt."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767603900,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Kestrel preview route is timing out when a large thumbnail batch arrives. What did the design review approve?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767603990,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Kestrel moved rendering into a separate worker pool behind a render queue. The API creates a render job ID and returns immediately, letting callers poll the job instead of holding open the upload connection."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767604200,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Please capture how we closed the crash window between committing an invoice and asking the mailer to deliver it."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767604290,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Moss writes the invoice and a transactional outbox row in the same database transaction. The delivery worker uses the invoice version as its deduplication key, so a retry does not mail an earlier version twice."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-01",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Projection and policy decisions",
+    "create_time": 1767690000,
+    "update_time": 1767690390,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767690000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Can you summarize the decision about how the dispatch board gets its read data and how it can recover after a missed event?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767690090,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Nacre serves the dispatch board from a materialized read model. It can rebuild the projection by replaying assignment events from the append-only event log."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767690300,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Add the conclusion from the gateway policy meeting. Two services had drifted on the same rule."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767690390,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern keeps authorization rules in a central policy repository and distributes a signed policy bundle with a version. Each service evaluates that version locally, so a policy service outage does not block routine requests."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-02",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Storage and rendering tool choices",
+    "create_time": 1767776400,
+    "update_time": 1767777090,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767776400,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The handheld prototype compared a JSON file to an embedded database. Which option passed the unplug tests?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767776490,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Bracken chose SQLite for the handheld scan journal. Write-ahead logging let readers keep serving the screen during batch writes, and the unplug tests confirmed that reopening recovered the committed scans."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767776700,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The old thumbnail implementation decoded the entire bitmap even when producing a tiny preview. Capture the library decision from our memory trial."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767776790,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Kestrel selected libvips for previews because its demand-driven pipeline can use streaming image operations. The prototype handled our large test input while keeping resident memory below the worker limit."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767777000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Finance wants predictable output from invoice templates even when they rename a field. Which rendering option passed that test?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767777090,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Moss standardized on Jinja2 with StrictUndefined. The renderer fails on a missing template variable rather than silently producing a blank value in the invoice."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-03",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Client update and claim formats",
+    "create_time": 1767862800,
+    "update_time": 1767863190,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767862800,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "We had considered polling or an open connection for the dispatcher board. Document the picked protocol and the resume mechanism."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767862890,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Nacre chose Server-Sent Events for one-way board updates. Every update carries a sequence number in the event ID, and the browser can resume by sending Last-Event-ID on reconnect."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767863100,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Write up the policy claim format choice. A rolling deployment must let old readers skip fields added by the new sender."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767863190,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern adopted Protocol Buffers for policy claims. The schema reserves retired field numbers so their meaning cannot be accidentally reused while old services are still running."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-04",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Handheld, preview, and billing triage",
+    "create_time": 1767949200,
+    "update_time": 1767949890,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767949200,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "At the depot we saw two receipt rows for one pallet. We need the evidence used to distinguish a re-upload from a second scan."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767949290,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Bracken incident team correlated handheld upload sequence numbers with the server receipt log. A captured reconnect trace then showed the same payload being sent after an acknowledgment was lost."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767949500,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "We could not tell whether the render process leaked image memory or simply held too many queued descriptors. What did the lab run measure?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767949590,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Kestrel engineer sampled resident set size while the render queue was deliberately held flat. A native heap profile attributed the growth to decoder buffers rather than to job descriptors."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767949800,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Invoices appeared on screen immediately but took half an hour to arrive. Give me the diagnostic steps from the on-call timeline."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1767949890,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Moss team compared outbox insertion time with delivery attempt time for the same invoice. The queue age histogram showed a backlog concentrated in the largest customer partition."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-05",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Board and gateway incident triage",
+    "create_time": 1768035600,
+    "update_time": 1768035990,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768035600,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Dispatchers reported that refresh briefly corrected the board. What was the isolation procedure?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768035690,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Nacre team reproduced the issue in a fresh browser profile and captured the network stream. They compared the last received event sequence with the projection checkpoint to tell browser staleness from an ingestion delay."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768035900,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "During the tail-latency review we needed to split policy evaluation from connection setup. What instrumentation made the difference visible?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768035990,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern split the request trace into policy evaluation spans and TLS handshake spans. Grouping the slow traces by connection reuse exposed that only fresh connections suffered the latency spike."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-06",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Scan loss, image failures, and invoice drift",
+    "create_time": 1768122000,
+    "update_time": 1768122690,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768122000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The reproduction is stable. A handheld restarts after the firmware update, opens an empty journal, and its connectivity is fine. What did the filesystem inspection find?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768122090,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Bracken stored pending scans under the operating system cache directory. The firmware upgrade cleared that cache during migration, deleting the local journal before the handheld could upload it."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768122300,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The same source image works after stripping metadata. What was the invalid field, and where did the worker fail?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768122390,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The scanner wrote an invalid ICC color profile into its images. The Kestrel worker's color conversion path tried to interpret the malformed profile and aborted before producing a thumbnail."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768122600,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Support only saw misfiled invoices from tenants west of UTC, and only close to midnight UTC. What boundary did we compute incorrectly?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768122690,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Moss grouped invoices at the UTC month boundary. Because the tenant billing timezone was ignored, late local evenings could already belong to the next calendar month in UTC."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-07",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Board ordering and gateway key rollover",
+    "create_time": 1768208400,
+    "update_time": 1768208790,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768208400,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The device feed had no missing positions, but reconnecting vans appeared to jump backwards. What condition let the older position win?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768208490,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Nacre ordered position updates by arrival time. Buffered packets arrived after fresh updates during reconnection, so an old packet overwrote the new position even though its device sequence number was lower."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768208700,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The new sessions were valid when checked by the issuer. Which verifier behavior made the gateway reject them until the cache timed out?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768208790,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern cached the old key set for fifteen minutes. A request carrying an unknown key ID received a rejection without refreshing the cached key set, so every session signed by the new key failed until expiry."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-08",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Approaches discarded after reproduction",
+    "create_time": 1768294800,
+    "update_time": 1768295490,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768294800,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "List the mitigation we removed after replaying a slow upload alongside normal handheld traffic."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768294890,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Bracken tried a global upload mutex to avoid duplicate receipts. A slow connection held it long enough to cause head-of-line blocking across unrelated handhelds, so throughput dropped without removing the need for deduplication."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768295100,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The preview job eventually died in both trials. What knob had we changed and why did the failure just take longer?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768295190,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Kestrel raised the worker memory limit. Decoder buffers continued to accumulate after each job, so the larger budget only delayed the next out-of-memory kill."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768295400,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "In the incident replay the service came back, then fell over a second time. Summarize the retry policy that created the second spike."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768295490,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Moss retried failed deliveries at a fixed retry interval. Workers entered a synchronized retry burst when the provider recovered, so the backlog produced another rate-limit wave."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-09",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Board consistency and gateway performance experiments",
+    "create_time": 1768381200,
+    "update_time": 1768381590,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768381200,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The old board still lagged in the field even after the first tuning pass. Which experiment overloaded the backend?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768381290,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Nacre shortened the polling interval to one second. Dispatch consoles began querying in lockstep, saturating the database connection pool even when no assignments changed."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768381500,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "We needed a cheap speedup, and the prototype seemed fast. What cross-tenant correctness failure ended the trial?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768381590,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern keyed the authorization response cache by request path alone. Because the tenant identifier was absent from the cache key, a decision cached for one tenant could be reused for another."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-10",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Runtime layout and worker configuration",
+    "create_time": 1768467600,
+    "update_time": 1768468290,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768467600,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Add enough deployment detail for someone to reconstruct the handheld simulation environment without using the production broker."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768467690,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Bracken depot simulator runs in a dedicated Kubernetes namespace named depot-simulation. A namespace-scoped service account authenticates to the test message broker."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768467900,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The load test showed render bursts starving the API. Record the runtime placement and scheduling constraint that separated them."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768467990,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Kestrel assigns render jobs to a dedicated node pool with a render-only taint. Render workers carry the matching toleration, while API workloads remain on the general-purpose pool."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768468200,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Finance asks what survives compromise of the main application account. Can you confirm the backup boundary from the restore rehearsal?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768468290,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Moss sends billing database backups to a separate backup account. Object lock enforces an immutable retention window, and the application account cannot change it."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-11",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Traffic paths and certificate automation",
+    "create_time": 1768554000,
+    "update_time": 1768554390,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768554000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Our staging browser stayed connected but was disconnected when no dispatch events occurred. What did the deployment record say to configure?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768554090,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The Nacre ingress uses a sixty-second idle timeout for event streams. The application sends a heartbeat comment every twenty seconds, so idle dispatch periods do not close the connection."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768554300,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Document the certificate delivery and what lets the process keep serving existing connections after the cert changes."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768554390,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern mounts certificates from a projected volume updated by the certificate controller. The gateway watches for replacement files and hot reloads the TLS certificate without restarting."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-12",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Safeguards added after incidents",
+    "create_time": 1768640400,
+    "update_time": 1768641090,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768640400,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Last shift the transport stayed mostly healthy, yet one depot was disconnected. What condition did the on-call playbook add?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768640490,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Bracken now alerts on the oldest unsent scan rather than overall upload volume. The alert requires fifteen consecutive minutes of backlog age above the threshold before paging the depot operator."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768640700,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Summarize the release guard we added so a decoder change cannot quietly fail for only one input type."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768640790,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Kestrel runs a canary batch across image formats before promoting a render worker. Promotion requires zero failed previews and peak resident memory below the canary memory budget."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": [
+          "n5"
+        ]
+      },
+      "n5": {
+        "id": "n5",
+        "message": {
+          "id": "n5",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768641000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The database restored successfully in the billing drill, but finance could not sign off immediately. What checks did they add?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n4",
+        "children": [
+          "n6"
+        ]
+      },
+      "n6": {
+        "id": "n6",
+        "message": {
+          "id": "n6",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768641090,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Moss now reconciles restored invoice totals against a finance ledger snapshot. The drill also measures time to resume invoice delivery, including outbox replay, so it tests the full recovery path."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n5",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n6",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-13",
+    "default_model_slug": "synthetic"
+  },
+  {
+    "title": "Recall benchmark - Rollback and paging playbooks",
+    "create_time": 1768726800,
+    "update_time": 1768727190,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": [
+          "n1"
+        ]
+      },
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "n1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768726800,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "We need an explicit rollback rule after a deploy left dispatchers with an unreadable board. What do operators preserve and how do they cut over?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": [
+          "n2"
+        ]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "n2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768726890,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Nacre keeps the previous projection generation until the new one passes its checks. Operators roll back by switching the read alias to the previous generation without rebuilding state during the incident."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n1",
+        "children": [
+          "n3"
+        ]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "n3",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768727100,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The average success rate barely moved during rotation. What signal and probe did the incident review add?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n2",
+        "children": [
+          "n4"
+        ]
+      },
+      "n4": {
+        "id": "n4",
+        "message": {
+          "id": "n4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1768727190,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Tern added an alert on unknown key ID rejections as a separate metric. A synthetic login probe validates a newly signed session against every gateway pool before the old key is retired."
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": true,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "n3",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "n4",
+    "plugin_ids": null,
+    "conversation_id": "recall-v1-14",
+    "default_model_slug": "synthetic"
+  }
+]

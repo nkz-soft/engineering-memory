@@ -363,3 +363,10 @@ freshness, failure recovery and validation.
 read-only stdio MCP server and verify cross-agent visibility after import. The guide
 separates backend regression coverage from actual client acceptance; consult its linked
 verification record for outstanding live prerequisites.
+
+
+## Recall evaluation
+
+Run the [synthetic recall benchmark](specs/031-recall-evaluation/quickstart.md) to
+measure topic coverage across 35 questions and compare two completed runs. The
+evaluator queries the read-only MCP server and writes scores and topic IDs.
