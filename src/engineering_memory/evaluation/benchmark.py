@@ -109,7 +109,10 @@ class Benchmark(EvaluationModel):
 
 
 def _source_texts(corpus: bytes) -> dict[str, list[tuple[str, ...]]]:
-    records = json.loads(corpus)
+    try:
+        records = json.loads(corpus)
+    except (ValueError, RecursionError):
+        raise ValueError("invalid corpus JSON") from None
     if not isinstance(records, list) or not records:
         raise ValueError("corpus must contain conversations")
     texts = {}

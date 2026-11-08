@@ -122,7 +122,7 @@ def test_report_rejects_untrusted_profile_fields():
         RunReport.model_validate(raw)
 
 
-@pytest.mark.parametrize("defect", ["missing-mapping", "invalid-role"])
+@pytest.mark.parametrize("defect", ["missing-mapping", "invalid-role", "nested-json"])
 def test_malformed_export_is_reported_as_invalid_input(tmp_path, defect):
     import json
 
@@ -130,6 +130,8 @@ def test_malformed_export_is_reported_as_invalid_input(tmp_path, defect):
         (tmp_path / name).write_bytes((DATA / name).read_bytes())
     if defect == "missing-mapping":
         corpus = '[{"conversation_id":"PRIVATE_SENTINEL","mapping":null}]'
+    elif defect == "nested-json":
+        corpus = "[" * 3000 + "]" * 3000
     else:
         record = json.loads((DATA / "conversations.json").read_bytes())[0]
         message = next(node["message"] for node in record["mapping"].values() if node["message"])
@@ -140,7 +142,7 @@ def test_malformed_export_is_reported_as_invalid_input(tmp_path, defect):
     raw = json.loads(manifest.read_bytes())
     raw["corpus_sha256"] = digest(corpus)
     manifest.write_text(json.dumps(raw), encoding="utf-8")
-    with pytest.raises(ValueError, match="invalid corpus conversation") as error:
+    with pytest.raises(ValueError, match="invalid corpus") as error:
         load_benchmark(manifest)
     assert "PRIVATE_SENTINEL" not in str(error.value)
 

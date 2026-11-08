@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from mcp.client import stdio
 from mcp.client.stdio import StdioServerParameters
 from typer.testing import CliRunner
 
@@ -15,6 +16,7 @@ SERVER = """
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from engineering_memory.access.server import run_stdio
@@ -30,6 +32,8 @@ class Access:
         with queries_path.open("a", encoding="utf-8") as out:
             out.write(json.dumps(kwargs) + "\\n")
         print("PRIVATE_SERVER_SENTINEL", file=sys.stderr)
+        if mode == "timeout":
+            time.sleep(60)
         if mode == "fail":
             raise AccessError("PRIVATE_TOOL_SENTINEL")
         if mode == "wire":
@@ -54,8 +58,22 @@ run_stdio(Access())
 """
 
 
-@pytest.mark.parametrize("mode", ["empty", "text", "fail", "malformed", "wire", "notification"])
+@pytest.mark.parametrize(
+    "mode", ["empty", "text", "fail", "malformed", "wire", "notification", "timeout"]
+)
 def test_recall_cli_over_stdio(tmp_path, monkeypatch, caplog, mode):
+    start = stdio._create_platform_compatible_process
+    children = []
+
+    async def capture_child(**kwargs):
+        process = await start(**kwargs)
+        children.append(process)
+        return process
+
+    monkeypatch.setattr(stdio, "_create_platform_compatible_process", capture_child)
+    if mode == "timeout":
+        monkeypatch.setattr(runner, "_CALL_TIMEOUT", 8)
+
     script = tmp_path / "server.py"
     script.write_text(SERVER, encoding="utf-8")
     queries = tmp_path / "queries.jsonl"
@@ -100,7 +118,8 @@ def test_recall_cli_over_stdio(tmp_path, monkeypatch, caplog, mode):
     )
     assert "PRIVATE_" not in result.output
     assert "PRIVATE_" not in caplog.text
-    if mode in {"fail", "malformed", "wire"}:
+    assert len(children) == 1 and children[0].returncode is not None
+    if mode in {"fail", "malformed", "wire", "timeout"}:
         assert result.exit_code == 1
         assert "recall failed" in result.output
         assert len(requests) == 1
