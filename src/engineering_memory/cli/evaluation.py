@@ -1,4 +1,4 @@
-"""Run and compare the synthetic recall benchmark."""
+"""Run the recall benchmark and paired reflection evaluation."""
 
 from pathlib import Path
 from typing import Annotated, NoReturn
@@ -7,15 +7,16 @@ import anyio
 import typer
 
 from engineering_memory.evaluation.benchmark import load_benchmark
+from engineering_memory.evaluation.reflect import ReflectCaseSet
 from engineering_memory.evaluation.reports import (
     RunProfile,
     RunReport,
     compare_reports,
     write_report,
 )
-from engineering_memory.evaluation.runner import RecallFailed, run_recall
+from engineering_memory.evaluation.runner import RecallFailed, run_recall, run_reflect
 
-app = typer.Typer(no_args_is_help=True, help="Score or compare synthetic recall runs.")
+app = typer.Typer(no_args_is_help=True, help="Evaluate recall and reflection.")
 
 
 def _fail(category: str) -> NoReturn:
@@ -65,3 +66,33 @@ def compare(
         write_report(comparison, output)
     except OSError:
         _fail("report write failed")
+
+
+@app.command("reflect")
+def reflect(
+    cases: Annotated[Path, typer.Option(help="Case set under the local data directory.")],
+    output: Annotated[Path, typer.Option(help="Paired report under the local data directory.")],
+) -> None:
+    """Compare recall and reflection on a private case set."""
+    try:
+        private = Path.cwd().resolve() / "data"
+        cases, output = cases.resolve(strict=True), output.resolve()
+        if (
+            private.resolve() != private
+            or private not in cases.parents
+            or private not in output.parents
+            or output == cases
+            or not cases.is_file()
+        ):
+            raise ValueError("invalid private paths")
+        case_set = ReflectCaseSet.model_validate_json(cases.read_bytes())
+    except (ValueError, OSError):
+        _fail("invalid reflection evaluation input")
+
+    report = anyio.run(run_reflect, case_set)
+    try:
+        write_report(report, output, exclude_none=True)
+    except OSError:
+        _fail("report write failed")
+    if report.has_errors:
+        _fail("reflection evaluation failed")

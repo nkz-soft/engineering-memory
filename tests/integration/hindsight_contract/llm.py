@@ -57,7 +57,9 @@ def completion(body):
         raise ValueError("deliberately failed synthetic synthesis")
     if "call" in properties:
         names = {option["properties"]["name"]["enum"][0] for option in properties["call"]["anyOf"]}
-    elif "markdown" in properties:
+    elif "markdown" in properties or (
+        "answer" in properties and "Synthetic reflect contract:" in json.dumps(body["messages"])
+    ):
         names = {"done"}
     elif "query" in properties:
         return {
@@ -119,7 +121,7 @@ def completion(body):
             else ["> " + text for text in facts.values()]
         )
         arguments = {
-            "markdown": "## Project summary\n\n"
+            ("answer" if "answer" in properties else "markdown"): "## Project summary\n\n"
             + "\n\n".join(blocks or ["Insufficient evidence."]),
             "answer_found": bool(facts),
             "memory_ids": list(facts),

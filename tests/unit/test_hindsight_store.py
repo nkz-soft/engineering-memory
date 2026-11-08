@@ -313,3 +313,60 @@ def test_refused_replay_preserves_prior_uncertain_uuid():
         store.retain(sample())
     store.retain(sample())
     assert len(set(operations)) == 1
+
+
+def test_reflect_requests_strict_scope_and_decodes_evidence():
+    enriched = sample()
+    provenance = enriched.provenance.model_dump_json()
+
+    def handler(request):
+        assert request.url.path.endswith("/reflect")
+        body = json.loads(request.content)
+        assert body["tags"] == ["project:engineering-memory"]
+        assert body["tags_match"] == "all_strict"
+        assert body["include"]["facts"] == {}
+        return httpx.Response(
+            200,
+            json={
+                "text": "The observatory moved to cobalt.",
+                "based_on": {
+                    "memories": [
+                        {
+                            "text": "Chose cobalt.",
+                            "document_id": enriched.document_id,
+                            "metadata": {
+                                "engineering_memory.version": "1",
+                                "engineering_memory.provenance": provenance,
+                            },
+                            "tags": ["project:engineering-memory"],
+                        }
+                    ]
+                },
+            },
+        )
+
+    result = make_store(handler).reflect("What changed?", (ProjectTag(value="engineering-memory"),))
+    assert result.answer == "The observatory moved to cobalt."
+    assert result.evidence == (enriched.provenance,)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{}, {"text": " "}, {"text": "answer", "based_on": {"memories": "wrong"}}],
+)
+def test_reflect_rejects_malformed_response(payload):
+    store = make_store(lambda request: httpx.Response(200, json=payload))
+    with pytest.raises(MemoryStoreRejected, match="invalid reflection response"):
+        store.reflect("question", (ProjectTag(value="engineering-memory"),))
+
+
+def test_reflect_without_evidence_is_not_a_transport_failure():
+    store = make_store(lambda request: httpx.Response(200, json={"text": "answer"}))
+    assert store.reflect("question", (ProjectTag(value="engineering-memory"),)).evidence == ()
+
+
+def test_reflect_translates_unavailable_engine():
+    store = make_store(lambda request: httpx.Response(503, text="PRIVATE_SENTINEL"))
+    with pytest.raises(MemoryStoreUnavailable, match="unavailable") as error:
+        store.reflect("question", (ProjectTag(value="engineering-memory"),))
+    assert "PRIVATE_SENTINEL" not in str(error.value)

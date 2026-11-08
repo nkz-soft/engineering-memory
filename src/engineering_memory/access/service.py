@@ -17,9 +17,10 @@ from engineering_memory.memory.interface import (
     MemoryStore,
     MemoryStoreRejected,
     MemoryStoreUnavailable,
+    ReflectionReader,
 )
 from engineering_memory.memory.interface.project_models import ProjectModelKey, ProjectModelReader
-from engineering_memory.normalization import AnyTag, Source
+from engineering_memory.normalization import AnyTag, ProjectTag, Source
 from engineering_memory.normalization.base import OpaqueIdentifier
 
 _TAG = TypeAdapter(AnyTag)
@@ -63,6 +64,11 @@ class ConversationRequest(_Request):
     document_id: StrictStr
     offset: Annotated[StrictInt, Field(ge=0)] = 0
     page_size: Annotated[StrictInt, Field(ge=1, le=100)] = 50
+
+
+class ReflectRequest(_Request):
+    query: StrictStr
+    project: StrictStr
 
 
 class ProjectModelRequest(_Request):
@@ -142,11 +148,60 @@ class MemoryAccess:
     """No concrete adapters, provisioning, importer or write calls belong here."""
 
     def __init__(
-        self, memory: MemoryStore, archive: RawArchive, *, models: ProjectModelReader | None = None
+        self,
+        memory: MemoryStore,
+        archive: RawArchive,
+        *,
+        models: ProjectModelReader | None = None,
+        reflection: ReflectionReader | None = None,
     ):
         self.memory = memory
         self.archive = archive
         self.models = models
+        self.reflection = reflection
+
+    def reflect(self, **arguments) -> dict:
+        request = _validate(ReflectRequest, arguments)
+        if not request.query.strip():
+            raise AccessError("invalid_input")
+        tag = _validate(ProjectTag, {"value": request.project})
+        insufficient = {"status": "insufficient_evidence", "references": []}
+
+        def read():
+            if self.reflection is None:
+                raise AccessError("unavailable")
+            result = self.reflection.reflect(request.query, (tag,))
+            references = {}
+            for provenance in result.evidence:
+                if provenance.project != tag.value:
+                    return insufficient
+                document_id = _document_id(f"{provenance.source.value}:{provenance.source_id}")
+                try:
+                    archived = self.archive.load(document_id)
+                except ArchiveDocumentNotFound:
+                    continue
+                if archived.provenance.project != tag.value:
+                    return insufficient
+                if (
+                    archived.document_id != document_id
+                    or archived.provenance != provenance
+                    or tag not in archived.tags
+                ):
+                    continue
+                references[document_id] = {
+                    "document_id": document_id,
+                    "provenance": archived.provenance.model_dump(mode="json"),
+                    "started_at": archived.conversation.model_dump(mode="json")["started_at"],
+                }
+            if not references:
+                return insufficient
+            return {
+                "status": "completed",
+                "answer": result.answer,
+                "references": list(references.values()),
+            }
+
+        return _safe(read)
 
     def get_project_model(self, **arguments) -> dict:
         request = _validate(ProjectModelRequest, arguments)

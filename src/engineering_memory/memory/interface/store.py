@@ -25,7 +25,14 @@ from engineering_memory.errors import PermanentBoundaryError, TransientBoundaryE
 from engineering_memory.normalization import AnyTag, EnrichedConversation, Provenance
 from engineering_memory.normalization.base import FrozenModel, Text
 
-__all__ = ["MemoryStore", "MemoryStoreRejected", "MemoryStoreUnavailable", "RecallResult"]
+__all__ = [
+    "MemoryStore",
+    "MemoryStoreRejected",
+    "MemoryStoreUnavailable",
+    "RecallResult",
+    "ReflectionReader",
+    "ReflectionResult",
+]
 
 BOUNDARY = "memory store"
 
@@ -110,11 +117,23 @@ class MemoryStore(Protocol):
         separate store. `limit` bounds the results. Matching nothing returns an empty tuple, which
         is an answer and not a failure (MS-4).
 
-        §16's `reflect` is deliberately absent: it is used by #31 over accumulated memory, and a
-        method with no caller is a contract nobody has tested (research.md R9).
-
         Raises:
             MemoryStoreRejected: refused, unauthorized or invalid input.
             MemoryStoreUnavailable: timeout, reset or a retryable status.
         """
+        ...
+
+
+class ReflectionResult(FrozenModel):
+    """A generated answer and candidate provenance to verify against the archive."""
+
+    answer: Text
+    evidence: tuple[Provenance, ...] = ()
+
+
+class ReflectionReader(Protocol):
+    """Read-only synthesis over an explicitly scoped corpus."""
+
+    def reflect(self, query: str, tags: tuple[AnyTag, ...]) -> ReflectionResult:
+        """Return an answer and candidate evidence, or raise a memory boundary error."""
         ...

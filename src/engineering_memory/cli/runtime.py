@@ -199,4 +199,8 @@ def run_serve() -> None:
         resources.callback(memory.close)
         models = make_project_models(settings.hindsight)
         resources.callback(models.close)
-        run_stdio(MemoryAccess(memory, LocalRawArchive(settings.archive_root), models=models))
+        run_stdio(
+            MemoryAccess(
+                memory, LocalRawArchive(settings.archive_root), models=models, reflection=memory
+            )
+        )

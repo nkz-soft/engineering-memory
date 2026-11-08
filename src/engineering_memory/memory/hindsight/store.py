@@ -17,8 +17,16 @@ from engineering_memory.memory.hindsight.retry import (
     TransientFailure,
     transient_transport,
 )
-from engineering_memory.memory.hindsight.serialization import decode_result, item_for
-from engineering_memory.memory.interface import MemoryStoreRejected, MemoryStoreUnavailable
+from engineering_memory.memory.hindsight.serialization import (
+    decode_reflection,
+    decode_result,
+    item_for,
+)
+from engineering_memory.memory.interface import (
+    MemoryStoreRejected,
+    MemoryStoreUnavailable,
+    ReflectionResult,
+)
 from engineering_memory.normalization import AnyTag, EnrichedConversation
 from engineering_memory.settings import HindsightSettings
 
@@ -104,7 +112,9 @@ class HindsightStore:
         document_id=None,
     ):
         self._request_ordinal += 1
-        kind = "poll" if method == "GET" else "recall" if path.endswith("/recall") else "retain"
+        kind = "poll" if method == "GET" else path.rsplit("/", 1)[-1]
+        if kind == "memories":
+            kind = "retain"
 
         def request_once():
             nonlocal reject_identity
@@ -254,3 +264,21 @@ class HindsightStore:
             raise MemoryStoreRejected("invalid recall response")
         decoded = tuple(decode_result(fact, tag_values) for fact in facts)
         return decoded if limit is None else decoded[:limit]
+
+    def reflect(self, query: str, tags: tuple[AnyTag, ...]) -> ReflectionResult:
+        if not isinstance(query, str) or not query.strip() or not tags:
+            raise MemoryStoreRejected("reflection needs a query and scope")
+        tag_values = [str(tag) for tag in tags]
+        body = self._encode(
+            {
+                "query": query,
+                "tags": tag_values,
+                "tags_match": "all_strict",
+                "budget": "mid",
+                "include": {"facts": {}},
+            }
+        )
+        result = self._request(
+            "POST", self._root + "/reflect", time.monotonic() + self._timeout, content=body
+        )
+        return decode_reflection(result, tag_values)

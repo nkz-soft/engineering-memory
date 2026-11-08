@@ -46,16 +46,16 @@ On Windows use forward-slash paths, for example `C:/Tools/uv.exe` and
 Hermes subprocess. A Docker/remote Hermes process cannot see host paths unless
 its environment explicitly provides them.
 
-Start a new session with `hermes chat`. Confirm `search_memory`, `get_conversation` and
-`get_project_model` are discovered. See [project models](project-models.md) for refresh and reads.
+Start a new session with `hermes chat`. Confirm `search_memory`, `get_conversation`,
+`get_project_model` and `reflect` are discovered. See [project models](project-models.md) for refresh and reads.
 Hermes may namespace their names with the server name. Official setup reference:
 [Hermes MCP documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp).
 This recipe follows that documented command/args structure; the installed Hermes
 version must be recorded when completing the live acceptance below.
 
 The command stays alive while the consumer owns stdin. stdout contains only MCP
-protocol; diagnostics go to stderr. No HTTP endpoint, write tool, automatic recall,
-reflection or conversation listing is provided. Normal disconnect closes the
+protocol and diagnostics go to stderr. The server uses local stdio and exposes read tools. The [routing guide](reflect-evaluation.md)
+describes project-scoped synthesis through `reflect`. Normal disconnect closes the
 backend HTTP client. Startup errors use safe categories and a nonzero exit code.
 
 ## Retrieve and follow context

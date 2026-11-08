@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from engineering_memory.evaluation.benchmark import (
     CATEGORIES,
@@ -159,7 +159,7 @@ def compare_reports(baseline: RunReport, candidate: RunReport) -> Comparison:
     )
 
 
-def write_report(report: RunReport | Comparison, path: Path) -> None:
+def write_report(report: BaseModel, path: Path, *, exclude_none: bool = False) -> None:
     scratch = None
     try:
         with NamedTemporaryFile(
@@ -171,7 +171,7 @@ def write_report(report: RunReport | Comparison, path: Path) -> None:
             delete=False,
         ) as handle:
             scratch = Path(handle.name)
-            handle.write(report.model_dump_json(indent=2) + "\n")
+            handle.write(report.model_dump_json(indent=2, exclude_none=exclude_none) + "\n")
         os.replace(scratch, path)
     finally:
         if scratch is not None:
