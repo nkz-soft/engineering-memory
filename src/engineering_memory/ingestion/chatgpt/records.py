@@ -77,6 +77,10 @@ class ExportRecord:
     value: object
 
 
+class RecordTooLarge(SourceFormatError):
+    """A single JSON value exceeded the configured acquisition limit."""
+
+
 class RecordScanner(Iterator[ExportRecord]):
     """A resumable iterator over the elements of a JSON array read from a text stream."""
 
@@ -86,7 +90,11 @@ class RecordScanner(Iterator[ExportRecord]):
         *,
         chunk_size: int = _DEFAULT_CHUNK,
         raw_decode: Callable[[str, int], tuple[Any, int]] | None = None,
+        allow_trailing_comma: bool = True,
+        max_record_chars: int | None = None,
     ) -> None:
+        self._allow_trailing_comma = allow_trailing_comma
+        self._max_record_chars = max_record_chars
         self._stream = stream
         self._chunk_size = chunk_size
         self._decode = raw_decode or json.JSONDecoder().raw_decode
@@ -130,6 +138,8 @@ class RecordScanner(Iterator[ExportRecord]):
             self._position += 1
             next_character = self._peek()
             if next_character == "]":
+                if not self._allow_trailing_comma:
+                    raise SourceFormatError("a conversations file has a trailing comma")
                 self._close_array()
             if next_character is None:
                 raise SourceFormatError("a conversations file ends before its array does")
@@ -155,6 +165,8 @@ class RecordScanner(Iterator[ExportRecord]):
                 self._grow()
                 continue
             break
+        if self._max_record_chars is not None and end - self._position > self._max_record_chars:
+            raise RecordTooLarge("a conversation record exceeds the acquisition limit")
         raw = self._buffer[self._position : end]
         self._buffer = self._buffer[end:]
         self._position = 0
@@ -163,7 +175,14 @@ class RecordScanner(Iterator[ExportRecord]):
 
     def _grow(self) -> None:
         """Read at least as much again as the element seen so far, and at least one chunk."""
-        self._read(max(self._chunk_size, len(self._buffer) - self._position))
+        buffered = len(self._buffer) - self._position
+        size = max(self._chunk_size, buffered)
+        if self._max_record_chars is not None:
+            remaining = self._max_record_chars - buffered
+            if remaining < 0:
+                raise RecordTooLarge("a conversation record exceeds the acquisition limit")
+            size = min(size, remaining + 1)
+        self._read(size)
 
     def _read(self, size: int) -> bool:
         if self._at_end:

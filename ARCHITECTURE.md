@@ -224,6 +224,7 @@ disturbing the rest — in particular Hindsight itself (ADR-001, exit strategy):
 
 | Boundary | Responsibility |
 |---|---|
+| Export acquisition (`ExportSource`) | Discover export candidates upstream of ingestion (ADR-007) |
 | Conversation source | Read one source format, yield normalized conversations |
 | Secret sanitizer | Redact secrets, report what was redacted |
 | Project classifier | Determine the project for a conversation |
@@ -377,6 +378,11 @@ fresh import state; production orchestration belongs to the ingestion feature.
 Only the sanitized normalized form is available to consumer access; originals
 stay local. See `specs/012-local-raw-archive/` for the format and contracts.
 
+ChatGPT acquisition stores validated ZIP bytes separately under
+`exports/chatgpt/<sha256>.zip`. That namespace is outside conversation
+enumeration and consumer access. The acquisition adapter streams, validates and
+durably publishes the snapshot before the importer can read it (ADR-007).
+
 ## 15. Project detection
 
 1. **Explicit metadata** — use the repository or working directory when the
@@ -447,7 +453,7 @@ ADR-006 settles what that representation covers, and what a re-run does with a
 conversation that grew, disappeared or was renamed between two exports.
 
 The local implementation uses SQLAlchemy 2 Core over SQLite at
-`Settings.import_state_path`. The version-1 schema stores one current outcome per
+`Settings.import_state_path`. The conversation ledger stores one current outcome per
 `(source, source_id)` with content hash, document id, UTC recorded time, imported
 or failed status, and a safe failure error. Skips are reported without replacing
 a successful record. Explicit force bypasses the shared skip decision and
@@ -456,6 +462,13 @@ or removal path exists. Schema initialization/validation is explicit, and an
 incompatible database is rejected without repair. The supported model is one
 writer and independent readers on local storage; details are in
 [`specs/013-sqlite-import-state/data-model.md`](specs/013-sqlite-import-state/data-model.md).
+
+Schema version 2 adds a metadata-only export ledger keyed by source and ZIP
+digest. A record holds the acquisition mode, UTC acquisition time, any supported
+production-time evidence and successful ingestion time. An acquired export stays
+pending until the importer reports full success. Writes migrate valid version-1
+stores transactionally. Status and preview can read either version without
+migrating it.
 
 ## 18. Error handling, retry and observability
 
@@ -794,11 +807,32 @@ Memory ages between refreshes and nothing forces one, which is why the age of
 the last import belongs in whatever the command surface reports: the decay is
 made visible rather than prevented.
 
+### ADR-007 — Acquire exports through a replaceable upstream boundary
+
+**Decision.** An `ExportSource` discovers candidate exports for the acquisition
+coordinator. The manual source accepts an explicit ZIP. The watcher source checks
+a dedicated local inbox on a schedule owned by the operator. The coordinator
+stages a private snapshot and validates the full ZIP and its conversation arrays
+before publishing the original bytes under §14. It records the digest and
+provenance under §17, then dispatches the existing ChatGPT importer.
+
+**Rationale.** Discovery and archive integrity checks can run offline and can be
+tested independently of parsing and retain. Acquisition can stop before any
+conversation state changes. A failed import can resume from the verified ZIP
+even if the downloaded copy disappears. The raw archive and metadata store remain
+separate so each can move to its own production backend.
+
+**Consequences.** Operators request and download exports through the supported
+ChatGPT flow. The watcher runs after the download reaches its inbox. Mailbox
+retrieval and signed-in browser automation are outside this delivery. Status
+labels ZIP-member timestamps as estimates and reports unknown when usable
+evidence is absent. Archive integrity checks establish that the supplied bytes
+are readable and complete for the supported layout. Conversation absence still
+cannot justify deletion under ADR-006.
+
 ### ADR-008 — Consumers reach memory through engineering-memory's MCP server
 
 **Project identity.** The project is named `engineering-memory`, independently of Hermes or any other consumer. The package, command and runtime identifiers follow that name, and configuration uses the dedicated `ENGINEERING_MEMORY_` prefix. A consumer starts the stdio server as a child process with an inherited environment; a consumer-owned prefix could therefore configure the server accidentally. Only the dedicated prefix is accepted, with no fallback to the former consumer prefix. The rename changes no archived data, stable identities or memory-bank policy.
-
-ADR-007 is reserved for automated export acquisition (#40).
 
 **Decision.** engineering-memory is the store of the user's AI history, and the only
 component that talks to Hindsight. Consumers — Hermes first, then Claude Code

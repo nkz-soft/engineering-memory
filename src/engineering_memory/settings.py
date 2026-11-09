@@ -186,6 +186,8 @@ class Settings(BaseSettings):
     """Deliberately absent from `_always_descend_into_the_groups` below: every field of this group
     has a default, so an absent group is a valid group and there is no missing leaf to name."""
     archive_root: Path = Path("data/archive")
+    chatgpt_export_inbox: Path | None = None
+    chatgpt_export_zip_offset_minutes: int | None = Field(default=None, ge=-1439, le=1439)
     import_state_path: Path = Path("data/import-state.db")
     project_rules_path: Path = Path("data/projects.toml")
     """The alias rules §15 level 2 classifies by (#12).
@@ -215,7 +217,13 @@ class Settings(BaseSettings):
                 values.setdefault(group, {})
         return values
 
-    @field_validator("archive_root", "import_state_path", "project_rules_path", mode="before")
+    @field_validator(
+        "archive_root",
+        "import_state_path",
+        "project_rules_path",
+        "chatgpt_export_inbox",
+        mode="before",
+    )
     @classmethod
     def _reject_a_blank_path(cls, value: Any) -> Any:
         """A blank value is not "use the default" — it is an unfinished edit.
@@ -231,6 +239,11 @@ class Settings(BaseSettings):
                 "must not be empty; comment the variable out to use the default",
             )
         return value
+
+    @field_validator("chatgpt_export_inbox")
+    @classmethod
+    def _resolve_inbox(cls, value: Path | None) -> Path | None:
+        return cls._resolve_against_the_project_root(value) if value is not None else None
 
     @field_validator("archive_root", "import_state_path", "project_rules_path")
     @classmethod

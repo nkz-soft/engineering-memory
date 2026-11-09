@@ -281,6 +281,41 @@ output. See the [CLI contract](specs/020-operator-cli/contracts/cli.md) for fiel
 and the [validation guide](specs/020-operator-cli/quickstart.md) for fixture/live
 checks. Dry-run is deferred to #22.
 
+### Schedule ChatGPT export acquisition
+
+Set `ENGINEERING_MEMORY_CHATGPT_EXPORT_INBOX` to a private directory dedicated
+to fresh ChatGPT ZIPs. Request and download the export into that directory using
+the signed-in ChatGPT flow. Configure Windows Task Scheduler or a Unix user
+scheduler to run this command from the checkout with the same local environment
+used for import:
+
+```sh
+uv run engineering-memory acquire-chatgpt --json
+```
+
+For example, schedule the command every five minutes and capture its exit code
+and output in a private log. On Windows, set the task's program to the absolute
+path of `uv.exe`, its arguments to `run engineering-memory acquire-chatgpt --json`
+and its **Start in** directory to the checkout. With cron, use an absolute
+`uv` path and change to the checkout before invoking it. Keep the task under the
+same user that owns the inbox and state. Run other imports separately from
+scheduled acquisition so the store has only one writer.
+
+The watcher waits for the same file on two consecutive checks before staging it.
+It ignores temporary downloads and skips overlapping checks. A stable invalid ZIP
+fails the check with exit code 1. Move it out of the inbox to let the next check
+proceed. A validated ZIP is archived byte for byte and retried from that copy if
+ingestion fails. Resolve the reported import failure before later inbox files
+can be processed. Use the digest in the result to identify the pending archive.
+
+For an explicit ZIP, run `uv run engineering-memory acquire-chatgpt --file PATH`.
+Both modes report the last completed acquisition through `status`. Its
+production time is an estimate when supported ZIP member times are available,
+and unknown otherwise. Set `ENGINEERING_MEMORY_CHATGPT_EXPORT_ZIP_OFFSET_MINUTES`
+only if you know the offset used by the export's timezone-less ZIP timestamps.
+Use fresh exports in the inbox, especially when their production order cannot
+be established. See the [acquisition contract](specs/033-chatgpt-export-acquisition/contracts/acquisition.md).
+
 ### Preview an import
 
 Preview either source before paying for extraction:

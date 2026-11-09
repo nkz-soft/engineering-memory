@@ -65,6 +65,8 @@ def _execute(command, structured, action, *, dry_run=False):
         code = 130
     except Exception as error:
         data.update(status="failure", error=error_category(error))
+        if command == "acquire-chatgpt":
+            data["outcome"] = "failure"
         code = 1
     emit(data, structured=structured)
     raise typer.Exit(code)
@@ -120,6 +122,17 @@ def import_command(
         lambda data: run_import(data, export, force, _version(), dry_run=dry_run, source=source),
         dry_run=dry_run,
     )
+
+
+@app.command("acquire-chatgpt")
+def acquire_chatgpt_command(
+    file: str | None = typer.Option(None, "--file", help="Acquire an explicit local ZIP."),
+    structured: bool = typer.Option(False, "--json", help="Emit one JSON result."),
+) -> None:
+    """Acquire and import an export from the configured inbox or a local file."""
+    from engineering_memory.cli.acquisition import run_acquisition
+
+    _execute("acquire-chatgpt", structured, lambda data: run_acquisition(data, file, _version()))
 
 
 @app.command("status")

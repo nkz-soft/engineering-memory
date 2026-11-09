@@ -23,8 +23,12 @@ def result(command: str, *, dry_run: bool = False) -> dict:
             )
         else:
             data.update(imported=0, skipped=0, failed=0, terminal_error=None, outcomes=[])
+    elif command == "acquire-chatgpt":
+        data.update(
+            outcome="empty", digest=None, imported=0, skipped=0, failed=0, terminal_error=None
+        )
     else:
-        data.update(imported=0, failed=0, records=[])
+        data.update(imported=0, failed=0, records=[], last_chatgpt_export=None)
     return data
 
 
@@ -64,8 +68,25 @@ def emit(data: dict, *, structured: bool) -> None:
                 typer.echo(f"{row['source_id'] or '<unknown>'}: {row['error']}")
         if data["terminal_error"]:
             typer.echo(f"Terminal error: {data['terminal_error']}")
+    elif data["command"] == "acquire-chatgpt":
+        typer.echo(
+            f"Export acquisition: {data['outcome']}. "
+            f"Imported: {data['imported']}; skipped: {data['skipped']}; failed: {data['failed']}"
+        )
+        if data["digest"]:
+            typer.echo(f"Archive digest: {data['digest']}")
+        if data["terminal_error"]:
+            typer.echo(f"Terminal error: {data['terminal_error']}")
     else:
         typer.echo(f"Latest state: imported: {data['imported']}; failed: {data['failed']}")
+        if export := data["last_chatgpt_export"]:
+            produced = export["produced_at"] or "unknown"
+            typer.echo(
+                f"Last ChatGPT export produced: {produced} ({export['production_evidence']})"
+            )
+            typer.echo(f"Last ChatGPT export imported: {export['ingested_at']}")
+        else:
+            typer.echo("Last ChatGPT export: no completed acquisition.")
         for row in data["records"]:
             typer.echo(f"{row['source']}:{row['source_id']}: {row['status']} {row['error'] or ''}")
         typer.echo("Skips are per-run outcomes and are not stored in latest state.")

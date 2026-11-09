@@ -28,10 +28,10 @@ The checks pass at design level. No constitution or stack change is required. Th
 
 | Area | Planned change |
 |---|---|
-| `ingestion/acquisition/` | Define `ExportSource.discover()`, candidate/readiness values, acquisition outcomes and coordinator. Provide manual and local-inbox implementations. |
-| `ingestion/chatgpt/export.py`, `records.py` | Reuse supported ZIP member selection and streaming array scanner for strict preflight. Keep the ordinary parser's existing behavior. |
+| `ingestion/acquisition*.py` | Define `ExportSource.discover()`, candidate/readiness values, acquisition outcomes and coordinator. Provide manual and local-inbox implementations. |
+| `ingestion/chatgpt_preflight.py`, `ingestion/chatgpt/records.py` | Reuse supported ZIP member selection and streaming array scanner for strict preflight. Keep the ordinary parser's existing behavior. |
 | `archive/export_blobs.py` | Define an export blob interface and local adapter. Reuse the filesystem durability helpers from `archive/local.py`. |
-| `ingestion/state.py`, `sqlite_state.py` | Add the acquisition ledger and migration with independent interfaces for conversation and acquisition state. Preserve read-only v1 support. |
+| `ingestion/acquisition_state.py`, `ingestion/sqlite_state.py` | Add the acquisition ledger and migration with independent interfaces for conversation and acquisition state. Preserve read-only v1 support. |
 | `cli/__init__.py`, `runtime.py`, `results.py`, `settings.py` | Add one-shot acquisition and additive status output. Reuse import composition and isolate configuration in settings. |
 | `ARCHITECTURE.md`, operator docs | Add boundary §8, archive and state notes in §§14 and 17, ADR-007, and a scheduler recipe. |
 | `tests/` | Extend synthetic ZIP fixtures and cover contracts, malformed archives, storage/migration, recovery and the scheduled entry point. |

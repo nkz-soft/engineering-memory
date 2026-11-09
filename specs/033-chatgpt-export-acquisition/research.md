@@ -18,7 +18,7 @@
 
 **Decision** Use content-addressed ZIP storage and a separate SQLite ledger. Serialize scheduled and explicit acquisition invocations with the same local lock. Use the importer report as the completion decision and existing conversation state to skip successful deliveries after interruption.
 
-**Rationale** Writing the blob before the ledger makes a crash produce at most an unreferenced, verified blob. The retry can publish idempotently. The ledger stores metadata only, keeping the PostgreSQL and object storage paths open. Older snapshots can revert changed conversations, so the coordinator should reject older dates when timestamps are comparable.
+**Rationale** A private metadata intent is durable before the blob is published. The ZIP still precedes the ledger. If the process stops between publication and ledger insertion, the next run verifies the published bytes and records them using the intent, even if the original file is gone. The ledger stores metadata only, keeping the PostgreSQL and object storage paths open. Older snapshots can revert changed conversations, so the coordinator should reject older dates when timestamps are comparable.
 
 ## R4. Export production time
 

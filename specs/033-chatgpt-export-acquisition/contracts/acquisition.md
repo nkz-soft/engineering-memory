@@ -6,7 +6,7 @@
 
 The coordinator's archive adapter stages a snapshot, publishes it by digest only after preflight, and reopens it on retry. It validates the digest of existing archived bytes before dispatch. Missing or mismatched pending blobs fail visibly and must never lead to an import from unverified bytes.
 
-The preflight accepts supported single or split archives, including empty arrays. It rejects truncated, encrypted, unsupported or structurally ambiguous ZIPs and incomplete arrays without invoking ingestion. It checks limits against actual bytes read as well as advertised metadata. It never extracts paths from the archive. Validation failures are scoped to the new candidate. Report a safe category and stop the invocation.
+The preflight accepts stored or DEFLATE-compressed single or contiguous zero-based split archives, including empty arrays. Limits are 4 GiB compressed, 16 GiB expanded, 100,000 members, 64 MiB of directory metadata and 32 Mi characters per JSON record. It rejects truncated, encrypted, unsupported or structurally ambiguous ZIPs and incomplete arrays without invoking ingestion. It checks limits against actual bytes read as well as advertised metadata. It never extracts paths from the archive. Validation failures are scoped to the new candidate. Report a safe category and stop the invocation.
 
 ## CLI
 
