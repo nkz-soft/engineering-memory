@@ -19,4 +19,4 @@ With `ENGINEERING_MEMORY_LIVE_E2E=1` and `ENGINEERING_MEMORY_LIVE_STORE_URL=http
 
 `docker compose ls -a` and `docker volume ls` showed stopped #32 synthetic benchmark services and saved development engine volumes. The configured connector archive held three prior acceptance records. The saved product engine volume had no corresponding Compose archive volume, and the configured connector did not identify a matching archive for the accumulated corpus.
 
-The live case set, paired measurements, and reviewed aggregate results remain open. See the [operator guide](../../docs/operations/reflect-evaluation.md) for prerequisites and the review rubric.
+The live case set, paired measurements, and reviewed aggregate results are part of final Phase 3 acceptance. The implementation PR is reviewed separately, and #31 stays open until the aggregate comparison is published. See the [operator guide](../../docs/operations/reflect-evaluation.md) for prerequisites and the review rubric.

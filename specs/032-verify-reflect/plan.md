@@ -46,7 +46,11 @@ All five gates pass at design review. The plan introduces no dependency, ingesti
 1. Add the synthesis reader and pinned adapter mapping. Test strict project scoping, evidence fields, empty evidence, malformed responses and failure mapping before implementation. Verify actual response fields and configured model behavior against the running pinned engine. See [research.md](research.md).
 2. Register MCP `reflect` as a read-only tool. Test successful references, duplicate and wrong-project evidence, missing archive evidence, and refusal on an empty validated set or known cross-project evidence. Verify with the stdio client and synthetic retained data.
 3. Add the paired evaluation runner using `evaluate reflect`. Test identical prompts and scopes, independent timing, continued recording after a case-level failure, terminal transport failure with an incomplete run, and private report output (including path escape rejection) before implementation. Keep the human rubric in the run guide.
-4. Freeze cases and expected evidence, run both operations on a stable accumulated bank, review the pairs, and publish the aggregate comparison and consumer guidance. Verify that a second operator could follow the guide, including how to report inconclusive results.
+4. Publish the operator guide and complete independent review of the implementation. Use the offline and pinned-engine synthetic checks to validate the implementation PR.
+
+## Final Phase 3 Acceptance
+
+After the implementation PR, freeze cases and expected evidence, run both operations on a stable accumulated bank with its matching sanitized archive, and publish reviewed aggregate results and limitations. Use the findings to confirm or revise the consumer routing rule. The live comparison remains the acceptance criterion for #31.
 
 ## Alternatives Considered
 

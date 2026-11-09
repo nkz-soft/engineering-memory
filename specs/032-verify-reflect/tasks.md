@@ -15,13 +15,15 @@
 
 - [x] T006 [US1] Write failing paired-run and private-output tests in `tests/integration/test_reflect_evaluation.py`.
 - [x] T007 [US1] Implement paired evaluation under `src/engineering_memory/evaluation/` and `src/engineering_memory/cli/evaluation.py`.
-- [ ] T008 [US1] Freeze local cases and run the accumulated-corpus comparison using `specs/032-verify-reflect/quickstart.md`.
-- [ ] T009 [US1] Document reviewed aggregate results and limitations under `docs/operations/`.
-
-## Verification
+## Implementation PR verification
 
 - [x] T010 Document the consumer routing and citation rule under `docs/operations/`.
 - [x] T011 Verify offline and pinned-engine synthetic paths and record evidence in `specs/032-verify-reflect/verification.md`.
-- [ ] T012 Complete independent review and confirm the accumulated-corpus evidence before marking the pull request ready.
+- [ ] T012 Complete independent review before marking the implementation PR ready.
+
+## Final Phase 3 acceptance for #31
+
+- [ ] T008 [US1] Freeze local cases and run the accumulated-corpus comparison using `specs/032-verify-reflect/quickstart.md`.
+- [ ] T009 [US1] Publish reviewed aggregate results and limitations under `docs/operations/` and confirm or revise the consumer routing rule.
 
 T003 follows T002. T005 follows T003 and T004. T007 follows T006 and can be verified against the stated MCP contract before T005 is integrated. T008 and T009 require the integrated tool and an authorized accumulated bank.
