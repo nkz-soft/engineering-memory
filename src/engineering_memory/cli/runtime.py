@@ -11,6 +11,7 @@ from engineering_memory.classification import (
     load_project_rules,
 )
 from engineering_memory.classification.metadata_classifier import MetadataProjectClassifier
+from engineering_memory.ingestion.acquisition_source import AcquisitionError
 from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
 from engineering_memory.ingestion.chatgpt.archive_source import ChatGPTArchiveSource
 from engineering_memory.ingestion.claude_chat import ClaudeChatExportSource
@@ -20,7 +21,7 @@ from engineering_memory.ingestion.claude_code.archive_source import ClaudeCodeAr
 from engineering_memory.ingestion.codex import CodexSessionSource
 from engineering_memory.ingestion.codex.archive_source import CodexArchiveSource
 from engineering_memory.ingestion.pipeline import IngestionPipeline
-from engineering_memory.ingestion.report import Stage
+from engineering_memory.ingestion.report import RunReport, Stage
 from engineering_memory.ingestion.sqlite_state import SQLiteImportState
 from engineering_memory.ingestion.state import ImportStateCorrupt, ImportStateUnavailable
 from engineering_memory.memory.hindsight.provision import ProvisionError
@@ -32,6 +33,8 @@ from engineering_memory.settings import SettingsError, load_settings, load_state
 
 
 def error_category(error: Exception) -> str:
+    if isinstance(error, AcquisitionError):
+        return str(error)
     if isinstance(error, (SettingsError, ProjectRulesError)):
         return "configuration"
     if isinstance(error, (ImportStateCorrupt, ImportStateUnavailable)):
@@ -73,14 +76,14 @@ def run_model_refresh(data, keys):
 
 
 def run_import(
-    data: dict,
+    data: dict | None,
     export: str | None,
     force: bool,
     version: str,
     *,
     dry_run: bool = False,
     source: str = "chatgpt",
-) -> None:
+) -> RunReport:
     sources = {
         "chatgpt": (ChatGPTExportSource, ChatGPTArchiveSource),
         "claude-chat": (ClaudeChatExportSource, ClaudeChatArchiveSource),
@@ -131,6 +134,8 @@ def run_import(
             importer_version=version,
             bank=settings.hindsight.bank_id,
         ).run(OwnedSource(), force=force, dry_run=dry_run)
+        if data is None:
+            return report
         if dry_run:
             outcomes = []
             for outcome in report.outcomes:
@@ -151,7 +156,7 @@ def run_import(
                 terminal_error=report.terminal_error,
                 outcomes=outcomes,
             )
-            return
+            return report
         data.update(
             status=report.status.value,
             imported=report.imported,
@@ -160,6 +165,7 @@ def run_import(
             terminal_error=report.terminal_error,
             outcomes=[outcome.model_dump(mode="json") for outcome in report.outcomes],
         )
+        return report
 
 
 def run_status(data: dict) -> None:
@@ -169,6 +175,10 @@ def run_status(data: dict) -> None:
     state = SQLiteImportState(path, read_only=True)
     try:
         state.validate()
+        if (last := state.latest_acquisition()) is not None:
+            data["last_chatgpt_export"] = last.model_dump(
+                mode="json", include={"produced_at", "production_evidence", "ingested_at"}
+            )
         records = []
         for record in state.iter_records():
             row = record.model_dump(mode="json", exclude={"content_hash"})
