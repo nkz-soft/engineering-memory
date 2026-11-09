@@ -39,6 +39,7 @@ def test_stdio_consumer(tmp_path):
                     "search_memory",
                     "get_conversation",
                     "get_project_model",
+                    "reflect",
                 }
                 assert all(tool.annotations.read_only_hint for tool in tools.tools)
                 for tool in tools.tools:

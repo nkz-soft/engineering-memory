@@ -10,6 +10,15 @@ from engineering_memory.memory.interface.store import (
     MemoryStoreRejected,
     MemoryStoreUnavailable,
     RecallResult,
+    ReflectionReader,
+    ReflectionResult,
 )
 
-__all__ = ["MemoryStore", "MemoryStoreRejected", "MemoryStoreUnavailable", "RecallResult"]
+__all__ = [
+    "MemoryStore",
+    "MemoryStoreRejected",
+    "MemoryStoreUnavailable",
+    "RecallResult",
+    "ReflectionReader",
+    "ReflectionResult",
+]

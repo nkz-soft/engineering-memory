@@ -51,7 +51,7 @@ class Access:
             if mode == "text" else []
         }
 
-    get_conversation = get_project_model = search_memory
+    get_conversation = get_project_model = reflect = search_memory
 
 
 run_stdio(Access())
