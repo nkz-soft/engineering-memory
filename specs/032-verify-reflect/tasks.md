@@ -23,7 +23,7 @@
 
 ## Final Phase 3 acceptance for #31
 
-- [ ] T008 [US1] Freeze local cases and run the accumulated-corpus comparison using `specs/032-verify-reflect/quickstart.md`.
-- [ ] T009 [US1] Publish reviewed aggregate results and limitations under `docs/operations/` and confirm or revise the consumer routing rule.
+- [x] T008 [US1] Freeze local cases and run the accumulated-corpus comparison using `specs/032-verify-reflect/quickstart.md`.
+- [x] T009 [US1] Publish reviewed aggregate results and limitations under `docs/operations/` and confirm or revise the consumer routing rule.
 
 T003 follows T002. T005 follows T003 and T004. T007 follows T006 and can be verified against the stated MCP contract before T005 is integrated. T008 and T009 require the integrated tool and an authorized accumulated bank.
