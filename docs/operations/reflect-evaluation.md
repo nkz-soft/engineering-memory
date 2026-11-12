@@ -52,6 +52,6 @@ Review each pair against the sanitized conversations. Mark the expected points s
 
 Publish only reviewed aggregates. Include counts by question kind and outcome, elapsed-time medians and ranges, sample and configuration limits, and the observed conditions that support the routing rule. Keep question text, answers, references, and diagnostics local.
 
-## Accumulated-corpus status
+## Accumulated-corpus results
 
-The inspected Compose environment retained prior development and synthetic benchmark volumes. The configured connector archive contains three records from a previous acceptance run. A populated bank and matching archive for the accumulated history still need to be identified before measuring quality or latency on that corpus. The routing rule above follows the architecture until that comparison is available.
+The [project history evaluation](reflect-corpus-results.md) records the paired measurements, grounded coverage, and routing rule from the first run on real Codex sessions.
