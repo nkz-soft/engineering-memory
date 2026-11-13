@@ -260,10 +260,11 @@ Prerequisite checks ran on Windows against repository revision
 2.1.198, npm Codex CLI 0.128.0, desktop-bundled Codex CLI 0.169.0-alpha.11.1,
 uv 0.12.5, Python 3.13.18 and MCP SDK 2.3.0.
 
-From an empty temporary consumer directory outside the service checkout:
+From a temporary consumer directory outside the service checkout, set `$cli`
+to the full path of the desktop-bundled `codex.exe` and verify the version
+before running the probe:
 
 ```powershell
-$cli = (Get-Command codex.exe).Source # Desktop-bundled executable
 & $cli --version
 & $cli exec --ignore-user-config --ignore-rules --ephemeral `
   --skip-git-repo-check --sandbox read-only --json `
