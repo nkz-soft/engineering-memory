@@ -2,6 +2,8 @@
 
 The original verification was recorded on 2026-11-03 for PR #70. The T014
 follow-up below records the 2026-11-07 live client checks against `8c7629f`.
+The [November 13 retry](#t014-retry-2026-11-13) verified authenticated Codex
+startup. The before-import search remains unverified.
 
 ## Status
 
@@ -250,6 +252,43 @@ The [import pipeline](../../src/engineering_memory/ingestion/pipeline.py#L130)
 returns `SKIPPED` before calling Hindsight `retain`, so this run did not initiate
 another extraction. This was verified from the CLI result and the code path.
 LiteLLM and OpenRouter request counts were not measured.
+
+## T014 retry (2026-11-13)
+
+Prerequisite checks ran on Windows against repository revision
+`ecb30782117df7992acad521bcba73e792a3bae5`. Installed versions were Claude Code
+2.1.198, npm Codex CLI 0.128.0, desktop-bundled Codex CLI 0.169.0-alpha.11.1,
+uv 0.12.5, Python 3.13.18 and MCP SDK 2.3.0.
+
+From a temporary consumer directory outside the service checkout, set `$cli`
+to the full path of the desktop-bundled `codex.exe` and verify the version
+before running the probe:
+
+```powershell
+& $cli --version
+& $cli exec --ignore-user-config --ignore-rules --ephemeral `
+  --skip-git-repo-check --sandbox read-only --json `
+  'Reply with exactly READY. Do not use tools.'
+```
+
+The bundled CLI returned `READY` and emitted `turn.completed` with exit 0.
+Its diagnostics included a WebSocket HTTP 403. The npm CLI reported a
+model-catalog decode error for reasoning level `max`, then its HTTP fallback
+reported that the default model was unavailable with the signed-in account.
+The bundled CLI is a verified way to start an authenticated turn for the next
+attempt. The probe did not configure MCP or issue a memory tool call.
+
+`claude auth status` returned `loggedIn: false` and `authMethod: none`. The
+issue's previous backend refused connections at
+`http://127.0.0.1:8889/health/ready`. A separate evaluation backend responded at
+port 18897 and was left outside this retry. The existing archived refinement
+was already imported during the November 7 run, so it cannot supply the new
+before-import control.
+
+Resume after Claude Code sign-in and backend preparation. Use a new synthetic
+refinement and capture fresh Codex searches before and after importing its
+completed Claude Code snapshot. T005 retains its November 7 pass. T008 and
+T014 remain open.
 
 ## Secret-scan follow-up
 
