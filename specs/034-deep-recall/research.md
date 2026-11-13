@@ -1,0 +1,7 @@
+# Research: Deep Recall
+
+- **Approach selected for review:** A deterministic, bounded local query fan-out followed by one synthesis call over verified sanitized evidence. This makes each archive access and exact-project check observable. Use the original question and up to two distinct literal variants from its terms; keep the original if a variant is redundant. No model-generated filters and no search widening when evidence is sparse.
+- **Alternative: wrap existing reflect.** It accepts a project tag and checks archive support after generation, but the caller cannot cap the referenced passages or verify a quote at a specific message. Keep it for its current use cases.
+- **Alternative: model-led planning and one reader per session.** This could improve discovery and intermediate analysis at the cost of more calls and more untrusted data entering model stages. Defer until evaluation shows a need.
+- **Anchor choice:** A stable document ID with a zero-based message index matches the existing archive paging contract. Tool fields include an activity index. Generate excerpts and timestamps from the verified archive, not model prose. Indexes address the current normalized record; a changed import may change the index. Exposing versioned archival links is out of scope.
+- **Prior art:** [Hansard Deep Recall](https://www.hansard.dev/guides/deep-recall/) illustrates planning several searches, combining matches, and exposing citations and limits. The proposed implementation uses exact project scope, bounded archive excerpts and message-level validation.
