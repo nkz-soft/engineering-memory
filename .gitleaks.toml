@@ -103,3 +103,11 @@ regexTarget = "line"
 targetRules = ["generic-api-key"]
 paths = ['''^tests/integration/test_coding_agent_access\.py$''']
 regexes = ['''password=synthetic-secret-123''']
+
+[[allowlists]]
+description = "034: the invented password used to verify that Deep Recall sends sanitized evidence"
+condition = "AND"
+regexTarget = "line"
+targetRules = ["generic-api-key"]
+paths = ['''^tests/integration/test_deep_recall_mcp\.py$''']
+regexes = ['''password=synthetic-secret-123''']
