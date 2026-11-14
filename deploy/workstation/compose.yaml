@@ -1,0 +1,42 @@
+services:
+  hindsight:
+    extends:
+      file: ../hindsight/service.yaml
+      service: hindsight
+    ports:
+      - "127.0.0.1:${WORKSTATION_HINDSIGHT_PORT:-8888}:8888"
+    environment:
+      HINDSIGHT_API_LLM_BASE_URL: http://litellm:4000/v1
+      HINDSIGHT_API_LLM_MODEL: engineering-extraction
+      HINDSIGHT_API_LLM_API_KEY: ${WORKSTATION_PROXY_KEY:?Set WORKSTATION_PROXY_KEY}
+    depends_on:
+      litellm:
+        condition: service_healthy
+    logging:
+      driver: none
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.108.0@sha256:c560d317136880ea92d62334d4367ab10955b1af189dd3ea24f6551290b1d6c1
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    command: [--config, /app/product-config.yaml, --port, '4000']
+    ports:
+      - "127.0.0.1:${WORKSTATION_PROXY_PORT:-4000}:4000"
+    environment:
+      PRODUCT_PROVIDER_MODEL: ${PRODUCT_PROVIDER_MODEL:?Set PRODUCT_PROVIDER_MODEL}
+      PRODUCT_PROVIDER_API_BASE: ${PRODUCT_PROVIDER_API_BASE:-}
+      PRODUCT_PROVIDER_API_KEY: ${PRODUCT_PROVIDER_API_KEY:?Set PRODUCT_PROVIDER_API_KEY}
+      LITELLM_MASTER_KEY: ${WORKSTATION_PROXY_KEY:?Set WORKSTATION_PROXY_KEY}
+      LITELLM_LOG: ERROR
+      LITELLM_MODE: PRODUCTION
+    volumes:
+      - ../product/litellm.yaml:/app/product-config.yaml:ro
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=5).close()"]
+      interval: 5s
+      timeout: 6s
+      start_period: 20s
+      retries: 60
+    logging:
+      driver: none
+volumes:
+  hindsight-data:

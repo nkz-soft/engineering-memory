@@ -7,6 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 import typer
 
 from engineering_memory.cli.evaluation import app as evaluation_app
+from engineering_memory.cli.stack import app as stack_app
 
 app = typer.Typer(
     name="engineering-memory",
@@ -16,6 +17,7 @@ app = typer.Typer(
 )
 
 app.add_typer(evaluation_app, name="evaluate")
+app.add_typer(stack_app, name="stack")
 
 
 def _version() -> str:

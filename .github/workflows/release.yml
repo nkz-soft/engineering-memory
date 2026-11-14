@@ -1,0 +1,132 @@
+name: Workstation installers
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            platform: windows-x64
+          - os: ubuntu-24.04
+            platform: ubuntu-amd64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: '0.13.7'
+      - run: uv sync --locked --no-dev --group release
+      - name: Build the versioned CLI payload
+        id: payload
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("engineering-memory"))')
+          tag="v$version"
+          if [[ "$REF_TYPE" == tag ]]; then tag="$REF_NAME"; fi
+          uv run --no-sync python packaging/workstation/build.py "$tag" build/payload
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Package and smoke-test Ubuntu installer
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ steps.payload.outputs.version }}
+        run: |
+          bash packaging/workstation/build-deb.sh build/payload/engineering-memory build/assets "$VERSION"
+          sudo apt-get install -y "./build/assets/engineering-memory_${VERSION}_amd64.deb"
+          uv run --no-sync python packaging/workstation/smoke.py /usr/bin/engineering-memory "$VERSION"
+      - name: Package and smoke-test Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.payload.outputs.version }}
+        run: |
+          $tool = Join-Path $env:RUNNER_TEMP 'innosetup-6.5.4.exe'
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_5_4/innosetup-6.5.4.exe' -OutFile $tool
+          if ((Get-FileHash $tool -Algorithm SHA256).Hash -ne 'fa73bf47a4da250d185d07561c2bfda387e5e20db77e4570004cf6a133cc10b1') { throw 'Inno Setup checksum mismatch' }
+          $toolDir = Join-Path $env:RUNNER_TEMP 'inno-6.5.4'
+          $process = Start-Process -FilePath $tool -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER',('/DIR="' + $toolDir + '"') -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
+          $compiler = Join-Path $toolDir 'ISCC.exe'
+          $payload = (Resolve-Path build/payload/engineering-memory).Path
+          $output = (New-Item -Force -ItemType Directory build/assets).FullName
+          & $compiler "/DAppVersion=$env:VERSION" "/DPayload=$payload" "/O$output" packaging/workstation/windows.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $installer = Join-Path $output "engineering-memory-$env:VERSION-windows-x64-setup.exe"
+          $process = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
+          $path = [Environment]::GetEnvironmentVariable('Path', 'User')
+          $env:Path = "$path;$env:Path"
+          $installed = (Get-Command engineering-memory -CommandType Application).Source
+          uv run --no-sync python packaging/workstation/smoke.py $installed $env:VERSION
+      - name: Generate package checksum
+        run: |
+          cd build/assets
+          for installer in *; do
+            sha256sum "$installer" > "$installer.sha256"
+            sha256sum -c "$installer.sha256"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engineering-memory-${{ matrix.platform }}
+          path: build/assets/
+          if-no-files-found: error
+
+  draft:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: workstation-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: engineering-memory-*
+          merge-multiple: true
+          path: assets
+      - name: Verify both targets and create a draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version=${TAG#v}
+          windows="engineering-memory-$version-windows-x64-setup.exe"
+          linux="engineering-memory_${version}_amd64.deb"
+          cd assets
+          for asset in "$windows" "$linux"; do
+            test -s "$asset"
+            test "$(wc -l < "$asset.sha256")" -eq 1
+            test "$(cut -d ' ' -f 3 "$asset.sha256")" = "$asset"
+            sha256sum -c "$asset.sha256"
+          done
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "A release already exists for $TAG. Keep its reviewed bytes or remove the draft before retrying."
+            exit 1
+          fi
+          guide="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$TAG/docs/operations/workstation-install.md"
+          cat > notes.md <<EOF
+          Engineering Memory $version installs the CLI and local deployment files on Windows 11 x64 and Ubuntu 24.04 LTS amd64.
+
+          [Platform installation, checksum verification, setup and MCP instructions]($guide)
+          EOF
+          gh release create "$TAG" "$windows" "$windows.sha256" "$linux" "$linux.sha256" \
+            --verify-tag --draft --title "Engineering Memory $TAG" --notes-file notes.md
