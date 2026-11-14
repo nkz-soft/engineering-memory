@@ -105,6 +105,37 @@ def workstation_subprocess_environment() -> dict[str, str]:
     return environment
 
 
+def workstation_agent_profiles() -> tuple[Path, Path, Path]:
+    codex = Path(os.getenv("CODEX_HOME") or Path.home() / ".codex").expanduser().absolute()
+    claude_override = os.getenv("CLAUDE_CONFIG_DIR")
+    claude = Path(claude_override or Path.home() / ".claude").expanduser().absolute()
+    claude_config = (claude if claude_override else Path.home()) / ".claude.json"
+    return codex, claude, claude_config
+
+
+def workstation_setup_overrides() -> list[str]:
+    roots = {"ARCHIVE_ROOT", "IMPORT_STATE_PATH", "HINDSIGHT", "LLM"}
+    return sorted(
+        name
+        for name in os.environ
+        if name.upper().startswith(ENV_PREFIX)
+        and name.upper().removeprefix(ENV_PREFIX).partition("__")[0] in roots
+    )
+
+
+def workstation_dotenv(path: Path) -> dict[str, str | None]:
+    from dotenv import dotenv_values
+
+    return dotenv_values(path, interpolate=False)
+
+
+def workstation_dotenv_entries(stream):
+    # Retain complete assignment spans, including multiline values and comments.
+    from dotenv.parser import parse_stream
+
+    return parse_stream(stream)
+
+
 def _default_env_file() -> Path | None:
     from engineering_memory import workstation
 

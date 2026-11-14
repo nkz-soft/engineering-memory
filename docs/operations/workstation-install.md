@@ -28,7 +28,23 @@ sudo apt install ./engineering-memory_0.1.0_amd64.deb
 
 Run `engineering-memory --version`. The first release reports `engineering-memory 0.1.0`.
 
-## First-time setup
+## Guided setup
+
+On Windows, select **Run Engineering Memory guided setup** on the installer's
+final screen. On Ubuntu, run this command in your own terminal after apt exits:
+
+```text
+engineering-memory setup
+```
+
+Run the same command to continue a deferred setup or update an existing
+profile. The wizard configures the local backend and shared bank, then offers
+MCP registration for detected Codex and Claude Code profiles and an optional
+history import. Review the detected histories before selecting any to import.
+For a local ChatGPT or Claude export outside the configured inbox, enter its
+path when prompted.
+
+## Manual setup
 
 Copy `app.env.example` to `app.env` and `compose.env.example` to `compose.env`
 within your private configuration directory. Do this once and keep those files

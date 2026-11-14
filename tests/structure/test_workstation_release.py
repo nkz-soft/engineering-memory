@@ -41,3 +41,14 @@ def test_package_scripts_declare_architecture_and_runtime_metadata():
     assert "Architecture: amd64" in linux
     assert "--copy-metadata" in build
     assert "tag must match" in build
+
+
+def test_interactive_install_offers_setup_in_current_user_session():
+    directory = ROOT / "packaging/workstation"
+    windows = (directory / "windows.iss").read_text(encoding="utf-8")
+    linux = (directory / "build-deb.sh").read_text(encoding="utf-8")
+    launch = [line for line in windows.splitlines() if 'Parameters: "setup --installer"' in line]
+    assert len(launch) == 1
+    assert 'Filename: "{app}\\engineering-memory.exe"' in launch[0]
+    assert {"postinstall", "skipifsilent", "runasoriginaluser"} <= set(launch[0].split())
+    assert "postinst" not in linux
