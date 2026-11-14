@@ -464,11 +464,23 @@ def load_state_path() -> Path:
     raise SettingsError("configuration invalid")
 
 
+class DeepRecallSettings(LlmSettings):
+    model: NonEmptyString
+
+    @field_validator("base_url")
+    @classmethod
+    def _plain_endpoint(cls, value: AnyHttpUrl) -> AnyHttpUrl:
+        if value.username or value.password or value.query or value.fragment:
+            raise ValueError("expected an endpoint without credentials, query, or fragment")
+        return value
+
+
 class AccessSettings(BaseSettings):
     """Read-only server configuration, without importer/extraction requirements."""
 
     model_config = Settings.model_config
     hindsight: HindsightSettings
+    deep_recall: DeepRecallSettings | None = None
     archive_root: Path = Path("data/archive")
 
     _reject_blank = field_validator("archive_root", mode="before")(

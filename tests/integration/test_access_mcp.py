@@ -40,6 +40,7 @@ def test_stdio_consumer(tmp_path):
                     "get_conversation",
                     "get_project_model",
                     "reflect",
+                    "deep_recall",
                 }
                 assert all(tool.annotations.read_only_hint for tool in tools.tools)
                 for tool in tools.tools:

@@ -191,3 +191,52 @@ def refresh_models_command(
         emit(data, structured=structured)
         raise typer.Exit(2) from None
     _execute("models refresh", structured, lambda data: run_model_refresh(data, keys))
+
+
+@app.command("deep-recall")
+def deep_recall_command(
+    query: str,
+    project: str = typer.Option(..., "--project", help="Exact classified project value."),
+    structured: bool = typer.Option(False, "--json", help="Emit one JSON result."),
+) -> None:
+    """Reconstruct a project timeline with checked archive citations."""
+    import json
+    from contextlib import ExitStack
+
+    from engineering_memory.access.service import AccessError
+    from engineering_memory.cli.runtime import error_category, make_read_access
+
+    try:
+        with ExitStack() as resources:
+            result = make_read_access(resources).deep_recall(query=query, project=project)
+    except AccessError as error:
+        code = str(error)
+    except KeyboardInterrupt:
+        raise typer.Exit(130) from None
+    except Exception as error:
+        code = error_category(error)
+    else:
+        if structured:
+            typer.echo(json.dumps(result))
+        else:
+            typer.echo(f"{result['project']}: {result['status']}")
+            for entry in result["timeline"]:
+                typer.echo(entry["text"])
+                for anchor in entry["citations"]:
+                    index = anchor["message_index"]
+                    field = anchor["field"]
+                    if "tool_index" in anchor:
+                        field += f"[{anchor['tool_index']}]"
+                    typer.echo(
+                        f"  {anchor['timestamp'] or 'time unknown'} "
+                        f"{anchor['document_id']} message {index} {field}: {anchor['quote']}"
+                    )
+            typer.echo("Coverage: " + json.dumps(result["coverage"]))
+            if result["uncertainty"]:
+                typer.echo("Uncertainty: " + ", ".join(result["uncertainty"]))
+        raise typer.Exit(result["status"] == "verification_failed")
+    if structured:
+        typer.echo(json.dumps({"status": "failure", "error": code}))
+    else:
+        typer.echo(f"Deep Recall failed: {code}", err=True)
+    raise typer.Exit(2 if code == "invalid_input" else 1)

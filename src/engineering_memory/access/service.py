@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, TypeAdapter
 
@@ -22,6 +22,9 @@ from engineering_memory.memory.interface import (
 from engineering_memory.memory.interface.project_models import ProjectModelKey, ProjectModelReader
 from engineering_memory.normalization import AnyTag, ProjectTag, Source
 from engineering_memory.normalization.base import OpaqueIdentifier
+
+if TYPE_CHECKING:
+    from engineering_memory.access.deep_recall import DeepRecallSynthesizer
 
 _TAG = TypeAdapter(AnyTag)
 _ID = TypeAdapter(OpaqueIdentifier)
@@ -68,6 +71,11 @@ class ConversationRequest(_Request):
 
 class ReflectRequest(_Request):
     query: StrictStr
+    project: StrictStr
+
+
+class DeepRecallRequest(_Request):
+    query: Annotated[StrictStr, Field(min_length=1, max_length=2000)]
     project: StrictStr
 
 
@@ -118,6 +126,13 @@ def _message_texts(message):
                 yield " ".join(text.split())
 
 
+def _quote_matches(quote, source_texts):
+    normalized = " ".join(quote.strip('"“”').split())
+    return bool(normalized) and any(
+        normalized in " ".join(source.split()) for source in source_texts
+    )
+
+
 def _verify_evidence_quotes(content, source_texts):
     lines = content.splitlines()
     quotes = []
@@ -139,8 +154,7 @@ def _verify_evidence_quotes(content, source_texts):
     if not quotes or len(quotes) > 128:
         raise AccessError("corrupt_record")
     for quote in quotes:
-        normalized = " ".join(quote.strip('"“”').split())
-        if not normalized or not any(normalized in source for source in source_texts):
+        if not _quote_matches(quote, source_texts):
             raise AccessError("corrupt_record")
 
 
@@ -154,11 +168,28 @@ class MemoryAccess:
         *,
         models: ProjectModelReader | None = None,
         reflection: ReflectionReader | None = None,
+        synthesis: DeepRecallSynthesizer | None = None,
     ):
         self.memory = memory
         self.archive = archive
         self.models = models
         self.reflection = reflection
+        self.synthesis = synthesis
+
+    def deep_recall(self, **arguments) -> dict:
+        from engineering_memory.access.deep_recall import deep_recall
+
+        request = _validate(DeepRecallRequest, arguments)
+        tag = _validate(ProjectTag, {"value": request.project})
+        if not request.query.strip() or tag.value in {"unknown", "unclassified"}:
+            raise AccessError("invalid_input")
+        if self.synthesis is None:
+            raise AccessError("unavailable")
+        return _safe(
+            lambda: deep_recall(
+                self.memory, self.archive, self.synthesis, request.query.strip(), tag
+            )
+        )
 
     def reflect(self, **arguments) -> dict:
         request = _validate(ReflectRequest, arguments)

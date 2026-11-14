@@ -405,3 +405,6 @@ verification record for outstanding live prerequisites.
 Run the [synthetic recall benchmark](specs/031-recall-evaluation/quickstart.md) to
 measure topic coverage across 35 questions and compare two completed runs. The
 evaluator queries the read-only MCP server and writes scores and topic IDs.
+
+[Deep Recall](docs/operations/deep-recall.md) builds a cited timeline from imported sessions
+in one project through the CLI or MCP.

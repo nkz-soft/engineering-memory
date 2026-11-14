@@ -115,7 +115,10 @@ def test_recall_strict_scope_limit_and_typed_provenance():
                         },
                         "tags": ["project:engineering-memory"],
                     }
-                    for text in ("first", "second", "third")
+                    for text in ("first", "second")
+                ]
+                + [
+                    {"text": "outside the requested window"},
                 ]
             },
         )
