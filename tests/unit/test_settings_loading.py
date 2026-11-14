@@ -75,7 +75,8 @@ def test_a_malformed_env_file_fails_loudly(complete_environment: dict[str, str],
     with pytest.raises(SettingsError) as failure:
         load_settings(env_file=env_file(contents))
 
-    assert "ENGINEERING_MEMORY_HINDSIGHT__BANK_ID scratch" in str(failure.value)
+    assert "NAME=value assignment" in str(failure.value)
+    assert "scratch" not in str(failure.value)
 
 
 def test_comments_and_blank_lines_in_the_env_file_are_fine(env_file) -> None:
