@@ -136,7 +136,7 @@ stack is selected to answer that question cheaply.
 | Tests | pytest |
 | Integration tests | testcontainers-python |
 | Secret scanning | Gitleaks, plus the project's own sanitizer |
-| Packaging | Docker |
+| Packaging | Docker for services, PyInstaller with Inno Setup or DEB for the workstation CLI (ADR-013) |
 
 Rationale: the project lives in the AI/agent/RAG domain, where new libraries,
 reference implementations and evaluation tooling appear in Python first, and
@@ -252,7 +252,9 @@ reference outside the memory store, a consumer configured against Hindsight
 rather than the access surface, or a path that serves an original or writes
 memory through the access surface.
 
-**Version**: 1.3.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-02
+**Version**: 1.4.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-14
 
 Patch 1.3.1 records the independently specified Claude plain-chat source (#26, ADR-009)
 in the module layout. No principle, technology choice or boundary policy changes.
+
+Minor 1.4.0 adds native workstation CLI packaging alongside Docker service deployment (ADR-013).

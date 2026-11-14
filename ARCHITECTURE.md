@@ -1039,3 +1039,21 @@ text, excluding role/id/time metadata. Missing or fabricated quotes fail closed.
 the quoted text, not semantic entailment of surrounding prose; generated summaries remain
 inspectable derived artifacts. Models include source chunks and are instructed to expand the
 original document so extracted interpretations are not misattributed as recorded rationale.
+
+### ADR-013 — Native packages for the workstation CLI
+
+**Decision.** Build the existing Python CLI as a PyInstaller one-directory
+payload. Distribute a per-user Inno Setup package for Windows 11 x64 and a
+DEB for Ubuntu 24.04 LTS amd64. Use Docker for Hindsight and LiteLLM. Keep
+configuration, archive and SQLite state in the user's profile and Hindsight
+data in a stable Compose volume.
+
+**Rationale.** A native executable can run as a local stdio MCP child from
+any working directory without an installed development runtime. The native
+packages manage command discovery and binary replacement. A generic archive
+would leave that work to operators, and a container-only CLI would require
+container startup for each agent process.
+
+**Verification.** Build and smoke-test both tagged packages before drafting
+a release. Verify import, recall with source, and persistence through restart
+and reinstall on both supported platforms before publishing.

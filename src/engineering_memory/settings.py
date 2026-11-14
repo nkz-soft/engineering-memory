@@ -17,8 +17,9 @@ none, so giving it a peer package would misrepresent it as a sixteenth boundary 
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, Final, get_args, get_origin
 
 from pydantic import (
     AnyHttpUrl,
@@ -63,6 +64,62 @@ sets absolute paths, which `.env.example` says.
 """
 
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
+
+
+class _DefaultEnvFile:
+    """Use the current deployment's default when no explicit override is supplied."""
+
+
+_USE_DEFAULT_ENV: Final = _DefaultEnvFile()
+
+
+def workstation_locations() -> tuple[Path, Path]:
+    """Return the per-user configuration and data roots for a native installation."""
+    if os.name == "nt":
+        base = Path(os.getenv("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+        root = base / "EngineeringMemory"
+        return root / "config", root / "data"
+
+    home = Path.home()
+    config = Path(os.getenv("XDG_CONFIG_HOME") or home / ".config")
+    data = Path(os.getenv("XDG_DATA_HOME") or home / ".local" / "share")
+    return (
+        (config if config.is_absolute() else home / ".config") / "engineering-memory",
+        (data if data.is_absolute() else home / ".local" / "share") / "engineering-memory",
+    )
+
+
+def workstation_subprocess_environment() -> dict[str, str]:
+    """Prevent ambient Compose/provider overrides from replacing the private profile."""
+    prefixes = ("COMPOSE_", "PRODUCT_PROVIDER_", "WORKSTATION_")
+    environment = {
+        name: value for name, value in os.environ.items() if not name.upper().startswith(prefixes)
+    }
+    if sys.platform.startswith("linux") and getattr(sys, "frozen", False):
+        # PyInstaller prepends its bundled libraries. Docker needs its native loader paths.
+        original = environment.pop("LD_LIBRARY_PATH_ORIG", None)
+        if original is None:
+            environment.pop("LD_LIBRARY_PATH", None)
+        else:
+            environment["LD_LIBRARY_PATH"] = original
+    return environment
+
+
+def _default_env_file() -> Path | None:
+    from engineering_memory import workstation
+
+    if workstation.is_installed():
+        return workstation.locations()[0] / "app.env"
+    return DEFAULT_ENV_FILE
+
+
+def _storage_default(name: str) -> Path:
+    from engineering_memory import workstation
+
+    if workstation.is_installed():
+        return workstation.locations()[1] / name
+    return Path("data") / name
+
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -185,11 +242,11 @@ class Settings(BaseSettings):
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     """Deliberately absent from `_always_descend_into_the_groups` below: every field of this group
     has a default, so an absent group is a valid group and there is no missing leaf to name."""
-    archive_root: Path = Path("data/archive")
+    archive_root: Path = Field(default_factory=lambda: _storage_default("archive"))
     chatgpt_export_inbox: Path | None = None
     chatgpt_export_zip_offset_minutes: int | None = Field(default=None, ge=-1439, le=1439)
-    import_state_path: Path = Path("data/import-state.db")
-    project_rules_path: Path = Path("data/projects.toml")
+    import_state_path: Path = Field(default_factory=lambda: _storage_default("import-state.db"))
+    project_rules_path: Path = Field(default_factory=lambda: _storage_default("projects.toml"))
     """The alias rules §15 level 2 classifies by (#12).
 
     Defaulted under `data/` for a reason the other two paths do not share: this file holds one
@@ -273,7 +330,7 @@ def _blank_is_unset(value: Any) -> Any:
     return value
 
 
-def load_settings(*, env_file: Path | str | None = DEFAULT_ENV_FILE) -> Settings:
+def load_settings(*, env_file: Path | str | _DefaultEnvFile | None = _USE_DEFAULT_ENV) -> Settings:
     """Load and validate the settings, or raise `SettingsError` naming every fault.
 
     Performs no network call and creates no file or directory (FR-012), so it is safe to call in a
@@ -282,6 +339,8 @@ def load_settings(*, env_file: Path | str | None = DEFAULT_ENV_FILE) -> Settings
     `env_file=None` disables the file entirely — which is what a test wants, so that whether a
     developer happens to have a `.env` in their checkout cannot decide whether the suite passes.
     """
+    if isinstance(env_file, _DefaultEnvFile):
+        env_file = _default_env_file()
     if env_file is not None:
         _reject_malformed(Path(env_file))
 
@@ -372,7 +431,7 @@ def _reject_malformed(path: Path) -> None:
                 continue
             if "=" not in stripped:
                 problem = (
-                    f"{path} line {number} is not a NAME=value assignment: {stripped!r}. "
+                    f"{path} line {number} is not a NAME=value assignment. "
                     "The dotenv parser would skip it silently, so the setting would go unset."
                 )
                 break
@@ -443,7 +502,7 @@ class _StateSettings(BaseSettings):
     """Only the local import-state path is needed for offline inspection."""
 
     model_config = Settings.model_config
-    import_state_path: Path = Path("data/import-state.db")
+    import_state_path: Path = Field(default_factory=lambda: _storage_default("import-state.db"))
 
     _reject_blank = field_validator("import_state_path", mode="before")(
         Settings._reject_a_blank_path.__func__
@@ -456,9 +515,10 @@ class _StateSettings(BaseSettings):
 def load_state_path() -> Path:
     """Read the same path policy without requiring unrelated remote settings."""
     try:
-        if DEFAULT_ENV_FILE is not None:
-            _reject_malformed(Path(DEFAULT_ENV_FILE))
-        return _StateSettings(_env_file=DEFAULT_ENV_FILE).import_state_path
+        env_file = _default_env_file()
+        if env_file is not None:
+            _reject_malformed(env_file)
+        return _StateSettings(_env_file=env_file).import_state_path
     except (ValidationError, SettingsError):
         pass
     raise SettingsError("configuration invalid")
@@ -481,7 +541,7 @@ class AccessSettings(BaseSettings):
     model_config = Settings.model_config
     hindsight: HindsightSettings
     deep_recall: DeepRecallSettings | None = None
-    archive_root: Path = Path("data/archive")
+    archive_root: Path = Field(default_factory=lambda: _storage_default("archive"))
 
     _reject_blank = field_validator("archive_root", mode="before")(
         Settings._reject_a_blank_path.__func__
@@ -492,9 +552,10 @@ class AccessSettings(BaseSettings):
 def load_access_settings() -> AccessSettings:
     """Read the established environment prefix; hide invalid inputs and chains."""
     try:
-        if DEFAULT_ENV_FILE is not None:
-            _reject_malformed(Path(DEFAULT_ENV_FILE))
-        return AccessSettings(_env_file=DEFAULT_ENV_FILE)
+        env_file = _default_env_file()
+        if env_file is not None:
+            _reject_malformed(env_file)
+        return AccessSettings(_env_file=env_file)
     except (ValidationError, SettingsError):
         pass
     raise SettingsError("configuration invalid")

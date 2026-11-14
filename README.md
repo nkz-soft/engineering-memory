@@ -54,6 +54,11 @@ The first milestone is to import ChatGPT history and have Hermes answer a
 question from it. Claude Code and Codex access, and additional history sources,
 follow as separate work with their own specifications and decision records.
 
+## Workstation installation
+
+See the [Windows and Ubuntu installation guide](docs/operations/workstation-install.md)
+for release packages, local setup, and coding-agent access.
+
 ## Development
 
 Python 3.13, managed with [uv](https://docs.astral.sh/uv/). With Git and uv
