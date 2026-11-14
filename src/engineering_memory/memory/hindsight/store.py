@@ -262,8 +262,7 @@ class HindsightStore:
         facts = result.get("results")
         if not isinstance(facts, list):
             raise MemoryStoreRejected("invalid recall response")
-        decoded = tuple(decode_result(fact, tag_values) for fact in facts)
-        return decoded if limit is None else decoded[:limit]
+        return tuple(decode_result(fact, tag_values) for fact in facts[:limit])
 
     def reflect(self, query: str, tags: tuple[AnyTag, ...]) -> ReflectionResult:
         if not isinstance(query, str) or not query.strip() or not tags:

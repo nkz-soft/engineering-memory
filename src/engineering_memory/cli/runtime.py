@@ -197,20 +197,31 @@ def run_status(data: dict) -> None:
         state.close()
 
 
-def run_serve() -> None:
-    """Compose reads only; the consumer owns the lifetime of this stdio child."""
-    from engineering_memory.access.server import run_stdio
+def make_read_access(resources: ExitStack, *, include_models: bool = False):
     from engineering_memory.access.service import MemoryAccess
+    from engineering_memory.access.synthesis import OpenAICompatibleSynthesizer
     from engineering_memory.settings import load_access_settings
 
     settings = load_access_settings()
-    with ExitStack() as resources:
-        memory = make_memory(settings.hindsight)
-        resources.callback(memory.close)
+    memory = make_memory(settings.hindsight)
+    resources.callback(memory.close)
+    models = None
+    if include_models:
         models = make_project_models(settings.hindsight)
         resources.callback(models.close)
-        run_stdio(
-            MemoryAccess(
-                memory, LocalRawArchive(settings.archive_root), models=models, reflection=memory
-            )
-        )
+    synthesis = OpenAICompatibleSynthesizer(settings.deep_recall) if settings.deep_recall else None
+    return MemoryAccess(
+        memory,
+        LocalRawArchive(settings.archive_root),
+        models=models,
+        reflection=memory,
+        synthesis=synthesis,
+    )
+
+
+def run_serve() -> None:
+    """Compose reads only; the consumer owns the lifetime of this stdio child."""
+    from engineering_memory.access.server import run_stdio
+
+    with ExitStack() as resources:
+        run_stdio(make_read_access(resources, include_models=True))
