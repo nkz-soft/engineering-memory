@@ -39,6 +39,20 @@ async def smoke(executable: Path, version: str, scratch: Path) -> None:
     if command("--version").strip() != f"engineering-memory {version}":
         raise RuntimeError("Installed version mismatch")
     command("status", "--json")
+    unattended = subprocess.run(
+        [str(executable), "setup"],
+        cwd=scratch,
+        env=environment,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if unattended.returncode != 1 or "interactive terminal" not in unattended.stderr:
+        raise RuntimeError("Installed setup did not reject noninteractive invocation")
+    if (config / "compose.env").exists():
+        raise RuntimeError("Noninteractive setup modified the private profile")
     parameters = StdioServerParameters(
         command=str(executable), args=["serve"], env=environment, cwd=str(scratch)
     )

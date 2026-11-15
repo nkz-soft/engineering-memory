@@ -15,6 +15,9 @@ SolidCompression=yes
 [Files]
 Source: "{#Payload}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[Run]
+Filename: "{app}\engineering-memory.exe"; Parameters: "setup --installer"; Description: "Run Engineering Memory guided setup"; Flags: postinstall skipifsilent runasoriginaluser nowait
+
 [Code]
 const
   UserEnvironment = 'Environment';

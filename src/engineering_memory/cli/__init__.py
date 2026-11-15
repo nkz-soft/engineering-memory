@@ -7,6 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 import typer
 
 from engineering_memory.cli.evaluation import app as evaluation_app
+from engineering_memory.cli.setup import setup_command
 from engineering_memory.cli.stack import app as stack_app
 
 app = typer.Typer(
@@ -18,6 +19,7 @@ app = typer.Typer(
 
 app.add_typer(evaluation_app, name="evaluate")
 app.add_typer(stack_app, name="stack")
+app.command("setup")(setup_command)
 
 
 def _version() -> str:
@@ -80,16 +82,17 @@ def provision_command(
 ) -> None:
     """Prepare the shared bank and verify its retain mission before import."""
 
-    def run(data):
-        from engineering_memory.memory.hindsight.provision import provision
-        from engineering_memory.settings import load_settings
+    _execute("provision", structured, run_provision)
 
-        settings = load_settings()
-        data["bank"] = settings.hindsight.bank_id
-        provision(settings.hindsight)
-        data["mission_verified"] = True
 
-    _execute("provision", structured, run)
+def run_provision(data: dict) -> None:
+    from engineering_memory.memory.hindsight.provision import provision
+    from engineering_memory.settings import load_settings
+
+    settings = load_settings()
+    data["bank"] = settings.hindsight.bank_id
+    provision(settings.hindsight)
+    data["mission_verified"] = True
 
 
 @app.command("import")
