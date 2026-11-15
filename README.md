@@ -402,7 +402,9 @@ freshness, failure recovery and validation.
 [Connect Claude Code and Codex](docs/operations/coding-agent-memory.md) to the existing
 read-only stdio MCP server and verify cross-agent visibility after import. The guide
 separates backend regression coverage from actual client acceptance; consult its linked
-verification record for outstanding live prerequisites.
+verification record for outstanding live prerequisites. Use
+[automatic session import](docs/operations/session-import.md) to scan
+configured local histories on demand or on an opt-in schedule.
 
 
 ## Recall evaluation

@@ -23,6 +23,8 @@ def result(command: str, *, dry_run: bool = False) -> dict:
             )
         else:
             data.update(imported=0, skipped=0, failed=0, terminal_error=None, outcomes=[])
+    elif command == "import-sessions":
+        data.update(sources=[])
     elif command == "acquire-chatgpt":
         data.update(
             outcome="empty", digest=None, imported=0, skipped=0, failed=0, terminal_error=None
@@ -37,7 +39,11 @@ def emit(data: dict, *, structured: bool) -> None:
         typer.echo(json.dumps(data, ensure_ascii=True))
         return
     if data["error"]:
-        messages = {"configuration": "configuration invalid", "memory": "memory unavailable"}
+        messages = {
+            "configuration": "configuration invalid",
+            "memory": "memory unavailable",
+            "busy": "another session import is running for this profile",
+        }
         typer.echo(messages.get(data["error"], f"{data['error']}: command failed"), err=True)
     if data["command"] == "models refresh":
         for row in data["models"]:
@@ -68,6 +74,17 @@ def emit(data: dict, *, structured: bool) -> None:
                 typer.echo(f"{row['source_id'] or '<unknown>'}: {row['error']}")
         if data["terminal_error"]:
             typer.echo(f"Terminal error: {data['terminal_error']}")
+    elif data["command"] == "import-sessions":
+        for row in data["sources"]:
+            typer.echo(
+                f"{row['source']}: imported {row['imported']}, unchanged {row['unchanged']}, "
+                f"deferred {row['deferred']}, failed {row['failed']}"
+            )
+            if row["error"]:
+                typer.echo(
+                    f"{row['source']}: check the configured history directory ({row['error']}).",
+                    err=True,
+                )
     elif data["command"] == "acquire-chatgpt":
         typer.echo(
             f"Export acquisition: {data['outcome']}. "

@@ -252,6 +252,19 @@ class LoggingSettings(_Frozen):
         return value
 
 
+class SessionImportSettings(_Frozen):
+    codex_root: Path | None = None
+    claude_code_root: Path | None = None
+    quiet_seconds: int = Field(default=300, gt=0)
+
+    @field_validator("codex_root", "claude_code_root")
+    @classmethod
+    def _validate_root(cls, value: Path | None) -> Path | None:
+        if value is not None and (not value.is_absolute() or ".." in value.parts):
+            raise PydanticCustomError("invalid_root", "must be an absolute path without '..'")
+        return value
+
+
 class Settings(BaseSettings):
     """Every value this project reads from its environment, validated as a whole.
 
@@ -270,6 +283,7 @@ class Settings(BaseSettings):
 
     hindsight: HindsightSettings
     llm: LlmSettings
+    session_import: SessionImportSettings = Field(default_factory=SessionImportSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     """Deliberately absent from `_always_descend_into_the_groups` below: every field of this group
     has a default, so an absent group is a valid group and there is no missing leaf to name."""
