@@ -10,7 +10,7 @@
 | `ENGINEERING_MEMORY_SESSION_IMPORT__CLAUDE_CODE_ROOT` | Optional local Claude Code projects directory. Accept main-snapshot JSONL files at its top level and directly inside project directories. |
 | `ENGINEERING_MEMORY_SESSION_IMPORT__QUIET_SECONDS` | Positive quiet period for file eligibility. Default 300 seconds. |
 
-The command requires at least one root. Other roots and client profiles are out of scope for the run. Windows junctions, symlinks and nested auxiliary transcripts are excluded from discovery. Schedule enablement is a user-managed OS setting. The scheduler action uses this one-shot command under the operator profile with an explicit executable path and access to the normal settings.
+The command requires at least one absolute root. Other roots and client profiles are out of scope for the run. Windows junctions, symlinks and nested auxiliary transcripts are excluded from discovery. Schedule enablement is a user-managed OS setting. The scheduler action uses this one-shot command under the operator profile with an explicit executable path and access to the normal settings.
 
 ## Result
 

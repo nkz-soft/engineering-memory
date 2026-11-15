@@ -105,6 +105,10 @@ imported decision and open the matching conversation with `get_conversation`.
 The MCP server reads the same local configuration when launched from any
 working directory.
 
+To keep coding-agent history current, configure
+[automatic session import](session-import.md) and optionally schedule it
+under the same user account.
+
 ## Maintainer release procedure
 
 Each PR build uploads versioned packages and checksum sidecars. After merge,

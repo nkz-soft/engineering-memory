@@ -75,6 +75,36 @@ def run_model_refresh(data, keys):
         models.close()
 
 
+def _import_pipeline(settings, version, resources, *, dry_run=False) -> IngestionPipeline:
+    configure(settings)
+    rules = load_project_rules(
+        settings.project_rules_path, required="project_rules_path" in settings.model_fields_set
+    )
+    state = None
+    if not dry_run or settings.import_state_path.exists():
+        state = SQLiteImportState(settings.import_state_path, read_only=dry_run)
+        resources.callback(state.close)
+        if dry_run:
+            state.validate()
+        else:
+            state.initialize()
+    memory = None if dry_run else make_memory(settings.hindsight)
+    if close := getattr(memory, "close", None):
+        resources.callback(close)
+    archive = LocalRawArchive(settings.archive_root)
+    return IngestionPipeline(
+        sanitizer=PatternSecretSanitizer(),
+        classifier=ChainedProjectClassifier(
+            (MetadataProjectClassifier(rules), AliasProjectClassifier(rules))
+        ),
+        archive=archive,
+        memory=memory,
+        state=state,
+        importer_version=version,
+        bank=settings.hindsight.bank_id,
+    )
+
+
 def run_import(
     data: dict | None,
     export: str | None,
@@ -92,25 +122,10 @@ def run_import(
     }
     export_reader, archive_reader = sources[source]
     settings = load_settings()
-    configure(settings)
-    rules = load_project_rules(
-        settings.project_rules_path, required="project_rules_path" in settings.model_fields_set
-    )
     with ExitStack() as resources:
-        state = None
-        if not dry_run or settings.import_state_path.exists():
-            state = SQLiteImportState(settings.import_state_path, read_only=dry_run)
-            resources.callback(state.close)
-            if dry_run:
-                state.validate()
-            else:
-                state.initialize()
-        memory = None if dry_run else make_memory(settings.hindsight)
-        if close := getattr(memory, "close", None):
-            resources.callback(close)
-        archive = LocalRawArchive(settings.archive_root)
+        pipeline = _import_pipeline(settings, version, resources, dry_run=dry_run)
         input_source = (
-            export_reader(Path(export)) if export is not None else archive_reader(archive)
+            export_reader(Path(export)) if export is not None else archive_reader(pipeline.archive)
         )
 
         # Own the reader explicitly so interrupts/terminal failures release an open ZIP/export.
@@ -123,17 +138,7 @@ def run_import(
                     resources.callback(close)
                 return reader
 
-        report = IngestionPipeline(
-            sanitizer=PatternSecretSanitizer(),
-            classifier=ChainedProjectClassifier(
-                (MetadataProjectClassifier(rules), AliasProjectClassifier(rules))
-            ),
-            archive=archive,
-            memory=memory,
-            state=state,
-            importer_version=version,
-            bank=settings.hindsight.bank_id,
-        ).run(OwnedSource(), force=force, dry_run=dry_run)
+        report = pipeline.run(OwnedSource(), force=force, dry_run=dry_run)
         if data is None:
             return report
         if dry_run:
@@ -166,6 +171,48 @@ def run_import(
             outcomes=[outcome.model_dump(mode="json") for outcome in report.outcomes],
         )
         return report
+
+
+def run_session_import(data: dict, version: str) -> None:
+    from engineering_memory.cli.session_lock import CaptureBusy, capture_lock
+    from engineering_memory.ingestion.session_capture import CapturedSessionSource
+
+    settings = load_settings()
+    capture = settings.session_import
+    roots = {"codex": capture.codex_root, "claude-code": capture.claude_code_root}
+    if all(root is None for root in roots.values()):
+        data.update(status="failure", error="configuration")
+        return
+
+    try:
+        with capture_lock(settings.import_state_path), ExitStack() as resources:
+            pipeline = _import_pipeline(settings, version, resources)
+            for kind, root in roots.items():
+                if root is None:
+                    continue
+                source = CapturedSessionSource(kind, root, capture.quiet_seconds)
+                report = pipeline.run(source)
+                data["sources"].append(
+                    {
+                        "source": kind,
+                        "imported": report.imported,
+                        "unchanged": report.skipped,
+                        "deferred": source.deferred,
+                        "failed": report.failed,
+                        "error": "source_unavailable" if report.terminal_error else None,
+                    }
+                )
+    except CaptureBusy:
+        data.update(status="failure", error="busy")
+        return
+
+    rows = data["sources"]
+    if any(row["failed"] or row["error"] for row in rows):
+        data["status"] = (
+            "partial_success"
+            if any(row["imported"] or row["unchanged"] for row in rows)
+            else "failure"
+        )
 
 
 def run_status(data: dict) -> None:

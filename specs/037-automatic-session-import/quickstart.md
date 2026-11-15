@@ -10,3 +10,10 @@ Use a private, disposable operator profile with a provisioned isolated test back
 6. On Windows and Ubuntu, confirm fresh setup leaves scheduling off. Enable a user-owned Task Scheduler task or systemd user timer with the same configured one-shot command. Let it pick up a newly settled synthetic session, check the result and recall, then disable the schedule and confirm no subsequent run is made.
 
 During implementation, run `uv run --locked pytest -q` and `uv run --locked ruff check .`. Use the existing isolated live contract setup for the backend recall check and record each platform's scheduler result.
+
+## Verification record
+
+- Windows full suite: `uv run --locked pytest -q` reported 2304 passed and 48 skipped. Ruff lint and format checks passed.
+- Ubuntu 24.04 WSL: focused capture and CLI tests reported 9 passed and 2 skipped. A separate unprivileged run verified a configured root under a search-only ancestor.
+- Isolated real engine: `python -m pytest -q tests/integration/test_session_import_live.py` with the live contract environment reported 1 passed. Both sources were imported, skipped on repeat, found by source-scoped recall, and opened as sanitized conversations.
+- Scheduling: Windows Task Scheduler and an Ubuntu 24.04 WSL systemd user timer each invoked the CLI without a terminal, reported one deferred synthetic file, and were disabled or stopped. These smoke checks used development or wheel installations. Fresh native installer acceptance remains open.

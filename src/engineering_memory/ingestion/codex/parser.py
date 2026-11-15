@@ -126,7 +126,15 @@ def parse_session(raw: bytes) -> Conversation:
         raise SourceFormatError("the Codex session could not be parsed") from None
 
 
-def _parse(raw):
+def parse_main_session(raw: bytes) -> Conversation | None:
+    """Automatic capture excludes Codex subagents from the dated session tree."""
+    try:
+        return _parse(raw, main_only=True)
+    except (ValueError, TypeError, KeyError, AttributeError, RecursionError, OverflowError):
+        raise SourceFormatError("the Codex session could not be parsed") from None
+
+
+def _parse(raw, *, main_only=False):
     metadata = None
     messages, times, calls = [], [], {}
     mirrored_dialogue = False
@@ -142,6 +150,13 @@ def _parse(raw):
         if kind == "session_meta":
             if metadata is not None:
                 raise ValueError
+            origin = payload.get("source")
+            if main_only and (
+                payload.get("thread_source")
+                in ("subagent", "guardian_review", "memory_consolidation")
+                or (isinstance(origin, dict) and not {"subagent", "internal"}.isdisjoint(origin))
+            ):
+                return None
             metadata = payload
             _string(payload["id"])
             times.append(_time(payload["timestamp"]))

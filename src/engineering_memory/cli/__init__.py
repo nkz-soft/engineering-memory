@@ -129,6 +129,16 @@ def import_command(
     )
 
 
+@app.command("import-sessions")
+def import_sessions_command(
+    structured: bool = typer.Option(False, "--json", help="Emit one JSON result."),
+) -> None:
+    """Scan explicitly configured coding-agent histories once."""
+    from engineering_memory.cli.runtime import run_session_import
+
+    _execute("import-sessions", structured, lambda data: run_session_import(data, _version()))
+
+
 @app.command("acquire-chatgpt")
 def acquire_chatgpt_command(
     file: str | None = typer.Option(None, "--file", help="Acquire an explicit local ZIP."),

@@ -6,7 +6,7 @@ A source kind (`codex` or `claude-code`) and an operator-approved root. At least
 
 ## Snapshot candidate
 
-A regular main-session JSONL file in a supported layout. The source identity, length and modification metadata observed for capture are transient and are checked again before the copy is accepted. An accepted snapshot owns the original bytes until the existing adapter and pipeline consume it. Its path is private and temporary.
+A regular main-session JSONL file in a supported layout. The source identity, length and modification metadata observed for capture are transient and are checked again before the copy is accepted. An accepted snapshot owns the original bytes until the existing adapter and pipeline consume it. The capture is held in memory only.
 
 An eligible candidate proceeds through discovery → capture → parse → existing import. Recent, changing or disappearing candidates are deferred. Stable malformed, unreadable or unsupported candidates are reported. Every run discovers candidates again, including previously deferred ones. The existing normalized content hash determines whether extraction is needed.
 

@@ -9,7 +9,7 @@ Expose `engineering-memory import-sessions` as a bounded scan of explicitly conf
 ## Technical Context
 
 - **Runtime and CLI** Python 3.13 with uv, Typer and Pydantic settings.
-- **Persistence** Existing local raw archive, SQLite import state and provisioned shared memory bank. Private temporary copies are disposable.
+- **Persistence** Existing local raw archive, SQLite import state and provisioned shared memory bank. The stable copy is held in memory only.
 - **Platforms** Windows 11 x64 and Ubuntu 24.04 LTS amd64, matching the workstation packages.
 - **Performance** Read one candidate at a time, skip recent files before copying, and use the existing hash skip before extraction.
 - **Testing** pytest with synthetic histories, a recording memory store for extraction counts, and an opt-in isolated live backend for recall.
