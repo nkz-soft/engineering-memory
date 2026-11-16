@@ -7,10 +7,12 @@ from contextlib import closing
 from pathlib import Path
 
 import anyio
+from fastapi.testclient import TestClient
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters
 from typer.testing import CliRunner
 
+from engineering_memory.api.explorer import create_explorer_app
 from engineering_memory.archive.local import LocalRawArchive
 from engineering_memory.classification import AliasProjectClassifier, ProjectRule, ProjectRuleSet
 from engineering_memory.cli import app, runtime
@@ -51,7 +53,7 @@ def launch_fixture_server(archive_root):
     run_stdio(MemoryAccess(memory, archive, synthesis=FixtureSynthesis()))
 
 
-def test_deep_recall_after_import_on_both_surfaces(tmp_path, monkeypatch):
+def test_deep_recall_after_import_on_all_surfaces(tmp_path, monkeypatch):
     archive = LocalRawArchive(tmp_path / "archive")
     memory = InMemoryMemoryStore()
     initial = claude_code.record(content=PROPOSED + " password=synthetic-secret-123")
@@ -104,6 +106,25 @@ def test_deep_recall_after_import_on_both_surfaces(tmp_path, monkeypatch):
     assert cli_result["status"] == "completed"
     assert [entry["text"] for entry in cli_result["timeline"]] == [PROPOSED, REVISED]
 
+    http = TestClient(
+        create_explorer_app(
+            MemoryAccess(memory, archive, synthesis=FixtureSynthesis()),
+            token="transport-fixture-key",
+            authority="127.0.0.1:8123",
+        ),
+        base_url="http://127.0.0.1:8123",
+        headers={
+            "Origin": "http://127.0.0.1:8123",
+            "Authorization": "Bearer transport-fixture-key",
+        },
+    )
+
+    def browser_read(operation, payload):
+        response = http.post(f"/api/{operation}", json=payload)
+        assert response.status_code == 200
+        return response.json()
+
+    assert browser_read("deep-recall", {"query": "Cache", "project": "orchard"}) == cli_result
     parameters = StdioServerParameters(
         command=sys.executable,
         args=[
@@ -128,6 +149,17 @@ def test_deep_recall_after_import_on_both_surfaces(tmp_path, monkeypatch):
                 )
                 assert not result.is_error
                 assert result.structured_content == cli_result
+                search = await client.call_tool(
+                    "search_memory", {"query": "Cache", "tags": ["project:orchard"]}
+                )
+                assert not search.is_error
+                assert browser_read("search", {"query": "Cache", "project": "orchard"}) == (
+                    search.structured_content
+                )
+                assert {hit["document_id"] for hit in search.structured_content["results"]} == {
+                    "claude-code:original",
+                    "codex:revised",
+                }
                 anchors = [entry["citations"][0] for entry in cli_result["timeline"]]
                 assert [a["document_id"] for a in anchors] == [
                     "claude-code:original",
@@ -143,6 +175,18 @@ def test_deep_recall_after_import_on_both_surfaces(tmp_path, monkeypatch):
                         },
                     )
                     assert not page.is_error
+                    assert (
+                        browser_read(
+                            "conversation",
+                            {
+                                "document_id": anchor["document_id"],
+                                "offset": anchor["message_index"],
+                                "page_size": 1,
+                            },
+                        )
+                        == page.structured_content
+                    )
                     assert anchor["quote"] in page.structured_content["messages"][0]["text"]
 
-    anyio.run(scenario)
+    with http:
+        anyio.run(scenario)

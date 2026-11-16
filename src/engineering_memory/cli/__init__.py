@@ -177,6 +177,22 @@ def serve_command() -> None:
     raise typer.Exit(1)
 
 
+@app.command("explore")
+def explore_command() -> None:
+    """Open a local read-only browser interface for imported memory."""
+    from engineering_memory.cli.explorer import run_explorer
+    from engineering_memory.cli.runtime import error_category
+
+    try:
+        run_explorer()
+    except KeyboardInterrupt:
+        raise typer.Exit(130) from None
+    except Exception as error:
+        category = error_category(error)
+        typer.echo(f"Memory explorer could not start: {category}", err=True)
+        raise typer.Exit(1) from None
+
+
 models_app = typer.Typer(
     help="Maintain project summaries after importing history.", no_args_is_help=True
 )

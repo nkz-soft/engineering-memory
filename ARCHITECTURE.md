@@ -16,9 +16,9 @@ both plain chats and coding-agent sessions.**
 Everything else — Claude Code and Codex reading the same memory, mental models,
 evaluation — follows from that, and is sequenced after it.
 
-engineering-memory is the store of that history, not only its importer. Hermes and
-every other consumer reach it through the MCP server engineering-memory exposes, and
-never through Hindsight directly (ADR-008).
+engineering-memory stores and imports that history. Agents retrieve it through
+its stdio MCP server (ADR-008). Local operators can use the authenticated
+browser explorer (ADR-014). Both transports use the shared read service.
 
 Hindsight is the memory engine. We do not build our own RAG, and we do not add a
 vector database, a search engine or a custom knowledge graph. Hindsight owns
@@ -409,9 +409,10 @@ it is slower and reasons over accumulated memory rather than fetching it.
 
 ### 16.1. Memory access surface
 
-Consumers retrieve through an MCP server that engineering-memory exposes, not through
-Hindsight (ADR-008). It is a module of the monolith, `access`, and depends only
-on `memory/interface`, the raw archive and the import state.
+Consumers retrieve through the shared read service in the monolith's `access`
+module. Agents use stdio MCP (ADR-008), and the explorer uses an authenticated
+local HTTP adapter (ADR-014). The read service uses `memory/interface` and the
+archive and import-state boundaries.
 
 | Tool | Backed by | Returns |
 |---|---|---|
@@ -419,6 +420,7 @@ on `memory/interface`, the raw archive and the import state.
 | `get_conversation` | raw archive | The normalized form of one conversation by `document_id`, in pages of messages |
 | `get_project_model` | project model reader and raw archive | Architecture, stack or decisions snapshot for an explicit project, refresh state and validated supporting conversations |
 | `reflect` | `reflect` | A synthesized answer over accumulated memory |
+| `deep_recall` | Scoped recall and sanitized archive | Verified claims with message and field citations |
 | `list_conversations` | import state | Conversations by project, source and time, with titles and document ids |
 
 `search_memory` and `get_conversation` are the first two; Phase 3 adds
@@ -569,7 +571,8 @@ Mental models for project architecture, current stack and architecture
 decisions. `reflect` verified. An evaluation dataset of at least 30 questions
 with expected topics, so that memory quality can be compared objectively after
 changes to the retain mission, the extractor model, the Hindsight version or the
-bank strategy.
+bank strategy. The local explorer exposes scoped search and cited Deep Recall
+to the operator in a browser (ADR-014).
 
 ## 23. Decision records
 
@@ -1057,3 +1060,27 @@ container startup for each agent process.
 **Verification.** Build and smoke-test both tagged packages before drafting
 a release. Verify import, recall with source, and persistence through restart
 and reinstall on both supported platforms before publishing.
+
+### ADR-014 — Authenticated loopback access for the local memory explorer
+
+**Context.** A browser needs an HTTP origin to expose the same evidence that
+the CLI and MCP tools read. The operator uses the browser on the workstation
+where the private archive already lives.
+
+**Decision.** The foreground explorer binds IPv4 loopback on an ephemeral
+port. FastAPI and Uvicorn serve a same-origin UI and three read operations
+through the shared `MemoryAccess` service. The launcher generates a bearer
+credential of 32 random bytes for each process and displays it separately from
+the URL. The browser holds it in page memory. The adapter authenticates each
+data request and validates the exact Host and Origin. It disables HTTP access
+logging, prohibits caching and framing, and returns fixed diagnostic codes.
+Bundled UI assets render archive text and model output as inert text.
+
+This extends Principle IV for the local browser while retaining Principle V's
+requirement for authenticated network transports. ADR-008 continues to govern
+agent transport. The explorer exposes no ingestion or raw-original operations.
+
+**Alternatives.** An HTTP proxy to a stdio child would duplicate process
+lifecycle and serialization. Direct engine access would bypass provenance and
+archive checks. A shared listener would require multi-user authorization
+outside the local explorer's scope.

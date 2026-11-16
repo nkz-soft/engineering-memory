@@ -218,6 +218,7 @@ FILLED_BOUNDARIES = frozenset(
     {
         "observability",
         "access",
+        "api",
         "evaluation",
         "cli",
         "normalization",
@@ -230,6 +231,7 @@ FILLED_BOUNDARIES = frozenset(
     }
 )
 """The recorded boundaries a feature has filled with an implementation, and when.
+* ``api`` — 038-local-memory-explorer, authenticated loopback HTTP (ADR-014).
 * ``access`` — 024-hermes-memory-access, read-only stdio MCP retrieval (ADR-008).
 * `evaluation` — 031-recall-evaluation, synthetic benchmark scoring through MCP.
 
@@ -349,9 +351,8 @@ def test_the_behaviour_guard_still_bites(tmp_path, monkeypatch) -> None:
     This builds a package root holding one recorded module with real code in it, and insists the
     guard reports it.
 
-    The module used here was ``evaluation`` until 031-recall-evaluation filled it. It is
-    ``api`` now — a boundary no feature has reached — because a guard demonstrated against a
-    module that is exempt demonstrates nothing.
+    Treat the fixture API module as unfilled so this negative control exercises
+    the guard even after the real API boundary has been implemented.
     """
     fake_root = tmp_path / "engineering_memory"
     (fake_root / "api").mkdir(parents=True)
@@ -361,6 +362,9 @@ def test_the_behaviour_guard_still_bites(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("tests.structure.test_module_layout.PACKAGE_ROOT", fake_root)
     monkeypatch.setattr("tests.structure.test_module_layout.REPO_ROOT", tmp_path)
 
+    monkeypatch.setattr(
+        "tests.structure.test_module_layout.FILLED_BOUNDARIES", FILLED_BOUNDARIES - {"api"}
+    )
     with pytest.raises(AssertionError, match=re.escape("api/score.py")):
         test_recorded_modules_carry_no_behaviour()
 
