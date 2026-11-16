@@ -99,6 +99,8 @@ EXPECTED_RUNTIME_DEPENDENCIES = frozenset(
         "httpx",
         "tenacity",
         "mcp",
+        "fastapi",
+        "uvicorn",
     }
 )
 """Every runtime dependency the project is allowed to declare, by distribution name.
@@ -111,6 +113,7 @@ that needed it, and with the row of the constitution's Technology Stack table th
   `BaseSettings`, separated at the v1→v2 split for packaging reasons
   (specs/002-environment-configuration/research.md R2).
 * `mcp` — Agent access row, added by 024-hermes-memory-access under ADR-008.
+* `fastapi` and `uvicorn` — the authenticated loopback explorer (ADR-014).
 * `httpx` — the HTTP client row, added by 014-local-hindsight-deployment.
 * `tenacity` — the Retry row, added by 019-hindsight-retry under ADR-004.
 * `sqlalchemy` — the Database access row, added by 013-sqlite-import-state.

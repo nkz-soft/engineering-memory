@@ -34,6 +34,13 @@ class AccessError(RuntimeError):
     """A fixed, public error code; underlying exception details never leave the service."""
 
 
+class SynthesisUnconfigured(AccessError):
+    """Deep Recall has no synthesis configuration."""
+
+    def __init__(self):
+        super().__init__("unavailable")
+
+
 def _safe[T](action: Callable[[], T]) -> T:
     try:
         return action()
@@ -184,7 +191,7 @@ class MemoryAccess:
         if not request.query.strip() or tag.value in {"unknown", "unclassified"}:
             raise AccessError("invalid_input")
         if self.synthesis is None:
-            raise AccessError("unavailable")
+            raise SynthesisUnconfigured()
         return _safe(
             lambda: deep_recall(
                 self.memory, self.archive, self.synthesis, request.query.strip(), tag

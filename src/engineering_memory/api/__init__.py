@@ -1,1 +1,1 @@
-"""HTTP surface. Absent by design until a feature needs one (ADR-004)."""
+"""Local HTTP adapters for the shared read-only memory service."""

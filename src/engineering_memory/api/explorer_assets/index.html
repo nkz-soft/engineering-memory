@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memory explorer</title>
+  <link rel="stylesheet" href="/assets/explorer.css">
+  <script src="/assets/explorer.js" defer></script>
+</head>
+<body>
+  <main class="frame">
+    <header class="masthead">
+      <h1>Memory explorer</h1>
+      <button id="lock" class="quiet" type="button" hidden>Lock</button>
+    </header>
+
+    <form id="unlock" autocomplete="off">
+      <label for="access-key">Access key</label>
+      <p>Enter the key printed by <code>engineering-memory explore</code>.</p>
+      <div class="actions">
+        <input id="access-key" type="password" autocomplete="off" required>
+        <button type="submit">Unlock</button>
+      </div>
+      <p id="access-status" role="status"></p>
+    </form>
+
+    <section id="workspace" hidden>
+      <form id="lookup" autocomplete="off">
+        <label for="project">Project slug</label>
+        <input id="project" spellcheck="false" required>
+        <label for="query">Question or search terms</label>
+        <textarea id="query" rows="3" maxlength="2000" required></textarea>
+        <div class="actions">
+          <button type="submit" value="search">Search</button>
+          <button type="submit" class="quiet" value="deep-recall">Deep Recall</button>
+        </div>
+      </form>
+
+      <div class="columns">
+        <section aria-labelledby="results-heading">
+          <h2 id="results-heading" hidden>Results</h2>
+          <p id="query-status" role="status"></p>
+          <div id="results"></div>
+        </section>
+
+        <section id="evidence" aria-labelledby="evidence-heading" hidden>
+          <h2 id="evidence-heading" tabindex="-1">Conversation</h2>
+          <p id="evidence-status" role="status"></p>
+          <p id="conversation-provenance" class="metadata"></p>
+          <div id="messages"></div>
+          <div class="actions paging">
+            <button id="first" type="button" class="quiet" hidden>First messages</button>
+            <button id="next" type="button" class="quiet" hidden>Next messages</button>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -64,13 +64,13 @@ endpoint: each is reached through an interface, so local storage, an
 OpenAI-compatible proxy or the memory engine itself can be swapped without
 touching ingestion.
 
-Consumers MUST reach memory only through the memory access surface — the MCP
-server in the `access` module (ARCHITECTURE.md §16.1, ADR-008). No consumer may
-be configured against Hindsight, and the access surface MUST NOT reference
-Hindsight any more than the pipeline may: it reads through `memory/interface`,
-the raw archive and the import state. The surface is read-only; memory is
-written by importers alone, so that everything retrievable has an original in
-the raw archive (Principle I).
+Consumers MUST reach memory only through the shared read service in the
+`access` module (ARCHITECTURE.md §16.1). Agents use its stdio MCP server
+(ADR-008). A local operator may use the authenticated loopback browser adapter
+(ADR-014). Only the memory store implementation may reference Hindsight.
+The shared service reads through `memory/interface`, the raw archive and the
+import state. Importers alone write memory, so that everything retrievable
+has an original in the raw archive (Principle I).
 
 Pipeline stages (parse → normalize → sanitize → classify → enrich) MUST be
 independently testable and composable, and the pipeline MUST run conversation by
@@ -87,13 +87,15 @@ replace the secret value while preserving the surrounding context rather than
 dropping the enclosing text.
 
 The access surface MUST serve sanitized content only: the normalized form of a
-conversation, never its original. It runs over the stdio transport as a local
-process, and MUST NOT listen on a network port without a decision record that
-gives it authentication.
+conversation, never its original. The MCP server runs over stdio as a local
+process. Any access transport that listens on a network port MUST have a
+decision record defining its authentication and binding policy.
 
-Credentials MUST come from environment variables or a secret store, never from
-files in the repository. Conversation contents are not logged by default;
-credentials, tokens and authorization headers are never logged.
+Configured credentials MUST come from environment variables or a secret
+store. A local listener may generate a per-launch credential in memory when
+its decision record specifies that behavior. Conversation contents are not
+logged by default, and logs never include credentials, tokens or authorization
+headers.
 
 Hindsight MUST be a self-hosted instance, and the raw archive stays on local
 storage under the user's control.
@@ -149,7 +151,8 @@ the production targets behind the same interfaces required by Principle IV, and
 adopting them MUST NOT change ingestion code. FastAPI is the choice for an HTTP
 surface when one is introduced — it is not a mandate to build one; the MVP is
 driven by the Typer CLI. The MCP server of the access surface is built on the
-MCP SDK rather than on FastAPI, and is how consumers reach memory (ADR-008).
+MCP SDK and serves agents (ADR-008). FastAPI serves the local explorer
+(ADR-014).
 
 The system is a modular monolith with Hindsight as an external service reached
 over HTTP/MCP. Microservices are not introduced for the MVP. Module layout:
@@ -252,9 +255,12 @@ reference outside the memory store, a consumer configured against Hindsight
 rather than the access surface, or a path that serves an original or writes
 memory through the access surface.
 
-**Version**: 1.4.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-14
+**Version**: 1.5.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-16
 
 Patch 1.3.1 records the independently specified Claude plain-chat source (#26, ADR-009)
 in the module layout. No principle, technology choice or boundary policy changes.
 
 Minor 1.4.0 adds native workstation CLI packaging alongside Docker service deployment (ADR-013).
+
+Minor 1.5.0 permits the authenticated local explorer to use the shared read
+service under ADR-014.
