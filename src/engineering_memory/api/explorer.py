@@ -3,11 +3,12 @@
 import json
 from hmac import compare_digest
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from pydantic import ValidationError, field_validator
 
 from engineering_memory.access.service import (
     AccessError,
@@ -27,6 +28,17 @@ ERROR_STATUS = {
     "rejected": 500,
     "internal": 500,
 }
+
+
+class _BrowserDeepRecallRequest(DeepRecallRequest):
+    mode: Literal["decision_history"] | None = None
+
+    @field_validator("mode")
+    @classmethod
+    def require_mode_if_present(cls, value):
+        if value is None:
+            raise ValueError("mode cannot be null")
+        return value
 
 
 def _error(code: str, status: int) -> JSONResponse:
@@ -120,9 +132,13 @@ def create_explorer_app(access: MemoryAccess, *, token: str, authority: str) -> 
     async def search_memory(request: Request):
         return await dispatch(request, DeepRecallRequest, search)
 
+    def read_synthesis(query: str, project: str, mode: str | None = None) -> dict:
+        read = access.decision_history if mode == "decision_history" else access.deep_recall
+        return read(query=query, project=project)
+
     @app.post("/api/deep-recall")
     async def deep_recall(request: Request):
-        return await dispatch(request, DeepRecallRequest, access.deep_recall)
+        return await dispatch(request, _BrowserDeepRecallRequest, read_synthesis)
 
     @app.post("/api/conversation")
     async def conversation(request: Request):

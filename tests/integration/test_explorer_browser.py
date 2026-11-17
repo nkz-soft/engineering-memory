@@ -17,7 +17,7 @@ PROVENANCE = {"source": "codex", "project": "orchard"}
 
 
 @pytest.fixture
-def explorer():
+def explorer(request):
     browser_channel = os.environ.get("ENGINEERING_MEMORY_BROWSER")
     if not browser_channel:
         pytest.skip("set ENGINEERING_MEMORY_BROWSER to chromium or msedge")
@@ -25,7 +25,8 @@ def explorer():
 
     from engineering_memory.api.explorer import create_explorer_app
 
-    access = Mock(spec=MemoryAccess)
+    build_access = getattr(request, "param", None)
+    access = build_access() if build_access else Mock(spec=MemoryAccess)
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         authority = f"127.0.0.1:{listener.getsockname()[1]}"
@@ -256,3 +257,208 @@ def test_fresh_browser_context_cannot_read_memory(explorer):
         assert not access.mock_calls
     finally:
         second.close()
+
+
+def test_decision_history_shows_uncertainty_and_opens_exact_evidence(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    timestamp = "2026-01-01T00:00:03Z"
+    action = {
+        "document_id": "codex:one",
+        "message_index": 51,
+        "field": "text",
+        "timestamp": timestamp,
+        "quote": "Use hourly caching.",
+    }
+    base = {
+        "kind": "proposal",
+        "version": "Daily caching",
+        "prior_version": None,
+        "reason": None,
+        "action": action,
+        "context": [],
+        "occurred_at": timestamp,
+        "chronology": "known",
+        "ordering_uncertain": True,
+    }
+    access.decision_history.return_value = {
+        "project": "orchard",
+        "topic": "queue",
+        "status": "partial",
+        "coverage": {},
+        "uncertainty": ["unresolved_conflict", "unknown_time"],
+        "events": [
+            base,
+            base | {"kind": "adoption"},
+            base
+            | {
+                "kind": "revision",
+                "occurred_at": None,
+                "chronology": "unknown",
+                "ordering_uncertain": False,
+            },
+            base
+            | {
+                "kind": "supersession",
+                "version": "Hourly caching",
+                "prior_version": "Daily caching",
+                "reason": "Reduce staleness",
+            },
+        ],
+        "conflicts": [
+            {
+                "summary": "Rollout disputed",
+                "accounts": [
+                    {"text": "Daily remains active", "citations": [action]},
+                    {"text": "Hourly is active", "citations": [action]},
+                ],
+            }
+        ],
+    }
+    access.get_conversation.side_effect = [
+        _page(51, "Use hourly caching."),
+        _page(51, "Source changed."),
+    ]
+
+    _query(page, "Decision history")
+    for heading in ("Proposal", "Adoption", "Revision", "Supersession", "Unresolved conflicts"):
+        expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
+    for text in (
+        "Reduce staleness",
+        "Date unknown",
+        "Order uncertain",
+        "Daily remains active",
+        "Hourly is active",
+    ):
+        expect(page.get_by_text(text, exact=True).first).to_be_visible()
+    source = page.get_by_role("button", name="Open event source").first
+    source.click()
+    expect(page.locator("mark")).to_have_text("Use hourly caching.")
+    access.get_conversation.assert_called_with(document_id="codex:one", offset=51, page_size=50)
+    source.click()
+    expect(page.get_by_text("Cited evidence is unavailable.")).to_be_visible()
+    page.get_by_label("Project slug").fill("another")
+    expect(page.get_by_role("heading", name="Unresolved conflicts")).to_have_count(0)
+
+
+def _decision_access():
+    from types import SimpleNamespace
+
+    from engineering_memory.normalization import Source
+    from tests.unit.test_deep_recall import record
+
+    old = record(Source.CODEX, "old", "Adopt daily caching.", project="orchard")
+    new = record(
+        Source.CLAUDE_CODE,
+        "new",
+        "Replace daily caching with hourly to reduce staleness.",
+        days=1,
+        project="orchard",
+    )
+    foreign = record(Source.CODEX, "foreign", "Private competing project.", project="other")
+    memory, archive, synthesis = Mock(), Mock(), Mock()
+    memory.recall.return_value = [
+        SimpleNamespace(provenance=row.provenance) for row in (new, foreign, old)
+    ]
+    archive.load.side_effect = {row.document_id: row for row in (old, new)}.__getitem__
+
+    def decision(_query, passages, _times):
+        by_text = {text: selector for selector, text in passages.items()}
+        assert set(by_text) == {
+            old.conversation.messages[0].text,
+            new.conversation.messages[0].text,
+        }
+        previous = {"selector": by_text[old.conversation.messages[0].text]}
+        current = {"selector": by_text[new.conversation.messages[0].text]}
+        return {
+            "events": [
+                {"kind": "adoption", "version": "Daily caching", "action": previous},
+                {
+                    "kind": "supersession",
+                    "version": "Hourly caching",
+                    "prior_version": "Daily caching",
+                    "reason": "Reduce staleness",
+                    "action": current,
+                    "context": [previous],
+                },
+            ]
+        }
+
+    synthesis.synthesize_decisions.side_effect = decision
+    return MemoryAccess(memory, archive, synthesis=synthesis)
+
+
+@pytest.mark.parametrize("explorer", [_decision_access], indirect=True)
+def test_real_decision_read_opens_sources_from_both_sessions(explorer):
+    from playwright.sync_api import expect
+
+    page, _ = explorer
+    _query(page, "Decision history")
+    expect(page.locator(".decision-events h4")).to_have_text(["Adoption", "Supersession"])
+    expect(page.get_by_text("Previous version · Daily caching", exact=True)).to_be_visible()
+    expect(page.get_by_text("Reduce staleness", exact=True)).to_be_visible()
+    expect(page.get_by_text("Private competing project.")).to_have_count(0)
+    sources = page.get_by_role("button", name="Open event source")
+    sources.nth(0).click()
+    expect(page.locator("mark")).to_have_text("Adopt daily caching.")
+    sources.nth(1).click()
+    expect(page.locator("mark")).to_have_text(
+        "Replace daily caching with hourly to reduce staleness."
+    )
+
+
+@pytest.mark.parametrize(
+    "status,label",
+    [
+        ("insufficient_evidence", "There is insufficient evidence for this decision."),
+        ("verification_failed", "The decision history could not be verified."),
+    ],
+)
+def test_decision_history_distinguishes_empty_and_failed(explorer, status, label):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    access.decision_history.return_value = {
+        "status": status,
+        "events": [],
+        "conflicts": [],
+        "uncertainty": [status],
+    }
+    _query(page, "Decision history")
+    expect(page.get_by_text(label, exact=True)).to_be_visible()
+
+
+def test_lock_aborts_pending_decision_history(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    started, release, finished = Event(), Event(), Event()
+
+    def history(**_arguments):
+        started.set()
+        release.wait(10)
+        finished.set()
+        return {"status": "completed", "events": [], "conflicts": [], "uncertainty": []}
+
+    access.decision_history.side_effect = history
+    page.wait_for_function("""() => {
+      const fetchRequest = window.fetch;
+      window.fetch = (...args) => {
+        const signal = args[1]?.signal;
+        signal?.addEventListener("abort", () => { window.decisionReadAborted = true; });
+        return fetchRequest.apply(window, args);
+      };
+      return true;
+    }""")
+    _query(page, "Decision history")
+    try:
+        assert started.wait(5)
+        page.get_by_role("button", name="Lock", exact=True).click()
+        page.wait_for_function("() => window.decisionReadAborted === true")
+    finally:
+        release.set()
+    assert finished.wait(5)
+    page.get_by_label("Access key").fill(TOKEN)
+    page.get_by_role("button", name="Unlock").click()
+    expect(page.get_by_text("Decision history ready.")).to_have_count(0)

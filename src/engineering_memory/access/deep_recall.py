@@ -213,32 +213,56 @@ def _evidence(archive, candidates, tag, coverage):
     return manifest
 
 
+def _verified_text(text):
+    text = text.strip()
+    if (
+        not text
+        or re.search(r'["“”\u2018\u2019`]|\A\s*>|\n\s*>', text)
+        or re.search(r"(?<!\w)'[^'\n]+'(?!\w)|[\u00ab\u00bb]", text)
+        or _RAW_DOCUMENT_ID.search(text)
+        or _DATE.search(text)
+    ):
+        raise ValueError("invalid narrative")
+    return text
+
+
+def _anchor(selection, manifest):
+    passage = manifest[selection.selector]
+    quote = " ".join(passage.text.split())[:512].rstrip()
+    if selection.quote is not None:
+        normalized = " ".join(selection.quote.strip('"“”').split())
+        if not _quote_matches(selection.quote, (passage.text,)):
+            raise ValueError("unsupported quote")
+        quote = normalized
+    return passage.anchor(quote)
+
+
 def _verify(draft, manifest):
     rows = []
     validated = _Draft.model_validate(draft)
     for entry in validated.timeline:
-        text = entry.text.strip()
-        if (
-            not text
-            or re.search(r'["“”\u2018\u2019`]|\A\s*>|\n\s*>', text)
-            or re.search(r"(?<!\w)'[^'\n]+'(?!\w)|[\u00ab\u00bb]", text)
-            or _RAW_DOCUMENT_ID.search(text)
-            or _DATE.search(text)
-        ):
-            raise ValueError("invalid narrative")
-        citations = []
-        for selection in entry.citations:
-            passage = manifest[selection.selector]
-            quote = " ".join(passage.text.split())[:512].rstrip()
-            if selection.quote is not None:
-                normalized = " ".join(selection.quote.strip('"“”').split())
-                if not _quote_matches(selection.quote, (passage.text,)):
-                    raise ValueError("unsupported quote")
-                quote = normalized
-            citations.append((passage.order(), passage.anchor(quote)))
+        text = _verified_text(entry.text)
+        citations = [
+            (manifest[selection.selector].order(), _anchor(selection, manifest))
+            for selection in entry.citations
+        ]
         citations.sort(key=lambda item: item[0])
         rows.append((citations[0][0], {"text": text, "citations": [row[1] for row in citations]}))
     return [row[1] for row in sorted(rows, key=lambda row: row[0])], validated.uncertainty
+
+
+def _find_evidence(memory, archive, query, tag, coverage):
+    return _evidence(archive, _candidates(memory, query, tag, coverage), tag, coverage)
+
+
+def _synthesis_inputs(manifest):
+    return (
+        {key: passage.text for key, passage in manifest.items()},
+        {
+            key: passage.timestamp.isoformat() if passage.timestamp else None
+            for key, passage in manifest.items()
+        },
+    )
 
 
 def deep_recall(
@@ -249,21 +273,13 @@ def deep_recall(
     tag: ProjectTag,
 ) -> dict:
     coverage = _Coverage()
-    candidates = _candidates(memory, query, tag, coverage)
-    manifest = _evidence(archive, candidates, tag, coverage)
+    manifest = _find_evidence(memory, archive, query, tag, coverage)
     timeline = []
     uncertainty = set(coverage.skipped) | coverage.limits
     status = "insufficient_evidence"
     if manifest:
         try:
-            draft = synthesis.synthesize(
-                query,
-                {key: passage.text for key, passage in manifest.items()},
-                {
-                    key: passage.timestamp.isoformat() if passage.timestamp else None
-                    for key, passage in manifest.items()
-                },
-            )
+            draft = synthesis.synthesize(query, *_synthesis_inputs(manifest))
             timeline, uncertain = _verify(draft, manifest)
         except SynthesisLimit as error:
             status = "verification_failed"
