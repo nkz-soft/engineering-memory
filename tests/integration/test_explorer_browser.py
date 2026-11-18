@@ -462,3 +462,233 @@ def test_lock_aborts_pending_decision_history(explorer):
     page.get_by_label("Access key").fill(TOKEN)
     page.get_by_role("button", name="Unlock").click()
     expect(page.get_by_text("Decision history ready.")).to_have_count(0)
+
+
+@pytest.mark.parametrize(
+    ("name", "recorded_request", "result", "expected"),
+    [
+        (
+            "Bash",
+            '{"id":"a","input":{"command":"echo safe"}}',
+            '{"tool_use_id":"a","is_error":true,"content":"failed"}',
+            "Recorded error",
+        ),
+        (
+            "exec_command",
+            '{"call_id":"a","arguments":"{"cmd":"echo safe"}"}',
+            '{"call_id":"a","output":"done"}',
+            "done",
+        ),
+        (
+            "Edit",
+            '{"id":"b","input":{"old_string":"old line","new_string":"new line"}}',
+            None,
+            "Recorded edit: before / after",
+        ),
+        (
+            "apply_patch",
+            '{"call_id":"p","input":"*** Begin Patch\\n-old\\n+new\\n*** End Patch"}',
+            "",
+            "Recorded patch",
+        ),
+    ],
+)
+def test_session_recorded_fields(explorer, name, recorded_request, result, expected):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    access.search_memory.return_value = {
+        "results": [
+            {
+                "document_id": "codex:one",
+                "content": "session",
+                "provenance": PROVENANCE,
+            }
+        ]
+    }
+    access.get_conversation.return_value = _page(
+        0, "Dialogue", tools=[{"name": name, "request": recorded_request, "result": result}]
+    )
+    _query(page, "Search")
+    page.get_by_role("button", name="Open conversation").click()
+    expect(page.get_by_text(expected, exact=True)).to_be_visible()
+    expect(page.get_by_text("No result recorded on this occurrence.", exact=True)).to_have_count(
+        1 if result is None else 0
+    )
+    expect(page.get_by_text("Empty result.", exact=True)).to_have_count(1 if result == "" else 0)
+
+
+@pytest.mark.parametrize("offset", [0, 49, 50, 100])
+def test_session_fragment_exact_tool_and_reload(explorer, offset):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    access.get_conversation.return_value = _page(
+        offset,
+        "target",
+        tools=[
+            {
+                "name": "exec",
+                "request": "recorded command",
+                "result": "evidence\n" * 10000,
+            }
+        ],
+    )
+    fragment = (
+        "#view=session&project=orchard&document=codex%3Aone"
+        f"&message={offset}&tool=0&field=tool_result"
+    )
+    page.goto(page.url.split("#")[0] + fragment)
+    page.reload()
+    page.get_by_label("Access key").fill(TOKEN)
+    page.get_by_role("button", name="Unlock").click()
+    target = page.locator('[data-field="tool_result"].cited')
+    expect(target).to_be_visible()
+    expect(target.locator(".full-output pre").first).to_have_text("evidence\n" * 10000)
+    expect(target).to_be_focused()
+    access.get_conversation.assert_called_with(document_id="codex:one", offset=offset, page_size=50)
+    link = target.get_by_role("link", name="Link to result")
+    assert TOKEN not in link.get_attribute("href")
+    assert "evidence" not in link.get_attribute("href")
+    target.locator("summary").first.click()
+    link.click()
+    expect(target).to_be_focused()
+    expect(target.locator("details.full-output").first).to_have_attribute("open", "")
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        "&message=-1",
+        "&message=1.2",
+        "&message=0&message=1",
+        "&message=0&tool=0&field=text",
+        "&message=0&field=tool_result",
+        "&message=0&unknown=yes",
+        "&message=9007199254740992",
+    ],
+)
+def test_session_rejects_bad_fragment(explorer, suffix):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    page.evaluate(
+        "location.hash = " + repr("#view=session&project=orchard&document=codex%3Aone" + suffix)
+    )
+    expect(page.get_by_text("Session target is unavailable.", exact=True)).to_be_visible()
+    access.get_conversation.assert_not_called()
+
+
+def test_session_collapses_and_expands_complete_output(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    output = "synthetic output\n" * 10000 + MARKUP
+    access.search_memory.return_value = {
+        "results": [
+            {
+                "document_id": "codex:one",
+                "content": "session",
+                "provenance": PROVENANCE,
+            }
+        ]
+    }
+    access.get_conversation.return_value = _page(
+        0, "Dialogue", tools=[{"name": "exec", "request": None, "result": output}]
+    )
+    _query(page, "Search")
+    page.get_by_role("button", name="Open conversation").click()
+    field = page.locator('[data-field="tool_result"]')
+    disclosure = field.locator("details").first
+    expect(disclosure).not_to_have_attribute("open", "")
+    expect(field.locator(".preview")).to_be_visible()
+    summary = disclosure.locator("summary").first
+    summary.focus()
+    page.keyboard.press("Enter")
+    expect(disclosure).to_have_attribute("open", "")
+    expect(disclosure.locator("pre").first).to_have_text(output)
+    assert page.locator("img").count() == 0
+
+
+def test_session_long_envelope_and_nontext(explorer):
+    import json
+
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    output = "decoded log\n" * 1000
+    access.search_memory.return_value = {
+        "results": [
+            {
+                "document_id": "codex:one",
+                "content": "session",
+                "provenance": PROVENANCE,
+            }
+        ]
+    }
+    record = _page(
+        0,
+        "prose\n" * 1000,
+        tools=[
+            {
+                "name": "exec",
+                "result": json.dumps({"call_id": "a", "output": output}),
+            }
+        ],
+    )
+    record["messages"][0]["non_text_parts"] = [{"kind": "image"}]
+    access.get_conversation.return_value = record
+    _query(page, "Search")
+    page.get_by_role("button", name="Open conversation").click()
+    expect(page.get_by_text("Archived non-text content: image", exact=True)).to_be_visible()
+    field = page.locator('[data-field="tool_result"]')
+    field.get_by_text("Show complete recorded output", exact=True).click()
+    expect(field.get_by_text(output, exact=True)).to_be_visible()
+    expect(page.locator(".message > .long-text details")).not_to_have_attribute("open", "")
+
+
+def _session_access():
+    from engineering_memory.normalization import Source, ToolActivity
+    from tests.unit.test_deep_recall import record
+
+    rows = {}
+    for source in (Source.CODEX, Source.CLAUDE_CODE):
+        row = record(source, "session", "sanitized dialogue", project="orchard")
+        message = row.conversation.messages[0].model_copy(
+            update={
+                "tool_activity": (ToolActivity(name="unknown-tool", result="literal output"),),
+            }
+        )
+        row = row.model_copy(
+            update={
+                "conversation": row.conversation.model_copy(
+                    update={
+                        "messages": (message,) * 101,
+                    }
+                )
+            }
+        )
+        rows[row.document_id] = row
+    archive = Mock()
+    archive.load.side_effect = rows.__getitem__
+    return MemoryAccess(Mock(), archive)
+
+
+@pytest.mark.parametrize("explorer", [_session_access], indirect=True)
+@pytest.mark.parametrize("source", ["codex", "claude-code"])
+def test_session_real_read_message_history_and_missing_tool(explorer, source):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    base = f"#view=session&project=orchard&document={source}%3Asession&message="
+    page.evaluate("location.hash = " + repr(base + "50"))
+    expect(page.locator(".message.cited")).to_be_focused()
+    expect(page.locator(".message.cited")).to_have_attribute("data-message", "50")
+    page.evaluate("location.hash = " + repr(base + "100"))
+    expect(page.locator(".message.cited")).to_have_attribute("data-message", "100")
+    page.go_back()
+    expect(page.locator(".message.cited")).to_have_attribute("data-message", "50")
+    page.evaluate("location.hash = " + repr(base + "100&tool=9&field=tool_result"))
+    expect(page.get_by_text("Session target is unavailable.", exact=True)).to_be_visible()
+    expect(page.locator(".message")).to_have_count(0)
+    access.archive.load_original.assert_not_called()
