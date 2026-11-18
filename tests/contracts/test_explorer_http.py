@@ -155,3 +155,46 @@ def test_serves_public_shell_and_assets_without_exposing_other_routes(explorer):
     assert client.get("/", headers={"Host": "foreign.example"}).status_code == 403
     assert client.get("/api/search").status_code == 405
     assert not access.mock_calls
+
+
+def test_decision_history_mode(explorer):
+    client, access = explorer
+    result = {"status": "completed", "events": [], "conflicts": []}
+    access.decision_history.return_value = result
+    payload = {"project": "orchard", "query": "queue", "mode": "decision_history"}
+    response = client.post("/api/deep-recall", json=payload, headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json() == result
+    access.decision_history.assert_called_once_with(project="orchard", query="queue")
+    access.deep_recall.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "headers,status",
+    [
+        ({"Origin": "https://wrong.example"}, 403),
+        ({"Host": "wrong.example"}, 403),
+        ({"Authorization": "Bearer wrong"}, 401),
+    ],
+)
+def test_decision_history_requires_local_auth(explorer, headers, status):
+    client, access = explorer
+    response = client.post(
+        "/api/deep-recall",
+        json={"project": "orchard", "query": "queue", "mode": "decision_history"},
+        headers=HEADERS | headers,
+    )
+    assert response.status_code == status
+    assert not access.mock_calls
+
+
+@pytest.mark.parametrize("mode", ["wrong", None, 1])
+def test_rejects_invalid_decision_mode(explorer, mode):
+    client, access = explorer
+    response = client.post(
+        "/api/deep-recall",
+        json={"project": "orchard", "query": "queue", "mode": mode},
+        headers=HEADERS,
+    )
+    assert response.json() == {"error": "invalid_input"}
+    assert not access.mock_calls

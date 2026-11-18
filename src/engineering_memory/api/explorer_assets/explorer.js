@@ -148,29 +148,103 @@ function showSearch(data, scope) {
   }
 }
 
-function showAnswer(data, scope) {
-  element("query-status").textContent = answerStates[data.status] ?? "Answer unavailable.";
+function showCoverage(data, label = "Coverage limitations") {
   if (data.uncertainty.length) {
     const details = document.createElement("details");
     details.append(
-      textNode("summary", "Coverage limitations"),
+      textNode("summary", label),
       textNode("p", data.uncertainty.map((reason) => reason.replaceAll("_", " ")).join(" · ")),
     );
     results.append(details);
   }
+}
+
+function citedEvidence(anchor, scope, label) {
+  const citation = textNode("blockquote", "", "citation");
+  citation.append(
+    textNode("p", anchor.quote, "content"),
+    textNode("p", [anchor.document_id, anchor.timestamp].filter(Boolean).join(" · "), "metadata"),
+    action(label, () => openConversation(anchor.document_id, anchor.message_index, scope, anchor)),
+  );
+  return citation;
+}
+
+function showAnswer(data, scope) {
+  element("query-status").textContent = answerStates[data.status] ?? "Answer unavailable.";
+  showCoverage(data);
   for (const entry of data.timeline) {
     const row = textNode("article", "", "result");
     row.append(textNode("p", entry.text, "content"));
     for (const anchor of entry.citations) {
-      const citation = textNode("blockquote", "", "citation");
-      citation.append(
-        textNode("p", anchor.quote, "content"),
-        textNode("p", [anchor.document_id, anchor.timestamp].filter(Boolean).join(" · "), "metadata"),
-        action("Open cited message", () => openConversation(
-          anchor.document_id, anchor.message_index, scope, anchor,
-        )),
-      );
-      row.append(citation);
+      row.append(citedEvidence(anchor, scope, "Open cited message"));
+    }
+    results.append(row);
+  }
+}
+
+const decisionStates = {
+  completed: "Decision history ready.",
+  partial: "Partial decision history.",
+  insufficient_evidence: "There is insufficient evidence for this decision.",
+  verification_failed: "The decision history could not be verified.",
+};
+
+const decisionKinds = {
+  proposal: "Proposal",
+  adoption: "Adoption",
+  revision: "Revision",
+  supersession: "Supersession",
+};
+
+function showDecisionEvents(events, scope, heading) {
+  if (!events.length) return;
+  results.append(textNode("h3", heading));
+  const list = textNode("ol", "", "decision-events");
+  for (const event of events) {
+    const row = textNode("li", "", "result");
+    const time = event.occurred_at ?? (
+      event.chronology === "disputed" ? "Date disputed" : "Date unknown"
+    );
+    row.append(textNode("h4", decisionKinds[event.kind]), textNode("p", time, "metadata"));
+    if (event.ordering_uncertain) row.append(textNode("p", "Order uncertain", "metadata"));
+    if (event.prior_version) {
+      row.append(textNode("p", "Previous version · " + event.prior_version, "content"));
+    }
+    row.append(textNode("p", event.version, "content"));
+    if (event.reason) {
+      row.append(textNode("p", event.reason, "content"));
+    } else if (event.kind === "supersession") {
+      row.append(textNode("p", "Reason undocumented", "metadata"));
+    }
+    row.append(citedEvidence(event.action, scope, "Open event source"));
+    for (const anchor of event.context) {
+      row.append(citedEvidence(anchor, scope, "Open supporting message"));
+    }
+    list.append(row);
+  }
+  results.append(list);
+}
+
+function showDecisionHistory(data, scope) {
+  element("query-status").textContent = decisionStates[data.status] ?? "History unavailable.";
+  showCoverage(data, "Uncertainty and coverage");
+  showDecisionEvents(data.events.filter((event) => event.chronology === "known"), scope, "Dated events");
+  showDecisionEvents(
+    data.events.filter((event) => event.chronology !== "known"), scope, "Uncertain dates",
+  );
+  if (!data.conflicts.length) return;
+  results.append(textNode("h3", "Unresolved conflicts"));
+  for (const conflict of data.conflicts) {
+    const row = textNode("article", "", "result");
+    const accounts = document.createElement("ul");
+    row.append(textNode("h4", conflict.summary, "content"), accounts);
+    for (const account of conflict.accounts) {
+      const item = document.createElement("li");
+      item.append(textNode("p", account.text, "content"));
+      for (const anchor of account.citations) {
+        item.append(citedEvidence(anchor, scope, "Open account source"));
+      }
+      accounts.append(item);
     }
     results.append(row);
   }
@@ -182,16 +256,22 @@ element("lookup").addEventListener("submit", async (event) => {
   event.preventDefault();
   clearResults();
   const operation = event.submitter?.value || "search";
+  const decisionHistory = operation === "decision-history";
   const payload = { project: project.value.trim(), query: query.value.trim() };
+  if (decisionHistory) payload.mode = "decision_history";
   const status = element("query-status");
   const request = new AbortController();
   lookupRequest = request;
-  element("results-heading").hidden = false;
+  const heading = element("results-heading");
+  heading.textContent = decisionHistory ? "Decision history · " + payload.query : "Results";
+  heading.hidden = false;
   status.textContent = operation === "search" ? "Searching…" : "Checking source evidence…";
   try {
-    const data = await read(operation, payload, request.signal);
+    const route = decisionHistory ? "deep-recall" : operation;
+    const data = await read(route, payload, request.signal);
     if (request.signal.aborted) return;
     if (operation === "search") showSearch(data, payload.project);
+    else if (decisionHistory) showDecisionHistory(data, payload.project);
     else showAnswer(data, payload.project);
   } catch (error) {
     if (!request.signal.aborted) {

@@ -12,6 +12,8 @@ Open the printed loopback URL and enter the access key from the terminal. Each l
 2. Enter search terms and choose **Search**. Open a result to see its sanitized conversation, original time and source. Use **Next messages** to read further.
 3. Enter a cross-session question and choose **Deep Recall**. Open a citation to inspect the exact archived message and highlighted quote. Expand **Coverage limitations** when an answer is partial.
 
+4. Enter a decision topic and choose **Decision history**. The timeline links proposals, adoptions, revisions and replacements to their archived messages. It flags uncertain dates and unresolved conflicts. Decision history uses the same synthesis configuration as Deep Recall.
+
 Search and transcript reads work without synthesis configuration. If the explorer says Deep Recall needs synthesis configuration, set up the synthesis endpoint using the linked guide. If a source message has changed or is missing, the explorer marks the evidence as unavailable.
 
 The listener is private to the workstation. Keep the printed key private and stop the process when finished.

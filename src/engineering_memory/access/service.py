@@ -186,6 +186,14 @@ class MemoryAccess:
     def deep_recall(self, **arguments) -> dict:
         from engineering_memory.access.deep_recall import deep_recall
 
+        return self._synthesized_read(deep_recall, arguments)
+
+    def decision_history(self, **arguments) -> dict:
+        from engineering_memory.access.decision_history import decision_history
+
+        return self._synthesized_read(decision_history, arguments)
+
+    def _synthesized_read(self, read, arguments):
         request = _validate(DeepRecallRequest, arguments)
         tag = _validate(ProjectTag, {"value": request.project})
         if not request.query.strip() or tag.value in {"unknown", "unclassified"}:
@@ -193,9 +201,7 @@ class MemoryAccess:
         if self.synthesis is None:
             raise SynthesisUnconfigured()
         return _safe(
-            lambda: deep_recall(
-                self.memory, self.archive, self.synthesis, request.query.strip(), tag
-            )
+            lambda: read(self.memory, self.archive, self.synthesis, request.query.strip(), tag)
         )
 
     def reflect(self, **arguments) -> dict:
