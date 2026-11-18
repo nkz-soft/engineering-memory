@@ -84,6 +84,7 @@ unlock.addEventListener("submit", (event) => {
   workspace.hidden = false;
   lock.hidden = false;
   project.focus();
+  resolveSessionTarget();
 });
 
 lock.addEventListener("click", () => {
@@ -298,32 +299,113 @@ function evidenceField(message, anchor) {
   return null;
 }
 
-function showMessage(message, index, anchor) {
+function recordedText(value, label) {
+  if (value.length <= 2000 && value.split("\n").length <= 20) return textNode("pre", value, "content");
+  const view = textNode("div", "", "long-text");
+  const preview = textNode("pre", value.split("\n").slice(0, 20).join("\n").slice(0, 2000), "content preview");
+  const disclosure = document.createElement("details");
+  disclosure.className = "full-output";
+  disclosure.append(textNode("summary", "Show complete recorded " + label), textNode("pre", value, "content"));
+  disclosure.addEventListener("toggle", () => { preview.hidden = disclosure.open; });
+  view.append(preview, disclosure);
+  return view;
+}
+
+function recordedField(value, field) {
+  if (value === null || value === undefined) {
+    return textNode("p", "No " + field + " recorded on this occurrence.", "metadata");
+  }
+  if (value === "") return textNode("p", "Empty " + field + ".", "metadata");
+  const view = textNode("div", "", "recorded-field");
+  let decoded;
+  try { decoded = JSON.parse(value); } catch { /* Literal fallback. */ }
+  if (decoded && typeof decoded === "object" && !Array.isArray(decoded)) {
+    const id = decoded.id ?? decoded.tool_use_id ?? decoded.call_id;
+    if (typeof id === "string") view.append(textNode("p", "Call: " + id, "metadata"));
+    if (decoded.is_error === true) view.append(textNode("p", "Recorded error", "metadata"));
+    const input = decoded.input;
+    if (input && typeof input === "object" &&
+        typeof input.old_string === "string" && typeof input.new_string === "string") {
+      view.append(textNode("p", "Recorded edit: before / after", "metadata"),
+        recordedText(input.old_string, "before text"), recordedText(input.new_string, "after text"));
+    }
+    const content = decoded.content ?? decoded.output ?? decoded.arguments ?? decoded.input;
+    if (content !== undefined) {
+      const text = typeof content === "string" ? content : JSON.stringify(content, null, 2);
+      if (text.includes("*** Begin Patch") || /^--- .+\n\+\+\+ /m.test(text)) {
+        view.append(textNode("p", "Recorded patch", "metadata"));
+      }
+      view.append(recordedText(text, "output"));
+      const raw = document.createElement("details");
+      raw.append(textNode("summary", "Original recorded field"), recordedText(value, field));
+      view.append(raw);
+      return view;
+    }
+  }
+  if (value.includes("*** Begin Patch") || /^--- .+\n\+\+\+ /m.test(value)) {
+    view.append(textNode("p", "Recorded patch", "metadata"));
+  }
+  view.append(recordedText(value, field));
+  return view;
+}
+
+function sessionLink(documentId, scope, index, toolIndex, field = "text") {
+  const params = new URLSearchParams({view: "session", project: scope, document: documentId,
+    message: String(index)});
+  if (toolIndex !== undefined) params.set("tool", String(toolIndex));
+  params.set("field", field);
+  const link = textNode("a", toolIndex === undefined ? "Link to message" :
+    "Link to " + (field === "tool_request" ? "request" : "result"), "metadata");
+  link.href = "#" + params.toString();
+  link.addEventListener("click", (event) => {
+    if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey &&
+        location.hash === link.hash) {
+      event.preventDefault();
+      resolveSessionTarget();
+    }
+  });
+  link.title = "Link to this position in the current archived snapshot; unlock required.";
+  return link;
+}
+
+function showMessage(message, index, anchor, documentId, scope) {
   const row = textNode("article", "", anchor ? "message cited" : "message");
   row.append(textNode(
     "p",
     [message.role, "Message " + (index + 1), message.sent_at].filter(Boolean).join(" · "),
     "metadata",
   ));
+  row.dataset.message = index;
+  row.tabIndex = -1;
+  row.append(sessionLink(documentId, scope, index));
   if (anchor) {
     const fields = { text: "Message text", tool_request: "Tool request", tool_result: "Tool result" };
     row.append(textNode("p", fields[anchor.field], "metadata"), textNode("mark", anchor.quote));
   }
-  if (message.text) row.append(textNode("p", message.text, "content"));
-  for (const activity of message.tool_activity) {
+  if (message.text) row.append(recordedText(message.text, "message"));
+  for (const part of message.non_text_parts ?? []) {
+    row.append(textNode("p", "Archived non-text content: " + part.kind, "metadata"));
+  }
+  for (const [toolIndex, activity] of message.tool_activity.entries()) {
     const tool = document.createElement("details");
+    tool.open = true;
     tool.append(textNode("summary", activity.name || "Tool activity"));
     for (const [field, label] of [["request", "Request"], ["result", "Result"]]) {
-      if (activity[field]) {
-        tool.append(textNode("p", label, "metadata"), textNode("p", activity[field], "content"));
-      }
+      const container = textNode("section", "", "tool-field");
+      container.dataset.tool = toolIndex;
+      container.dataset.field = "tool_" + field;
+      container.tabIndex = -1;
+      container.append(textNode("p", label, "metadata"),
+        sessionLink(documentId, scope, index, toolIndex, "tool_" + field),
+        recordedField(activity[field], field));
+      tool.append(container);
     }
     row.append(tool);
   }
   return row;
 }
 
-async function openConversation(documentId, offset, scope, anchor) {
+async function openConversation(documentId, offset, scope, anchor, target) {
   clearEvidence();
   evidence.hidden = false;
   element("evidence-heading").focus();
@@ -353,8 +435,26 @@ async function openConversation(documentId, offset, scope, anchor) {
     }
     element("conversation-provenance").textContent = provenance(record);
     record.messages.forEach((message, index) => {
-      messages.append(showMessage(message, record.offset + index, index === 0 ? anchor : null));
+      messages.append(showMessage(message, record.offset + index, index === 0 ? anchor : null, documentId, scope));
     });
+    const selected = target ?? anchor;
+    if (selected) {
+      const message = record.messages[0];
+      let node = messages.firstElementChild;
+      if (selected.field !== "text") {
+        if (!message?.tool_activity?.[selected.tool_index]) node = null;
+        else node = node?.querySelector(`[data-tool="${selected.tool_index}"][data-field="${selected.field}"]`);
+      }
+      if (!node) {
+        messages.replaceChildren();
+        status.textContent = "Session target is unavailable.";
+        return;
+      }
+      node.classList.add("cited");
+      node.querySelectorAll("details.full-output").forEach((details) => { details.open = true; });
+      node.focus();
+      node.scrollIntoView({block: "nearest"});
+    }
     status.textContent = record.messages.length ? "" : "No messages on this page.";
     first.hidden = offset === 0;
     first.onclick = () => openConversation(documentId, 0, scope);
@@ -366,3 +466,39 @@ async function openConversation(documentId, offset, scope, anchor) {
     }
   }
 }
+
+function resolveSessionTarget() {
+  if (!location.hash) { clearEvidence(); return; }
+  try {
+    if (location.hash.length > 4096) throw new Error();
+    const params = new URLSearchParams(location.hash.slice(1));
+    const allowed = ["view", "project", "document", "message", "tool", "field"];
+    for (const key of params.keys()) {
+      if (!allowed.includes(key) || params.getAll(key).length !== 1) throw new Error();
+    }
+    const integer = (key) => {
+      const value = params.get(key);
+      if (!/^\d+$/.test(value ?? "") || !Number.isSafeInteger(Number(value))) throw new Error();
+      return Number(value);
+    };
+    const scope = params.get("project");
+    const doc = params.get("document");
+    if (params.get("view") !== "session" || !scope || !doc) throw new Error();
+    const offset = integer("message");
+    const field = params.get("field") ?? "text";
+    if (!["text", "tool_request", "tool_result"].includes(field) ||
+        (field === "text") === params.has("tool")) throw new Error();
+    const target = {field};
+    if (params.has("tool")) target.tool_index = integer("tool");
+    if (!token) return;
+    clearResults();
+    project.value = scope;
+    openConversation(doc, offset, scope, null, target);
+  } catch {
+    clearEvidence();
+    evidence.hidden = false;
+    element("evidence-status").textContent = "Session target is unavailable.";
+  }
+}
+
+window.addEventListener("hashchange", resolveSessionTarget);

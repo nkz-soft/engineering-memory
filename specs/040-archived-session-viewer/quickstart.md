@@ -11,7 +11,7 @@ Python 3.13, uv, project dev dependencies (uv sync --locked --group dev), Edge o
 ```powershell
 uv run pytest tests/unit/test_access.py tests/contracts/test_explorer_http.py tests/integration/test_coding_agent_access.py
 $env:ENGINEERING_MEMORY_BROWSER = 'msedge'
-uv run pytest tests/integration/test_explorer_browser.py
+uv run --with playwright pytest tests/integration/test_explorer_browser.py
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `040-archived-session-viewer`
 **Created**: 2026-11-18
-**Status**: Draft — awaiting human approval
+**Status**: Approved for implementation by the subsequent `/issue-to-pr 86` continuation
 **Input**: Issue #86: ordered archived Claude Code/Codex dialogue with commands, results, available textual diffs, collapsed output and exact evidence links.
 
 ## User Scenarios & Testing *(mandatory)*

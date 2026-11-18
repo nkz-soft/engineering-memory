@@ -48,3 +48,9 @@ mark { background: #f5e2a2; color: inherit; white-space: pre-wrap; overflow-wrap
 @media (max-width: 46rem) {
   .columns:has(#evidence:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
 }
+
+.tool-field { border-left: 2px solid var(--edge); padding: .5rem .75rem; margin: .5rem 0; }
+.tool-field.cited { border-color: #ab7d22; background: #fff8df; }
+.tool-field a, .message > a { display: inline-block; margin-bottom: .5rem; color: var(--accent); }
+.recorded-field pre { max-width: 100%; font-size: .88rem; }
+.full-output summary { cursor: pointer; color: var(--accent); }
