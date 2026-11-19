@@ -45,6 +45,14 @@ mark { background: #f5e2a2; color: inherit; white-space: pre-wrap; overflow-wrap
 .paging { margin-top: .6rem; }
 [role="status"]:empty { margin: 0; }
 #access-status { margin-top: .65rem; }
+#status-panel { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--edge); border-radius: .65rem; }
+#status-panel header { justify-content: space-between; }
+#status-panel h2, .status-card h4 { margin: 0; }
+.status-grid { display: grid; gap: .65rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+.status-card { padding: .75rem; background: #fff; border: 1px solid var(--edge); border-radius: .45rem; }
+.status-card dl { margin: 0; }
+.status-card dt { color: var(--ink-light); font-size: .84rem; margin-top: .35rem; }
+.status-card dd { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 46rem) {
   .columns:has(#evidence:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
 }

@@ -1,6 +1,8 @@
 """Composition root for operator commands; policies live behind boundaries."""
 
 from contextlib import ExitStack
+from datetime import UTC, datetime
+from ipaddress import ip_address
 from pathlib import Path
 
 from engineering_memory.archive.local import LocalRawArchive
@@ -20,6 +22,7 @@ from engineering_memory.ingestion.claude_code import ClaudeCodeSessionSource
 from engineering_memory.ingestion.claude_code.archive_source import ClaudeCodeArchiveSource
 from engineering_memory.ingestion.codex import CodexSessionSource
 from engineering_memory.ingestion.codex.archive_source import CodexArchiveSource
+from engineering_memory.ingestion.health import SourceHealth
 from engineering_memory.ingestion.pipeline import IngestionPipeline
 from engineering_memory.ingestion.report import RunReport, Stage
 from engineering_memory.ingestion.sqlite_state import SQLiteImportState
@@ -75,7 +78,9 @@ def run_model_refresh(data, keys):
         models.close()
 
 
-def _import_pipeline(settings, version, resources, *, dry_run=False) -> IngestionPipeline:
+def _import_pipeline(
+    settings, version, resources, *, dry_run=False
+) -> tuple[IngestionPipeline, SQLiteImportState | None]:
     configure(settings)
     rules = load_project_rules(
         settings.project_rules_path, required="project_rules_path" in settings.model_fields_set
@@ -92,7 +97,7 @@ def _import_pipeline(settings, version, resources, *, dry_run=False) -> Ingestio
     if close := getattr(memory, "close", None):
         resources.callback(close)
     archive = LocalRawArchive(settings.archive_root)
-    return IngestionPipeline(
+    pipeline = IngestionPipeline(
         sanitizer=PatternSecretSanitizer(),
         classifier=ChainedProjectClassifier(
             (MetadataProjectClassifier(rules), AliasProjectClassifier(rules))
@@ -102,7 +107,9 @@ def _import_pipeline(settings, version, resources, *, dry_run=False) -> Ingestio
         state=state,
         importer_version=version,
         bank=settings.hindsight.bank_id,
+        record_import=state.record_import if state is not None and not dry_run else None,
     )
+    return pipeline, state
 
 
 def run_import(
@@ -123,7 +130,7 @@ def run_import(
     export_reader, archive_reader = sources[source]
     settings = load_settings()
     with ExitStack() as resources:
-        pipeline = _import_pipeline(settings, version, resources, dry_run=dry_run)
+        pipeline, state = _import_pipeline(settings, version, resources, dry_run=dry_run)
         input_source = (
             export_reader(Path(export)) if export is not None else archive_reader(pipeline.archive)
         )
@@ -139,9 +146,9 @@ def run_import(
                 return reader
 
         report = pipeline.run(OwnedSource(), force=force, dry_run=dry_run)
-        if data is None:
-            return report
         if dry_run:
+            if data is None:
+                return report
             outcomes = []
             for outcome in report.outcomes:
                 row = outcome.model_dump(
@@ -162,13 +169,18 @@ def run_import(
                 outcomes=outcomes,
             )
             return report
-        data.update(
-            status=report.status.value,
-            imported=report.imported,
-            skipped=report.skipped,
-            failed=report.failed,
-            terminal_error=report.terminal_error,
-            outcomes=[outcome.model_dump(mode="json") for outcome in report.outcomes],
+        if data is not None:
+            data.update(
+                status=report.status.value,
+                imported=report.imported,
+                skipped=report.skipped,
+                failed=report.failed,
+                terminal_error=report.terminal_error,
+                outcomes=[outcome.model_dump(mode="json") for outcome in report.outcomes],
+            )
+        assert state is not None
+        state.record_attempt(
+            SourceHealth.from_report(OwnedSource.source, report, datetime.now(UTC))
         )
         return report
 
@@ -184,14 +196,26 @@ def run_session_import(data: dict, version: str) -> None:
         data.update(status="failure", error="configuration")
         return
 
+    attempt_write_failed = False
     try:
         with capture_lock(settings.import_state_path), ExitStack() as resources:
-            pipeline = _import_pipeline(settings, version, resources)
+            pipeline, state = _import_pipeline(settings, version, resources)
+            assert state is not None
             for kind, root in roots.items():
                 if root is None:
                     continue
                 source = CapturedSessionSource(kind, root, capture.quiet_seconds)
                 report = pipeline.run(source)
+                observation = SourceHealth.from_report(
+                    source.source,
+                    report,
+                    datetime.now(UTC),
+                    deferred=source.deferred,
+                )
+                try:
+                    state.record_attempt(observation)
+                except (ImportStateUnavailable, ImportStateCorrupt):
+                    attempt_write_failed = True
                 data["sources"].append(
                     {
                         "source": kind,
@@ -207,7 +231,9 @@ def run_session_import(data: dict, version: str) -> None:
         return
 
     rows = data["sources"]
-    if any(row["failed"] or row["error"] for row in rows):
+    if attempt_write_failed:
+        data["error"] = "state"
+    if attempt_write_failed or any(row["failed"] or row["error"] for row in rows):
         data["status"] = (
             "partial_success"
             if any(row["imported"] or row["unchanged"] for row in rows)
@@ -264,6 +290,37 @@ def make_read_access(resources: ExitStack, *, include_models: bool = False):
         reflection=memory,
         synthesis=synthesis,
     )
+
+
+def make_explorer_status(resources: ExitStack):
+    from engineering_memory.access.status import ExplorerStatus
+    from engineering_memory.settings import load_access_settings
+
+    settings = load_access_settings().hindsight
+    models = make_project_models(settings)
+    resources.callback(models.close)
+    host = (settings.base_url.host or "").strip("[]")
+    try:
+        comparable_clocks = ip_address(host).is_loopback
+    except ValueError:
+        comparable_clocks = host.lower().rstrip(".") == "localhost"
+    return ExplorerStatus(_read_import_health, models, comparable_clocks=comparable_clocks)
+
+
+def _read_import_health(project: str | None):
+    try:
+        path = load_state_path()
+        path.stat()
+    except FileNotFoundError:
+        return [], None
+    except (OSError, SettingsError):
+        raise ImportStateUnavailable("import status is unavailable") from None
+    state = SQLiteImportState(path, read_only=True)
+    try:
+        state.validate()
+        return state.read_health(project)
+    finally:
+        state.close()
 
 
 def run_serve() -> None:

@@ -12,10 +12,16 @@ const evidence = element("evidence");
 const messages = element("messages");
 const first = element("first");
 const next = element("next");
+const statusPanel = element("status-panel");
+const statusButton = element("show-status");
+const statusRows = element("status-rows");
+const statusFeedback = element("status-feedback");
 
 let token = "";
 let lookupRequest;
 let conversationRequest;
+let statusRequest;
+let statusTimer;
 
 const answerStates = {
   completed: "Answer ready.",
@@ -68,6 +74,7 @@ function clearResults() {
 function showLock(message = "") {
   token = "";
   clearResults();
+  closeStatus();
   workspace.hidden = true;
   lock.hidden = true;
   unlock.hidden = false;
@@ -129,6 +136,126 @@ async function read(operation, payload, signal) {
   }
   return response.json();
 }
+
+const sourceLabels = {
+  chatgpt: "ChatGPT", "claude-chat": "Claude Chat", "claude-code": "Claude Code", codex: "Codex",
+};
+const outcomeLabels = {
+  healthy: "Healthy", waiting: "Waiting", partial: "Partial", failed: "Failed",
+  unobserved: "No completed attempt recorded",
+};
+const errorLabels = {
+  source: "Source", hash: "Content fingerprint", state_read: "Read import state",
+  sanitize: "Sanitization", classify: "Classification", enrich: "Enrichment",
+  archive: "Archive", retain: "Retention", state_write: "Write import state",
+  configuration: "Configuration", state: "Import state", memory: "Memory service",
+  internal: "Internal", unknown: "Unknown",
+};
+const modelLabels = { architecture: "Architecture", stack: "Technology stack", decisions: "Decisions" };
+const refreshLabels = {
+  ready: "Ready", missing: "Missing", pending: "Pending", failed: "Failed", unavailable: "Unavailable",
+};
+const freshnessLabels = { current: "Current", stale: "Stale", unknown: "Unknown" };
+
+function resetStatus() {
+  statusRequest?.abort();
+  clearTimeout(statusTimer);
+  statusRows.replaceChildren();
+  statusFeedback.textContent = "";
+}
+
+function closeStatus() {
+  resetStatus();
+  statusPanel.hidden = true;
+  statusButton.setAttribute("aria-expanded", "false");
+}
+
+function statusField(fields, label, value) {
+  fields.append(textNode("dt", label), textNode("dd", value));
+}
+
+function statusGroup(title, records, display) {
+  const section = document.createElement("section");
+  section.append(textNode("h3", title));
+  const grid = textNode("div", "", "status-grid");
+  for (const record of records) {
+    const row = textNode("article", "", "status-card");
+    const fields = document.createElement("dl");
+    const heading = display(record, fields);
+    row.append(textNode("h4", heading), fields);
+    grid.append(row);
+  }
+  section.append(grid);
+  statusRows.append(section);
+}
+
+function renderStatus(data) {
+  const stamp = (value) => value ?? "Not recorded";
+  if (data.source_status === "unavailable") {
+    statusRows.append(textNode("p", "Import status is unavailable."));
+  } else {
+    statusGroup("Import sources", data.sources, (source, fields) => {
+      statusField(fields, "Latest outcome", outcomeLabels[source.outcome]);
+      statusField(fields, "Last attempt", stamp(source.last_attempt_at));
+      statusField(fields, "Last successful import", stamp(source.last_success_at));
+      if (source.deferred_count) statusField(fields, "Deferred sessions", source.deferred_count);
+      if (source.error_categories.length) {
+        const labels = source.error_categories.map((category) => errorLabels[category] ?? "Unknown");
+        statusField(fields, "Error categories", labels.join(", "));
+      }
+      return sourceLabels[source.source];
+    });
+  }
+  if (data.models.length) {
+    statusGroup("Project models", data.models, (model, fields) => {
+      statusField(fields, "Refresh state", refreshLabels[model.refresh_state]);
+      statusField(fields, "Freshness", freshnessLabels[model.freshness]);
+      statusField(fields, "Last successful refresh", stamp(model.last_refreshed_at));
+      if (model.last_refresh_failed_at) {
+        statusField(fields, "Last failed refresh", model.last_refresh_failed_at);
+      }
+      return modelLabels[model.kind];
+    });
+  } else {
+    statusRows.append(textNode("p", "Enter a project slug to check its models."));
+  }
+}
+
+async function loadStatus() {
+  resetStatus();
+  if (!token || statusPanel.hidden) return;
+  const scope = project.value.trim();
+  const request = new AbortController();
+  statusRequest = request;
+  statusFeedback.textContent = "Reading status...";
+  try {
+    const data = await read("status", scope ? { project: scope } : {}, request.signal);
+    if (request.signal.aborted) return;
+    statusFeedback.textContent = "";
+    renderStatus(data);
+  } catch (error) {
+    if (!request.signal.aborted) statusFeedback.textContent = error.message;
+  }
+}
+
+statusButton.addEventListener("click", () => {
+  if (!statusPanel.hidden) {
+    closeStatus();
+    return;
+  }
+  statusPanel.hidden = false;
+  statusButton.setAttribute("aria-expanded", "true");
+  loadStatus();
+});
+
+element("refresh-status").addEventListener("click", loadStatus);
+function scheduleStatusRefresh() {
+  if (statusPanel.hidden) return;
+  resetStatus();
+  statusTimer = setTimeout(loadStatus, 250);
+}
+
+project.addEventListener("input", scheduleStatusRefresh);
 
 function showSearch(data, scope) {
   const status = element("query-status");
@@ -492,7 +619,10 @@ function resolveSessionTarget() {
     if (params.has("tool")) target.tool_index = integer("tool");
     if (!token) return;
     clearResults();
-    project.value = scope;
+    if (project.value !== scope) {
+      project.value = scope;
+      scheduleStatusRefresh();
+    }
     openConversation(doc, offset, scope, null, target);
   } catch {
     clearEvidence();

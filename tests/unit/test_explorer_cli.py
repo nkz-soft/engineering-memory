@@ -1,5 +1,7 @@
 """Exercise local launcher wiring and safe CLI failures."""
 
+from unittest.mock import Mock
+
 from typer.testing import CliRunner
 
 from engineering_memory.cli import app, runtime
@@ -16,6 +18,8 @@ def test_launch_publishes_new_credential_and_closes_resources(monkeypatch):
         resources.callback(closed.append, marker)
         return marker
 
+    status = Mock()
+
     def serve(server, *, sockets):
         (listener,) = sockets
         assert listener.getsockname()[0] == "127.0.0.1"
@@ -25,6 +29,8 @@ def test_launch_publishes_new_credential_and_closes_resources(monkeypatch):
         endpoints.append(listener)
 
     monkeypatch.setattr(runtime, "make_read_access", make_access)
+    make_status = Mock(return_value=status)
+    monkeypatch.setattr(runtime, "make_explorer_status", make_status)
     monkeypatch.setattr(uvicorn.Server, "run", serve)
 
     launches = [CliRunner().invoke(app, ["explore"]) for _ in range(2)]
@@ -40,6 +46,7 @@ def test_launch_publishes_new_credential_and_closes_resources(monkeypatch):
         tokens.append(token)
     assert tokens[0] != tokens[1]
     assert len(closed) == 2
+    assert make_status.call_count == 2
     assert all(listener.fileno() == -1 for listener in endpoints)
 
 

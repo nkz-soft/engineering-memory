@@ -4,6 +4,7 @@ import json
 import os
 import re
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,6 +12,7 @@ import httpx
 import pytest
 
 from engineering_memory.access.service import AccessError, MemoryAccess
+from engineering_memory.access.status import ExplorerStatus
 from engineering_memory.archive import OriginalPayload
 from engineering_memory.archive.local import LocalRawArchive
 from engineering_memory.classification import AliasProjectClassifier, ProjectRule, ProjectRuleSet
@@ -101,6 +103,7 @@ def import_records(tmp_path, settings, rows):
             pipeline = IngestionPipeline(
                 archive=archive,
                 state=state,
+                record_import=state.record_import,
                 memory=memory,
                 sanitizer=PatternSecretSanitizer(),
                 classifier=AliasProjectClassifier(
@@ -150,6 +153,15 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
             store.retain(enriched)
     with HindsightProjectModels(settings) as models, HindsightStore(settings) as store:
         access = MemoryAccess(store, archive, models=models)
+        state = SQLiteImportState(tmp_path / "state.db", read_only=True)
+        state.validate()
+        try:
+            orchard_status = ExplorerStatus(state.read_health, models)
+            assert {row["refresh_state"] for row in orchard_status.read("orchard")["models"]} == {
+                "missing"
+            }
+        finally:
+            state.close()
         for kind in ModelKind:
             key = ProjectModelKey(project="orchard", kind=kind)
             assert models.get_project_model(key).status == "missing"
@@ -181,6 +193,19 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
         listing = client.get(root + "/mental-models").json()
         assert len(listing["items"]) == 3
 
+        # Make this a provably later import even when Docker and the host clock
+        # differ slightly. Overlapping or coincident times are tested separately.
+        last_refresh = max(
+            models.get_project_model_metadata(
+                ProjectModelKey(project="orchard", kind=kind)
+            ).last_refreshed_at
+            for kind in ModelKind
+        )
+        delay = (last_refresh - datetime.now(UTC)).total_seconds()
+        assert delay < 5, "isolated backend clock differs from the importer"
+        if delay >= 0:
+            time.sleep(delay + 0.05)
+
         import_records(
             tmp_path,
             settings,
@@ -193,11 +218,22 @@ def test_models_import_refresh_read_and_scope(model_engine, tmp_path):
                 )
             ],
         )
+        state.validate()
+        try:
+            rows = orchard_status.read("orchard")["models"]
+            _, imported = state.read_health("orchard")
+            assert imported.started_at > last_refresh, (imported, last_refresh)
+            assert {row["refresh_state"] for row in rows} == {"ready"}
+            assert {row["freshness"] for row in rows} == {"stale"}, rows
+        finally:
+            state.close()
         for kind in ModelKind:
             key = ProjectModelKey(project="orchard", kind=kind)
             assert models.refresh_project_model(key).status == "completed"
             refreshed = read_model_evidence(access, models, key)
             record_semantic_evidence("refreshed", kind.value, refreshed)
+            metadata = models.get_project_model_metadata(key)
+            assert metadata.last_refreshed_at is not None and metadata.stale is not True
             assert_no_speculative_explanations(refreshed["content"])
             expected = "postgresql" if kind == "stack" else "jade"
             assert expected in refreshed["content"].lower()
@@ -263,3 +299,6 @@ def test_models_failed_refresh_preserves_last_good(model_engine, tmp_path):
         assert after.snapshot.content == previous.snapshot.content
         assert after.snapshot.refreshed_at == previous.snapshot.refreshed_at
         assert after.snapshot.last_refresh_failed_at is not None
+        metadata = models.get_project_model_metadata(key)
+        assert metadata.last_refreshed_at == after.snapshot.refreshed_at
+        assert metadata.last_refresh_failed_at == after.snapshot.last_refresh_failed_at

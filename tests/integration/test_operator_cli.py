@@ -179,7 +179,7 @@ def test_state_write_failure_is_reported_and_closes_resources(configured, monkey
     def fail_record(*_):
         raise OSError("SECRET")
 
-    monkeypatch.setattr(SQLiteImportState, "record", fail_record)
+    monkeypatch.setattr(SQLiteImportState, "_record", staticmethod(fail_record))
     monkeypatch.setattr(SQLiteImportState, "close", close)
     path = configured / "export"
     corpus(path)

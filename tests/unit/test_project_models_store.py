@@ -56,6 +56,63 @@ def key_and_model():
     return key, model
 
 
+def test_model_metadata_reports_refresh_without_resolving_support():
+    key, model = key_and_model()
+    model["content"] = "PRIVATE_MODEL_CONTENT"
+    model["reflect_response"] = {"based_on": {"world": [{"id": "PRIVATE_EVIDENCE"}]}}
+    model["last_refresh_failed_at"] = "2026-11-05T09:00:00Z"
+
+    def handle(request):
+        assert request.method == "GET"
+        assert "/mental-models/" in request.url.path
+        assert request.url.params.get("detail") == "content"
+        return httpx.Response(200, json=model)
+
+    result = setup_store(handle).get_project_model_metadata(key)
+    assert result.model_dump(mode="json") == {
+        "refresh_state": "ready",
+        "last_refreshed_at": "2026-11-04T09:00:00Z",
+        "last_refresh_failed_at": "2026-11-05T09:00:00Z",
+        "stale": False,
+    }
+
+
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [
+        ({"last_refreshed_at": None}, "pending"),
+        ({"last_refreshed_at": None, "last_refresh_failed_at": "2026-11-05T09:00:00Z"}, "failed"),
+        ({"is_stale": "invalid"}, "ready"),
+    ],
+)
+def test_status_model_distinguishes_refresh_and_freshness(change, expected):
+    key, model = key_and_model()
+    model.update(change)
+    result = setup_store(lambda _: httpx.Response(200, json=model)).get_project_model_metadata(key)
+    assert result.refresh_state == expected
+    assert result.stale is None
+
+
+@pytest.mark.parametrize(
+    ("refreshed_at", "failed_at", "state", "has_refresh", "has_failure"),
+    [
+        ("2026-11-04T09:00:00Z", "malformed", "ready", True, False),
+        ("malformed", "2026-11-05T09:00:00Z", "unavailable", False, True),
+    ],
+)
+def test_model_metadata_retains_independently_valid_timestamps(
+    refreshed_at, failed_at, state, has_refresh, has_failure
+):
+    key, model = key_and_model()
+    model.update(last_refreshed_at=refreshed_at, last_refresh_failed_at=failed_at)
+    store = setup_store(lambda _: httpx.Response(200, json=model))
+    status = store.get_project_model_metadata(key)
+    assert status.refresh_state == state
+    assert (status.last_refreshed_at is not None) == has_refresh
+    assert (status.last_refresh_failed_at is not None) == has_failure
+    assert "malformed" not in status.model_dump_json()
+
+
 def test_missing_and_pending_never_generate():
     key, model = key_and_model()
 

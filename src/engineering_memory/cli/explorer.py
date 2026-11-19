@@ -14,13 +14,14 @@ from engineering_memory.cli import runtime
 def run_explorer() -> None:
     with ExitStack() as resources:
         access = runtime.make_read_access(resources)
+        status = runtime.make_explorer_status(resources)
         listener = resources.enter_context(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
         listener.bind(("127.0.0.1", 0))
         listener.listen()
         host, port = listener.getsockname()
         authority = f"{host}:{port}"
         token = secrets.token_urlsafe(32)
-        app = create_explorer_app(access, token=token, authority=authority)
+        app = create_explorer_app(access, token=token, authority=authority, read_status=status.read)
         server = uvicorn.Server(
             uvicorn.Config(
                 app,

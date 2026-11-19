@@ -53,6 +53,7 @@ class IngestionPipeline:
         repository: str | None = None,
         user: str | None = None,
         clock: Callable[[], datetime] = _utc_now,
+        record_import: Callable[[ImportRecord, str, datetime], None] | None = None,
     ) -> None:
         self.sanitizer = sanitizer
         self.classifier = classifier
@@ -64,6 +65,7 @@ class IngestionPipeline:
         self.repository = repository
         self.user = user
         self.clock = clock
+        self.record_import = record_import
 
     def run(
         self, source: ConversationSource, *, force: bool = False, dry_run: bool = False
@@ -164,17 +166,18 @@ class IngestionPipeline:
             if not preview:
                 self.memory.retain(enriched)
             stage = Stage.STATE_WRITE
-            self._remember(
-                overlay,
-                ImportRecord(
-                    source=conversation.source,
-                    source_id=conversation.source_id,
-                    document_id=conversation.document_id,
-                    content_hash=content_hash,
-                    recorded_at=self.clock(),
-                    status=ImportStatus.IMPORTED,
-                ),
+            retained = ImportRecord(
+                source=conversation.source,
+                source_id=conversation.source_id,
+                document_id=conversation.document_id,
+                content_hash=content_hash,
+                recorded_at=self.clock(),
+                status=ImportStatus.IMPORTED,
             )
+            if not preview and self.record_import is not None:
+                self.record_import(retained, project, enriched.provenance.imported_at)
+            else:
+                self._remember(overlay, retained)
         except Exception:
             secondary = False
             if content_hash is not None and not (preview and skipped):
