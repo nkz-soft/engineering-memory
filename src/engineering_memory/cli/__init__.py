@@ -254,7 +254,7 @@ def session_handoff_command(
     except Exception as error:
         code = error_category(error)
     else:
-        typer.echo(result["markdown"], nl=False)
+        typer.echo(result["markdown"].encode("utf-8"), nl=False)
         return
     typer.echo(f"Session handoff failed: {code}", err=True)
     raise typer.Exit(2 if code == "invalid_input" else 1)

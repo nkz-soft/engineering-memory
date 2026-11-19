@@ -168,30 +168,57 @@ def test_handoff_from_imported_claude_session(configured, monkeypatch):  # noqa:
         assert "synthetic-secret-123" not in str(passages)
         assert any("password=" in text for text in passages.values())
 
-        def entry(section, status, text, evidence):
-            selector = next(key for key, passage in passages.items() if evidence in passage)
-            return {"section": section, "status": status, "text": text, "selectors": [selector]}
+        def entry(section, status, text, evidence, *, outcome=None):
+            selectors = [
+                next(key for key, passage in passages.items() if marker in passage)
+                for marker in evidence
+            ]
+            return {
+                "section": section,
+                "status": status,
+                "text": text,
+                "selectors": selectors,
+                "outcome": outcome,
+            }
 
         return {
             "entries": [
                 entry(
-                    "goal", "recorded", "Investigate the relay failure.", "Investigate the relay"
+                    "goal", "recorded", "Investigate the relay failure.", ["Investigate the relay"]
                 ),
-                entry("decisions", "recorded", "Use port 8123.", "Use port 8123"),
-                entry("files", "recorded", "Updated relay.conf.", "Updated relay.conf"),
-                entry("checks", "recorded", "Initial relay check failed.", "port zero is disabled"),
-                entry("checks", "recorded", "Relay check rerun passed.", "relay check passed"),
+                entry("decisions", "recorded", "Use port 8123.", ["Use port 8123"]),
+                entry(
+                    "files",
+                    "recorded",
+                    "Updated relay.conf.",
+                    ['"id":"call-3"', "Updated relay.conf"],
+                    outcome="changed",
+                ),
+                entry(
+                    "checks",
+                    "recorded",
+                    "Relay check rerun passed.",
+                    ['"id":"call-4"', "relay check passed"],
+                    outcome="passed",
+                ),
+                entry(
+                    "checks",
+                    "recorded",
+                    "Initial relay check failed.",
+                    ['"id":"call-1"', "port zero is disabled"],
+                    outcome="failed",
+                ),
                 entry(
                     "files",
                     "unknown",
                     "proposed.conf edit has no recorded result.",
-                    "proposed.conf",
+                    ["proposed.conf"],
                 ),
                 entry(
                     "questions",
                     "unknown",
                     "Should we document the upgrade?",
-                    "document the upgrade",
+                    ["document the upgrade"],
                 ),
             ]
         }
@@ -205,10 +232,11 @@ def test_handoff_from_imported_claude_session(configured, monkeypatch):  # noqa:
     )
     assert result.exit_code == 0, (result.output, result.exception)
     assert len(result.stdout.encode()) <= 8 * 1024
-    assert "Recorded** — Updated relay.conf." in result.stdout
+    assert "Recorded** — Changed relay.conf" in result.stdout
     assert "Unknown** — proposed.conf edit has no recorded result." in result.stdout
-    assert "Initial relay check failed." in result.stdout
-    assert "Relay check rerun passed." in result.stdout
-    assert result.stdout.count("document=claude-code%3Asession-one") == 7
+    assert "Command failed: relay --check" in result.stdout
+    assert "Command succeeded: relay --check" in result.stdout
+    assert result.stdout.index("Command failed:") < result.stdout.index("Command succeeded:")
+    assert result.stdout.count("document=claude-code%3Asession-one") == 10
     assert result.stdout.count("field=tool_result") == 3
     (root / "handoff.md").write_text(result.stdout, encoding="utf-8")

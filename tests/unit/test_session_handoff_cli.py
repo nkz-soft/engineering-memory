@@ -55,3 +55,22 @@ def test_adapter_uses_handoff_schema_and_does_not_pass_tools():
     settings = DeepRecallSettings(base_url="http://127.0.0.1:8010", model="test")
     adapter = OpenAICompatibleSynthesizer(settings, transport=httpx.MockTransport(receive))
     assert adapter.synthesize_handoff({"1": "safe"}, {"1": None}) == {"entries": []}
+
+
+def test_redirected_cli_writes_utf8_even_with_legacy_stdout_encoding(monkeypatch):
+    import subprocess
+    import sys
+
+    mock_cli = r"""
+from engineering_memory.cli import app, runtime
+runtime.read_session_handoff = lambda **kwargs: {"markdown": "Résumé λ\u00a0—\n"}
+app()
+"""
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
+    result = subprocess.run(
+        [sys.executable, "-c", mock_cli, "session-handoff", "claude-code:one", "--project", "demo"],
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "Résumé λ\u00a0—\n".encode()
