@@ -1,0 +1,9 @@
+# Validate Import Health and Model Freshness
+
+Run these checks after implementation, using an isolated temporary state database, synthetic imports and a configured test memory service. Use the existing explorer instructions to unlock the local UI.
+
+1. Import one synthetic Codex session and attempt a configured Claude Code import with an unreadable or missing source. Open Status and verify healthy and failed rows with a timestamp and safe error respectively. Restart the explorer and rerun it with the same state path. Verify both rows persist without another import.
+2. Fail a later attempt for Codex. Verify its previous successful import time remains visible. Restore the input and run an unchanged import. Verify healthy status, cleared errors and the unchanged success time. Run with only deferred session files to observe waiting. Attempt a dry run and verify the stored rows remain identical.
+3. In the isolated test environment refresh a classified project's model, then import new material for that project. Select the project and verify stale for its older model. Compare with an unrelated project and a fixture whose freshness is indeterminate. Confirm unknown remains distinct from stale. Verify unavailable model metadata preserves source rows.
+4. For privacy, include synthetic sentinels in the conversation, model text, exception and credential inputs. Check the health tables, response and DOM for zero sentinel occurrences. Check that locked or unauthorized requests reveal no health metadata.
+5. Validate migration and explorer boundaries with `uv run pytest tests/integration/test_persistent_import_state.py tests/unit/test_project_models_store.py tests/contracts/test_explorer_http.py -q`. Run the new import-health integration tests and the repository's opt-in explorer browser and live model suites using their documented environment prerequisites.
