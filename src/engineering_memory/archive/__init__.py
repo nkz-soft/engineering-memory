@@ -12,6 +12,7 @@ wanted to read a conversation. Implementations are imported from their own modul
 
 from engineering_memory.archive.interface import (
     ArchiveDocumentNotFound,
+    ArchiveListingRejected,
     ArchiveRejected,
     ArchiveUnavailable,
     OriginalPayload,
@@ -20,6 +21,7 @@ from engineering_memory.archive.interface import (
 
 __all__ = [
     "ArchiveDocumentNotFound",
+    "ArchiveListingRejected",
     "ArchiveRejected",
     "ArchiveUnavailable",
     "OriginalPayload",

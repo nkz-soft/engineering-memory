@@ -91,3 +91,39 @@ default. To make them clickable against a running explorer, pass
 address the current archived snapshot and require normal viewer access.
 Neither generation nor copying launches, resumes, or sends a message to an
 agent.
+
+## Explore related sessions and files
+
+Build the local index from the normalized archive for your active profile:
+
+```text
+engineering-memory rebuild-neighborhood
+```
+
+Run the command again after importing or replacing sessions. The command reports
+aggregate coverage and publishes a completed generation transactionally. If a
+refresh fails, the explorer can still read the previous generation. The index
+lives alongside the normalized archive directories and can be rebuilt from
+them. Treat it as private data.
+
+Open a session and choose its graph, or enter an exact repository-relative path
+and repository in the selected project. Enter the archived repository identity
+as recorded, including the host, owner and any `.git` suffix for a remote URL.
+When the archive has no remote identity, use the confirmed absolute checkout
+root (for example, `/work/orchard`).
+The graph shows up to 30 direct edges
+and reports when additional neighbors are available. Select a session or file
+to explore from that node.
+
+Select an edge to inspect the relation type and its supporting record. The
+evidence link opens the exact message or tool field in the authenticated
+viewer. Updated or missing source records show an unavailable evidence
+state. Refresh the index to reflect later imports or archive changes.
+
+Edges use successful recorded tool outcomes for file edits and commits,
+qualified pull-request references, and explicit references to prior sessions.
+The index omits relative edits and commits whose archived requests lack
+checkout context. To recover that context for older snapshots, replay the
+appropriate source with `engineering-memory import --source codex --from-archive`
+or use `--source claude-code`, then rebuild the neighborhood index. Terminal PR
+and commit nodes display the recorded identities.

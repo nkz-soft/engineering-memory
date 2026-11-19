@@ -263,3 +263,67 @@ def test_handoff_uses_authenticated_scope_and_fixed_explorer_origin(explorer):
     assert response.json() == read.return_value
     assert response.headers["Cache-Control"] == "no-store"
     read.assert_called_once_with(**payload, link_origin=f"http://{AUTHORITY}")
+
+
+@pytest.mark.parametrize(
+    ("route", "payload", "method"),
+    [
+        (
+            "neighborhood",
+            {"project": "demo", "root": {"kind": "session", "identity": "codex:one"}},
+            "neighborhood",
+        ),
+        ("neighborhood/evidence", {"project": "demo", "handle": "1" * 32}, "neighborhood_evidence"),
+        (
+            "conversation",
+            {"document_id": "codex:one", "project": "demo", "snapshot": "a" * 64},
+            "get_neighborhood_conversation",
+        ),
+    ],
+)
+def test_neighborhood_routes_reuse_local_authorization(explorer, route, payload, method):
+    client, access = explorer
+    rejected = client.post(
+        f"/api/{route}", json=payload, headers=HEADERS | {"Authorization": "Bearer stale"}
+    )
+    assert rejected.status_code == 401
+    assert not access.mock_calls
+    read = getattr(access, method)
+    read.return_value = {"status": "ready"}
+
+    response = client.post(f"/api/{route}", json=payload, headers=HEADERS)
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+    assert response.headers["Cache-Control"] == "no-store"
+    read.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("route", "payload"),
+    [
+        (
+            "neighborhood",
+            {"project": "unknown", "root": {"kind": "session", "identity": "codex:one"}},
+        ),
+        (
+            "neighborhood",
+            {
+                "project": "demo",
+                "root": {"kind": "file", "identity": "../private", "repository": "repo"},
+            },
+        ),
+        ("neighborhood", {"project": "demo", "root": {"kind": "file", "identity": "app.py"}}),
+        ("neighborhood/evidence", {"project": "demo", "handle": "unsafe path"}),
+        ("conversation", {"document_id": "codex:one", "project": "demo"}),
+        ("conversation", {"document_id": "codex:one", "project": "demo", "snapshot": "wrong"}),
+    ],
+)
+def test_rejects_invalid_neighborhood_requests_before_dispatch(explorer, route, payload):
+    client, access = explorer
+
+    response = client.post(f"/api/{route}", json=payload, headers=HEADERS)
+
+    assert response.status_code == 400
+    assert response.json() == {"error": "invalid_input"}
+    assert not access.mock_calls

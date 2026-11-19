@@ -288,7 +288,27 @@ def read_session_handoff(
     )
 
 
-def make_read_access(resources: ExitStack, *, include_models: bool = False):
+def _neighborhood_index(archive_root: Path):
+    from engineering_memory.access.neighborhood_index import NeighborhoodIndex
+
+    return NeighborhoodIndex(archive_root / "neighborhood.sqlite3")
+
+
+def rebuild_neighborhood(data: dict) -> None:
+    from engineering_memory.access.neighborhood import NeighborhoodUnavailable
+    from engineering_memory.settings import load_archive_access_settings
+
+    settings = load_archive_access_settings()
+    archive = LocalRawArchive(settings.archive_root)
+    try:
+        data["coverage"] = _neighborhood_index(settings.archive_root).rebuild(archive)
+    except NeighborhoodUnavailable:
+        data.update(status="failure", error="unavailable")
+
+
+def make_read_access(
+    resources: ExitStack, *, include_models: bool = False, include_neighborhood: bool = False
+):
     from engineering_memory.access.service import MemoryAccess
     from engineering_memory.access.synthesis import OpenAICompatibleSynthesizer
     from engineering_memory.settings import load_access_settings
@@ -308,6 +328,9 @@ def make_read_access(resources: ExitStack, *, include_models: bool = False):
         reflection=memory,
         synthesis=synthesis,
         handoff_synthesis=synthesis,
+        neighborhood_index=_neighborhood_index(settings.archive_root)
+        if include_neighborhood
+        else None,
     )
 
 

@@ -34,10 +34,30 @@
           <button type="submit" value="search">Search</button>
           <button type="submit" class="quiet" value="deep-recall">Deep Recall</button>
           <button type="submit" class="quiet" value="decision-history">Decision history</button>
+          <button type="button" id="browse-file" class="quiet"
+                  aria-expanded="false" aria-controls="file-neighborhood">Browse a file</button>
           <button type="button" id="show-status" class="quiet"
                   aria-expanded="false" aria-controls="status-panel">Status</button>
         </div>
       </form>
+
+      <form id="file-neighborhood" autocomplete="off" hidden>
+        <label for="file-repository">Repository identity</label>
+        <input id="file-repository" spellcheck="false" required>
+        <label for="file-path">Project-relative file path</label>
+        <input id="file-path" spellcheck="false" required>
+        <button type="submit">Open file neighborhood</button>
+      </form>
+
+      <section id="neighborhood" aria-labelledby="neighborhood-heading" hidden>
+        <header class="actions">
+          <h2 id="neighborhood-heading" tabindex="-1">Evidence neighborhood</h2>
+          <button id="close-neighborhood" type="button" class="quiet">Close neighborhood</button>
+        </header>
+        <p id="neighborhood-status" role="status"></p>
+        <div id="neighborhood-graph"></div>
+        <div id="neighborhood-detail" aria-live="polite"></div>
+      </section>
 
       <section id="status-panel" aria-labelledby="status-heading" hidden>
         <header class="actions">
@@ -59,6 +79,9 @@
           <h2 id="evidence-heading" tabindex="-1">Conversation</h2>
           <p id="evidence-status" role="status"></p>
           <p id="conversation-provenance" class="metadata"></p>
+          <button id="session-neighborhood" type="button" class="quiet" hidden>
+            Open session neighborhood
+          </button>
           <div id="session-handoff"></div>
           <div id="messages"></div>
           <div class="actions paging">

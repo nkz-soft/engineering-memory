@@ -13,7 +13,7 @@ from engineering_memory.cli import runtime
 
 def run_explorer() -> None:
     with ExitStack() as resources:
-        access = runtime.make_read_access(resources)
+        access = runtime.make_read_access(resources, include_neighborhood=True)
         status = runtime.make_explorer_status(resources)
         listener = resources.enter_context(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
         listener.bind(("127.0.0.1", 0))

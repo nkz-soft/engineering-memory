@@ -839,3 +839,213 @@ def test_session_handoff_discards_late_result_after_reopening_same_session(explo
     expect(page.get_by_role("textbox", name="Handoff Markdown")).to_have_value(
         "Fresh handoff content"
     )
+
+
+def test_neighborhood_reroots_and_opens_guarded_evidence(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    access.get_conversation.return_value = _page(0, "Selected session")
+    session = {"kind": "session", "identity": "codex:one", "label": "Selected session"}
+    file = {
+        "kind": "file",
+        "identity": "src/app.py",
+        "label": "src/app.py",
+        "repository": "example/orchard",
+    }
+    roots = []
+    guarded = []
+    snapshot = "a" * 64
+
+    def neighborhood(route):
+        body = route.request.post_data_json
+        assert body["project"] == "orchard"
+        roots.append(body["root"])
+        route.fulfill(
+            json={
+                "status": "partial",
+                "edges": [
+                    {"origin": session, "target": file, "relation": "file_edit", "handle": "edit"}
+                ],
+                "truncated": True,
+            }
+        )
+
+    def conversation(route):
+        body = route.request.post_data_json
+        if "snapshot" not in body:
+            route.continue_()
+            return
+        guarded.append(body)
+        if len(guarded) == 1:
+            route.fulfill(json=_page(51, "Edit", tools=[{"result": MARKUP}]))
+        else:
+            route.fulfill(status=404, json={"error": "not_found"})
+
+    page.route("**/api/neighborhood", neighborhood)
+    page.route("**/api/conversation", conversation)
+    page.route(
+        "**/api/neighborhood/evidence",
+        lambda route: route.fulfill(
+            json={
+                "relation": "file_edit",
+                "text": MARKUP,
+                "selector": {
+                    "document_id": "codex:one",
+                    "message": 51,
+                    "tool": 0,
+                    "field": "tool_result",
+                    "snapshot": snapshot,
+                },
+            }
+        ),
+    )
+
+    page.goto(page.url + "#view=session&project=orchard&document=codex%3Aone&message=0")
+    page.get_by_role("button", name="Open session neighborhood").click(timeout=1500)
+    panel = page.get_by_role("region", name="Evidence neighborhood")
+    expect(panel.get_by_text("Index coverage is partial.", exact=False)).to_be_visible()
+    expect(panel.get_by_text("Showing a limited set", exact=False)).to_be_visible()
+    page.get_by_role("button", name="Browse src/app.py").press("Enter")
+    expect(panel.get_by_role("button", name="Browse Selected session")).to_be_visible()
+    assert roots == [
+        {"kind": "session", "identity": "codex:one"},
+        {"kind": "file", "identity": "src/app.py", "repository": "example/orchard"},
+    ]
+    page.get_by_role("button", name="Inspect recorded file edit").press("Enter")
+    expect(panel.get_by_text(MARKUP, exact=True)).to_be_visible()
+    assert page.locator("img").count() == 0
+    link = panel.get_by_role("link", name="Open supporting field")
+    assert "snapshot=" + snapshot in link.get_attribute("href")
+    assert "onerror" not in link.get_attribute("href")
+    link.click()
+    field = page.locator('[data-field="tool_result"].cited')
+    expect(field).to_be_focused()
+    assert guarded == [
+        {
+            "document_id": "codex:one",
+            "offset": 51,
+            "page_size": 50,
+            "project": "orchard",
+            "snapshot": snapshot,
+        }
+    ]
+    expect(panel).to_be_hidden()
+    field.get_by_role("link", name="Link to result").click()
+    expect(page.get_by_text("Cited evidence is unavailable.")).to_be_visible()
+    expect(page.get_by_text(MARKUP, exact=True)).to_have_count(0)
+    assert guarded == guarded[:1] * 2
+
+
+def test_exact_file_neighborhood_distinguishes_index_states_and_clears_on_lock(explorer):
+    from playwright.sync_api import expect
+
+    page, _ = explorer
+    calls = []
+
+    def neighborhood(route):
+        calls.append(route.request.post_data_json)
+        route.fulfill(
+            json={
+                "status": "unindexed" if len(calls) == 1 else "ready",
+                "edges": [],
+                "truncated": False,
+            }
+        )
+
+    page.route("**/api/neighborhood", neighborhood)
+    page.get_by_label("Project slug").fill("orchard")
+    page.get_by_role("button", name="Browse a file").click(timeout=1500)
+    page.get_by_label("Repository identity").fill("example/orchard")
+    page.get_by_label("Project-relative file path").fill("src/app.py")
+    page.get_by_role("button", name="Open file neighborhood").click()
+    panel = page.get_by_role("region", name="Evidence neighborhood")
+    expect(panel.get_by_text("This project has no neighborhood index.")).to_be_visible()
+    page.get_by_role("button", name="Open file neighborhood").click()
+    expect(panel.get_by_text("No recorded links for this root.")).to_be_visible()
+    assert (
+        calls
+        == [
+            {
+                "project": "orchard",
+                "root": {"kind": "file", "identity": "src/app.py", "repository": "example/orchard"},
+            }
+        ]
+        * 2
+    )
+    page.get_by_role("button", name="Lock", exact=True).click()
+    expect(panel).to_be_hidden()
+    expect(page.get_by_label("Project-relative file path")).to_have_value("")
+
+
+def test_neighborhood_discards_evidence_response_after_reroot(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    access.get_conversation.return_value = _page(0, "Selected session")
+    session = {"kind": "session", "identity": "codex:one", "label": "Selected session"}
+    file = {"kind": "file", "identity": "notes.md", "repository": "example/orchard"}
+    requests = []
+
+    def neighborhood(route):
+        is_file = route.request.post_data_json["root"]["kind"] == "file"
+        route.fulfill(
+            json={
+                "status": "ready",
+                "edges": []
+                if is_file
+                else [
+                    {"origin": session, "target": file, "relation": "file_edit", "handle": "first"},
+                ],
+                "truncated": False,
+            }
+        )
+
+    page.route("**/api/neighborhood", neighborhood)
+    page.route("**/api/neighborhood/evidence", lambda route: requests.append(route))
+    page.goto(page.url + "#view=session&project=orchard&document=codex%3Aone&message=0")
+    page.get_by_role("button", name="Open session neighborhood").click()
+    with page.expect_request("**/api/neighborhood/evidence"):
+        page.get_by_role("button", name="Inspect recorded file edit").click()
+    page.get_by_role("button", name="Browse notes.md").click()
+    expect(page.get_by_text("No recorded links for this root.")).to_be_visible()
+    requests[0].fulfill(
+        json={
+            "relation": "file_edit",
+            "text": "Abandoned response",
+            "selector": {
+                "document_id": "codex:one",
+                "message": 0,
+                "tool": 0,
+                "field": "tool_result",
+                "snapshot": "a" * 64,
+            },
+        }
+    )
+    expect(page.get_by_text("Abandoned response")).to_have_count(0)
+    expect(page.get_by_role("link", name="Open supporting field")).to_have_count(0)
+
+
+@pytest.mark.parametrize(
+    ("selector", "text", "placeholder"),
+    [
+        ("&tool=0&field=tool_request", "Dialogue", "No request recorded on this occurrence."),
+        ("&field=text", "", "Recorded result"),
+    ],
+)
+def test_guarded_session_link_rejects_missing_or_empty_field(explorer, selector, text, placeholder):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    record = _page(0, text, tools=[{"name": "exec", "result": "Recorded result"}])
+    access.get_neighborhood_conversation.return_value = record
+    access.get_conversation.return_value = record
+    source = page.url + "#view=session&project=orchard&document=codex%3Aone&message=0"
+    page.goto(source + selector + "&snapshot=" + "a" * 64)
+
+    expect(page.get_by_text("Cited evidence is unavailable.")).to_be_visible(timeout=1500)
+    expect(page.locator("#messages")).to_be_empty()
+
+    page.goto(source + selector)
+    expect(page.locator(".cited:focus")).to_be_visible()
+    expect(page.get_by_text(placeholder, exact=True)).to_be_visible()

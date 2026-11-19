@@ -14,7 +14,7 @@
 
 **Rationale** — Claude Code normalization preserves tool use IDs and result/error fields. Codex normalization preserves call IDs and result output. Reuse compatible call pairing and result checks from access/handoff.py with regression tests. For multi-file edits, verify each path against the paired outcome. Both viewer paths already expose message positions and tool fields. The Codex parser does not retain arbitrary session metadata in normalized data, so historical continuation markers can be unavailable. Unsupported tool formats, proposed commands, redacted identifiers, ambiguous paths and unresolved references can be skipped and exercised with fixtures.
 
-**Alternatives considered** — Similarity, assistant summaries and free-form matching could improve recall at the cost of misleading edges. Reading originals at request time would violate the access boundary and could produce evidence the viewer cannot open. Broad source parser changes add scope and still require replay for historical records.
+**Alternatives considered** — Similarity, assistant summaries and free-form matching could improve recall at the cost of misleading edges. Reading originals at request time would violate the access boundary and could produce evidence the viewer cannot open. The source adapters preserve the operation working directory for recognized tools in the existing normalized request envelope. Replay historical originals to recover missing scope for relative edits and commits where possible.
 
 ## Exact viewer navigation
 

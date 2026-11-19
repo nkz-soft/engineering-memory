@@ -21,6 +21,7 @@ from pydantic import ValidationError, field_validator
 
 from engineering_memory.archive.interface import (
     ArchiveDocumentNotFound,
+    ArchiveListingRejected,
     ArchiveRejected,
     ArchiveUnavailable,
     OriginalPayload,
@@ -117,7 +118,7 @@ class LocalRawArchive:
 
     def _check_directory(self) -> None:
         if _redirected(self._root) or _redirected(self._directory):
-            raise ArchiveRejected("the archive directory is redirected")
+            raise ArchiveListingRejected("the archive directory is redirected")
         if self._root.exists() and not self._root.is_dir():
             raise ArchiveUnavailable("the archive root is not a directory")
         if self._directory.exists() and not self._directory.is_dir():

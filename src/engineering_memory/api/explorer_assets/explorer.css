@@ -62,3 +62,25 @@ mark { background: #f5e2a2; color: inherit; white-space: pre-wrap; overflow-wrap
 .tool-field a, .message > a { display: inline-block; margin-bottom: .5rem; color: var(--accent); }
 .recorded-field pre { max-width: 100%; font-size: .88rem; }
 .full-output summary { cursor: pointer; color: var(--accent); }
+#file-neighborhood, #neighborhood { margin-top: 1.25rem; }
+#file-neighborhood input { margin-bottom: .65rem; }
+#neighborhood { border: 1px solid var(--edge); border-radius: .65rem; padding: 1rem; }
+#neighborhood header { justify-content: space-between; margin-bottom: .65rem; }
+#neighborhood h2, #neighborhood h3 { margin: 0; }
+#neighborhood-graph, #neighborhood-detail { overflow-wrap: anywhere; }
+.graph-root { display: inline-block; padding: .4rem .75rem; border-radius: .45rem; background: #dbe8dd; }
+.graph-edges { margin: 0 0 .5rem 1rem; padding: .65rem 0 .25rem .75rem; border-left: 2px solid var(--edge); }
+.graph-edge { background: #fff; border: 1px solid var(--edge); border-radius: .45rem; padding: .55rem .75rem; margin-bottom: .5rem; list-style: none; }
+.graph-edge p { margin-bottom: .4rem; }
+#neighborhood-detail:not(:empty) { border-top: 1px solid var(--edge); padding-top: .75rem; }
+#neighborhood-detail a { color: var(--accent); }
+#session-neighborhood { margin-bottom: .65rem; }
+@media (min-width: 52rem) {
+  #neighborhood:has(#neighborhood-detail:not(:empty)) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 1rem;
+  }
+  #neighborhood header, #neighborhood-status { grid-column: 1 / -1; }
+  #neighborhood-detail:not(:empty) { border-top: 0; border-left: 1px solid var(--edge); padding: 0 0 0 1rem; }
+}

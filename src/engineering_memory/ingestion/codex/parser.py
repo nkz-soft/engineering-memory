@@ -25,7 +25,6 @@ _EVENTS = {
     "turn_aborted",
 }
 
-_BOOKKEEPING = {"turn_context", "compacted"}
 _CONTENT_MARKERS = {"input_image": NonTextKind.IMAGE, "input_audio": NonTextKind.AUDIO}
 
 
@@ -65,7 +64,7 @@ def _content(content):
     return parts or [dict(text="")]
 
 
-def _response(payload, sent_at, calls):
+def _response(payload, sent_at, calls, recorded_cwd):
     kind = _string(payload["type"])
     if kind == "reasoning":
         # Encrypted/internal reasoning is outside the visible-transcript contract.
@@ -88,7 +87,10 @@ def _response(payload, sent_at, calls):
             # Incomplete argument JSON is preserved for failed tool calls.
             with suppress(ValueError):
                 value = json.loads(value)
-        tool = ToolActivity(name=name, request=_json({"call_id": call_id, key: value}))
+        request = {"call_id": call_id, key: value}
+        if recorded_cwd is not None and name in {"apply_patch", "exec_command"}:
+            request["recorded_cwd"] = recorded_cwd
+        tool = ToolActivity(name=name, request=_json(request))
         return [Message(role=Role.ASSISTANT, text="", sent_at=sent_at, tool_activity=(tool,))]
     if kind in {"function_call_output", "custom_tool_call_output"}:
         call_id = _string(payload["call_id"])
@@ -136,6 +138,7 @@ def parse_main_session(raw: bytes) -> Conversation | None:
 
 def _parse(raw, *, main_only=False):
     metadata = None
+    turn_cwd = None
     messages, times, calls = [], [], {}
     mirrored_dialogue = False
     response_seen = False
@@ -168,12 +171,17 @@ def _parse(raw, *, main_only=False):
             if event not in _EVENTS:
                 raise ValueError
             mirrored_dialogue |= event in {"user_message", "agent_message"}
-        elif kind in _BOOKKEEPING:
+        elif kind == "turn_context":
+            cwd = payload.get("cwd")
+            if isinstance(cwd, str) and cwd.strip():
+                turn_cwd = cwd
+        elif kind == "compacted":
             continue
         elif kind == "response_item":
             sent_at = _time(record["timestamp"])
             times.append(sent_at)
-            normalized = _response(payload, sent_at, calls)
+            initial_cwd = metadata.get("cwd") if metadata is not None else None
+            normalized = _response(payload, sent_at, calls, turn_cwd or initial_cwd)
             response_seen |= bool(normalized)
             messages.extend(normalized)
         else:

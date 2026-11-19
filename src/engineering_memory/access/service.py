@@ -26,6 +26,7 @@ from engineering_memory.normalization.base import OpaqueIdentifier
 if TYPE_CHECKING:
     from engineering_memory.access.deep_recall import DeepRecallSynthesizer
     from engineering_memory.access.handoff import HandoffSynthesizer
+    from engineering_memory.access.neighborhood import NeighborhoodReader
 
 _TAG = TypeAdapter(AnyTag)
 _ID = TypeAdapter(OpaqueIdentifier)
@@ -185,6 +186,7 @@ class MemoryAccess:
         reflection: ReflectionReader | None = None,
         synthesis: DeepRecallSynthesizer | None = None,
         handoff_synthesis: HandoffSynthesizer | None = None,
+        neighborhood_index: NeighborhoodReader | None = None,
     ):
         self.memory = memory
         self.archive = archive
@@ -192,6 +194,39 @@ class MemoryAccess:
         self.reflection = reflection
         self.synthesis = synthesis
         self.handoff_synthesis = handoff_synthesis
+        self.neighborhood_index = neighborhood_index
+
+    def neighborhood(self, **arguments) -> dict:
+        from engineering_memory.access.neighborhood import NeighborhoodRequest, graph
+
+        request = _validate(NeighborhoodRequest, arguments)
+        return _safe(lambda: graph(self.neighborhood_index, request))
+
+    def neighborhood_evidence(self, **arguments) -> dict:
+        from engineering_memory.access.neighborhood import (
+            NeighborhoodEvidenceRequest,
+            read_evidence,
+        )
+
+        request = _validate(NeighborhoodEvidenceRequest, arguments)
+        return _safe(lambda: read_evidence(self.neighborhood_index, self.archive, request))
+
+    def get_neighborhood_conversation(self, **arguments) -> dict:
+        from engineering_memory.access.neighborhood import (
+            BrowserConversationRequest,
+            checked_record,
+        )
+
+        request = _validate(BrowserConversationRequest, arguments)
+        document_id = _document_id(request.document_id)
+        if request.project is None or request.snapshot is None:
+            raise AccessError("invalid_input")
+
+        def read():
+            archived = checked_record(self.archive, document_id, request.project, request.snapshot)
+            return self._conversation_page(archived, request)
+
+        return _safe(read)
 
     def session_handoff(
         self, *, document_id: str, project: str, link_origin: str | None = None
@@ -371,17 +406,21 @@ class MemoryAccess:
             archived = self.archive.load(document_id)
             if archived.document_id != document_id:
                 raise AccessError("corrupt_record")
-            conversation = archived.conversation
-            end = request.offset + request.page_size
-            return {
-                "document_id": document_id,
-                "provenance": archived.provenance.model_dump(mode="json"),
-                "started_at": conversation.model_dump(mode="json")["started_at"],
-                "messages": [
-                    m.model_dump(mode="json") for m in conversation.messages[request.offset : end]
-                ],
-                "offset": request.offset,
-                "next_offset": end if end < len(conversation.messages) else None,
-            }
+            return self._conversation_page(archived, request)
 
         return _safe(read)
+
+    @staticmethod
+    def _conversation_page(archived, request: ConversationRequest) -> dict:
+        conversation = archived.conversation
+        end = request.offset + request.page_size
+        return {
+            "document_id": archived.document_id,
+            "provenance": archived.provenance.model_dump(mode="json"),
+            "started_at": conversation.model_dump(mode="json")["started_at"],
+            "messages": [
+                m.model_dump(mode="json") for m in conversation.messages[request.offset : end]
+            ],
+            "offset": request.offset,
+            "next_offset": end if end < len(conversation.messages) else None,
+        }
