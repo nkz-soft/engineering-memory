@@ -761,3 +761,81 @@ def test_status_handles_project_change_and_lock(explorer):
     page.get_by_role("button", name="Lock", exact=True).click()
     expect(status).to_be_hidden()
     expect(page.locator("#status-rows")).to_be_empty()
+
+
+def test_session_handoff_copy_and_denial(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    target = "#view=session&project=orchard&document=codex%3Aone&message=0"
+    access.get_conversation.return_value = _page(0, "Selected session")
+    markdown = "# Session handoff\n\n## Goal\n\n" + MARKUP
+    access.session_handoff.return_value = {"markdown": markdown}
+    page.goto(page.url + target)
+    page.evaluate(
+        """() => {
+            window.copiedMarkdown = null;
+            window.denyClipboard = false;
+            navigator.clipboard.writeText = async (text) => {
+                if (window.denyClipboard) throw new Error("denied");
+                window.copiedMarkdown = text;
+            };
+        }"""
+    )
+
+    page.get_by_role("button", name="Generate handoff").click()
+    brief = page.get_by_role("textbox", name="Handoff Markdown")
+    expect(brief).to_have_value(markdown)
+    assert page.locator("img").count() == 0
+    page.get_by_role("button", name="Copy Markdown").click()
+    expect(page.get_by_text("Markdown copied.")).to_be_visible()
+    assert page.evaluate("window.copiedMarkdown") == markdown
+
+    page.evaluate("window.denyClipboard = true")
+    page.get_by_role("button", name="Copy Markdown").click()
+    expect(page.get_by_text("Clipboard unavailable. Copy the Markdown manually.")).to_be_visible()
+    expect(brief).to_have_value(markdown)
+    access.session_handoff.assert_called_once()
+    assert [call[0] for call in access.mock_calls] == ["get_conversation", "session_handoff"]
+
+    page.get_by_role("button", name="Lock").click()
+    expect(brief).to_have_count(0)
+
+
+def test_session_handoff_discards_late_result_after_reopening_same_session(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    target = "#view=session&project=orchard&document=codex%3Aone&message=0"
+    access.get_conversation.return_value = _page(0, "Selected session")
+    started, release, finished = Event(), Event(), Event()
+
+    def delayed(**kwargs):
+        started.set()
+        try:
+            assert release.wait(10)
+            return {"markdown": "Old handoff content"}
+        finally:
+            finished.set()
+
+    access.session_handoff.side_effect = delayed
+    page.goto(page.url + target)
+    generate = page.get_by_role("button", name="Generate handoff")
+    page.get_by_role("button", name="Generate handoff").click()
+    try:
+        assert started.wait(5)
+        page.get_by_role("button", name="Lock").click()
+        page.get_by_label("Access key").fill(TOKEN)
+        page.get_by_role("button", name="Unlock").click()
+        expect(generate).to_be_enabled()
+    finally:
+        release.set()
+    assert finished.wait(5)
+    expect(page.get_by_role("textbox", name="Handoff Markdown")).to_have_count(0)
+
+    access.session_handoff.side_effect = None
+    access.session_handoff.return_value = {"markdown": "Fresh handoff content"}
+    generate.click()
+    expect(page.get_by_role("textbox", name="Handoff Markdown")).to_have_value(
+        "Fresh handoff content"
+    )

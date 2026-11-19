@@ -10,6 +10,7 @@ const query = element("query");
 const results = element("results");
 const evidence = element("evidence");
 const messages = element("messages");
+const handoff = element("session-handoff");
 const first = element("first");
 const next = element("next");
 const statusPanel = element("status-panel");
@@ -20,6 +21,7 @@ const statusFeedback = element("status-feedback");
 let token = "";
 let lookupRequest;
 let conversationRequest;
+let handoffRequest;
 let statusRequest;
 let statusTimer;
 
@@ -53,6 +55,8 @@ function provenance(record) {
 
 function clearEvidence() {
   conversationRequest?.abort();
+  handoffRequest?.abort();
+  handoff.replaceChildren();
   evidence.hidden = true;
   messages.replaceChildren();
   element("conversation-provenance").textContent = "";
@@ -126,7 +130,8 @@ async function read(operation, payload, signal) {
     if (response.status === 503) {
       const failure = await response.json();
       if (failure.error === "synthesis_unconfigured") {
-        throw new Error("Deep Recall needs synthesis configuration.");
+        const feature = operation === "session-handoff" ? "Session handoff" : "Deep Recall";
+        throw new Error(feature + " needs synthesis configuration.");
       }
     }
     const message = response.status === 400
@@ -532,6 +537,50 @@ function showMessage(message, index, anchor, documentId, scope) {
   return row;
 }
 
+function showHandoff(documentId, scope) {
+  const feedback = textNode("p", "");
+  feedback.setAttribute("role", "status");
+  const generate = action("Generate handoff", async () => {
+    handoffRequest?.abort();
+    const request = new AbortController();
+    handoffRequest = request;
+    handoff.replaceChildren(generate, feedback);
+    generate.disabled = true;
+    feedback.textContent = "Generating handoff…";
+    try {
+      const result = await read("session-handoff", {
+        document_id: documentId, project: scope,
+      }, request.signal);
+      if (request.signal.aborted) return;
+      if (typeof result.markdown !== "string") throw new Error("Handoff is unavailable.");
+      const brief = document.createElement("textarea");
+      brief.setAttribute("aria-label", "Handoff Markdown");
+      brief.readOnly = true;
+      brief.rows = 10;
+      brief.value = result.markdown;
+      const copy = action("Copy Markdown", async () => {
+        if (request.signal.aborted) return;
+        try {
+          await navigator.clipboard.writeText(brief.value);
+          if (!request.signal.aborted) feedback.textContent = "Markdown copied.";
+        } catch {
+          if (request.signal.aborted) return;
+          feedback.textContent = "Clipboard unavailable. Copy the Markdown manually.";
+          brief.focus();
+          brief.select();
+        }
+      });
+      handoff.append(brief, copy);
+      feedback.textContent = "Handoff ready.";
+    } catch (error) {
+      if (!request.signal.aborted) feedback.textContent = error.message;
+    } finally {
+      if (!request.signal.aborted) generate.disabled = false;
+    }
+  });
+  handoff.replaceChildren(generate, feedback);
+}
+
 async function openConversation(documentId, offset, scope, anchor, target) {
   clearEvidence();
   evidence.hidden = false;
@@ -582,6 +631,7 @@ async function openConversation(documentId, offset, scope, anchor, target) {
       node.focus();
       node.scrollIntoView({block: "nearest"});
     }
+    showHandoff(documentId, scope);
     status.textContent = record.messages.length ? "" : "No messages on this page.";
     first.hidden = offset === 0;
     first.onclick = () => openConversation(documentId, 0, scope);

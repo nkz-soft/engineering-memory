@@ -25,6 +25,7 @@ from engineering_memory.normalization.base import OpaqueIdentifier
 
 if TYPE_CHECKING:
     from engineering_memory.access.deep_recall import DeepRecallSynthesizer
+    from engineering_memory.access.handoff import HandoffSynthesizer
 
 _TAG = TypeAdapter(AnyTag)
 _ID = TypeAdapter(OpaqueIdentifier)
@@ -44,6 +45,8 @@ class SynthesisUnconfigured(AccessError):
 def _safe[T](action: Callable[[], T]) -> T:
     try:
         return action()
+    except SynthesisUnconfigured:
+        raise
     except AccessError as error:
         code = str(error)
     except ArchiveDocumentNotFound:
@@ -83,6 +86,11 @@ class ReflectRequest(_Request):
 
 class DeepRecallRequest(_Request):
     query: Annotated[StrictStr, Field(min_length=1, max_length=2000)]
+    project: StrictStr
+
+
+class SessionHandoffRequest(_Request):
+    document_id: StrictStr
     project: StrictStr
 
 
@@ -176,12 +184,27 @@ class MemoryAccess:
         models: ProjectModelReader | None = None,
         reflection: ReflectionReader | None = None,
         synthesis: DeepRecallSynthesizer | None = None,
+        handoff_synthesis: HandoffSynthesizer | None = None,
     ):
         self.memory = memory
         self.archive = archive
         self.models = models
         self.reflection = reflection
         self.synthesis = synthesis
+        self.handoff_synthesis = handoff_synthesis
+
+    def session_handoff(
+        self, *, document_id: str, project: str, link_origin: str | None = None
+    ) -> dict[str, str]:
+        from engineering_memory.access.handoff import session_handoff
+
+        return session_handoff(
+            self.archive,
+            self.handoff_synthesis,
+            document_id=document_id,
+            project=project,
+            link_origin=link_origin,
+        )
 
     def deep_recall(self, **arguments) -> dict:
         from engineering_memory.access.deep_recall import deep_recall

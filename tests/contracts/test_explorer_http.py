@@ -244,3 +244,22 @@ def test_status_read_is_protected_and_scoped(payload, headers, code):
         assert response.json() == result
     else:
         read_status.assert_not_called()
+
+
+def test_handoff_uses_authenticated_scope_and_fixed_explorer_origin(explorer):
+    client, access = explorer
+    payload = {"document_id": "codex:one", "project": "orchard"}
+    read = getattr(access, "session_handoff", Mock())
+    read.return_value = {"markdown": "# Session handoff"}
+    assert client.post("/api/session-handoff", json=payload).status_code == 403
+    assert (
+        client.post(
+            "/api/session-handoff", json=payload | {"link_origin": "http://evil"}, headers=HEADERS
+        ).status_code
+        == 400
+    )
+    response = client.post("/api/session-handoff", json=payload, headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json() == read.return_value
+    assert response.headers["Cache-Control"] == "no-store"
+    read.assert_called_once_with(**payload, link_origin=f"http://{AUTHORITY}")

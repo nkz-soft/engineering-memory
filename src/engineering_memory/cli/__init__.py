@@ -224,6 +224,42 @@ def refresh_models_command(
     _execute("models refresh", structured, lambda data: run_model_refresh(data, keys))
 
 
+@app.command("session-handoff")
+def session_handoff_command(
+    document_id: str,
+    project: str = typer.Option(..., "--project", help="Exact archived project value."),
+    explorer_origin: str | None = typer.Option(
+        None, "--explorer-origin", help="Optional running loopback explorer origin."
+    ),
+) -> None:
+    """Print a cited Markdown handoff from one sanitized archived session."""
+    from engineering_memory.access.service import AccessError, SynthesisUnconfigured
+    from engineering_memory.cli.runtime import error_category, read_session_handoff
+
+    try:
+        result = read_session_handoff(
+            document_id=document_id, project=project, link_origin=explorer_origin
+        )
+    except SynthesisUnconfigured:
+        typer.echo(
+            "Session handoff requires ENGINEERING_MEMORY_DEEP_RECALL__BASE_URL "
+            "and ENGINEERING_MEMORY_DEEP_RECALL__MODEL.",
+            err=True,
+        )
+        raise typer.Exit(1) from None
+    except AccessError as error:
+        code = str(error)
+    except KeyboardInterrupt:
+        raise typer.Exit(130) from None
+    except Exception as error:
+        code = error_category(error)
+    else:
+        typer.echo(result["markdown"], nl=False)
+        return
+    typer.echo(f"Session handoff failed: {code}", err=True)
+    raise typer.Exit(2 if code == "invalid_input" else 1)
+
+
 @app.command("deep-recall")
 def deep_recall_command(
     query: str,
