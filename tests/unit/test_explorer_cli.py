@@ -13,7 +13,8 @@ def test_launch_publishes_new_credential_and_closes_resources(monkeypatch):
     endpoints = []
     closed = []
 
-    def make_access(resources):
+    def make_access(resources, *, include_neighborhood=False):
+        assert include_neighborhood
         marker = object()
         resources.callback(closed.append, marker)
         return marker
@@ -51,7 +52,8 @@ def test_launch_publishes_new_credential_and_closes_resources(monkeypatch):
 
 
 def test_launch_failure_does_not_echo_private_error(monkeypatch):
-    def fail(resources):
+    def fail(resources, *, include_neighborhood=False):
+        assert include_neighborhood
         raise RuntimeError("private diagnostic")
 
     monkeypatch.setattr(runtime, "make_read_access", fail)
@@ -60,3 +62,26 @@ def test_launch_failure_does_not_echo_private_error(monkeypatch):
     assert result.exit_code == 1
     assert "Memory explorer could not start" in result.output
     assert "private diagnostic" not in result.output
+
+
+def test_rebuild_neighborhood_uses_local_archive_without_memory(monkeypatch, tmp_path):
+    from engineering_memory.archive.local import LocalRawArchive
+
+    monkeypatch.setenv("ENGINEERING_MEMORY_ARCHIVE_ROOT", str(tmp_path / "archive"))
+    from engineering_memory.archive.interface import OriginalPayload
+    from engineering_memory.normalization import Source
+    from tests.unit.test_deep_recall import record
+
+    item = record(Source.CODEX, "one", "See https://github.com/example/demo/pull/1")
+    archive = LocalRawArchive(tmp_path / "archive")
+    archive.store(item, OriginalPayload(content=b"private original", media_type="text/plain"))
+    make_memory = Mock(side_effect=AssertionError("memory must remain disconnected"))
+    monkeypatch.setattr(runtime, "make_memory", make_memory)
+
+    result = CliRunner().invoke(app, ["rebuild-neighborhood", "--json"])
+
+    assert result.exit_code == 0, result.output
+    assert '"indexed": 1' in result.output
+    assert "private original" not in result.output
+    assert list((tmp_path / "archive").glob("*neighborhood*.sqlite3"))
+    make_memory.assert_not_called()

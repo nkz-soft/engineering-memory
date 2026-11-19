@@ -224,6 +224,16 @@ def refresh_models_command(
     _execute("models refresh", structured, lambda data: run_model_refresh(data, keys))
 
 
+@app.command("rebuild-neighborhood")
+def rebuild_neighborhood_command(
+    structured: bool = typer.Option(False, "--json", help="Emit one JSON result."),
+) -> None:
+    """Rebuild the local explorer's evidence index from the normalized archive."""
+    from engineering_memory.cli.runtime import rebuild_neighborhood
+
+    _execute("rebuild-neighborhood", structured, rebuild_neighborhood)
+
+
 @app.command("session-handoff")
 def session_handoff_command(
     document_id: str,

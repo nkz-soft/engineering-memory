@@ -33,6 +33,7 @@ from engineering_memory.normalization.base import FrozenModel, Text
 
 __all__ = [
     "ArchiveDocumentNotFound",
+    "ArchiveListingRejected",
     "ArchiveRejected",
     "ArchiveUnavailable",
     "OriginalPayload",
@@ -76,6 +77,10 @@ class ArchiveRejected(PermanentBoundaryError):
         super().__init__(BOUNDARY, message, subject=subject)
 
 
+class ArchiveListingRejected(ArchiveRejected):
+    """The archive directory was rejected, so enumeration cannot safely continue."""
+
+
 class ArchiveUnavailable(TransientBoundaryError):
     """The archive could not be reached — a locked file, a full disk, a network store away."""
 
@@ -92,7 +97,8 @@ class RawArchive(Protocol):
 
         Ordering and a snapshot across concurrent writes are not promised. An absent root is
         empty. Per-record failures advance the cursor and allow continuation; an unavailable
-        listing is terminal. Invalid data raises ArchiveRejected, IO raises ArchiveUnavailable.
+        listing is terminal. Invalid data raises ArchiveRejected, a rejected listing raises
+        ArchiveListingRejected, and IO raises ArchiveUnavailable.
         """
         ...
 

@@ -11,9 +11,13 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
+from engineering_memory.access.neighborhood import (
+    BrowserConversationRequest,
+    NeighborhoodEvidenceRequest,
+    NeighborhoodRequest,
+)
 from engineering_memory.access.service import (
     AccessError,
-    ConversationRequest,
     DeepRecallRequest,
     MemoryAccess,
     SessionHandoffRequest,
@@ -164,9 +168,22 @@ def create_explorer_app(
     async def deep_recall(request: Request):
         return await dispatch(request, _BrowserDeepRecallRequest, read_synthesis)
 
+    def read_conversation(project: str | None, snapshot: str | None, **page) -> dict:
+        if snapshot is not None:
+            return access.get_neighborhood_conversation(project=project, snapshot=snapshot, **page)
+        return access.get_conversation(**page)
+
     @app.post("/api/conversation")
     async def conversation(request: Request):
-        return await dispatch(request, ConversationRequest, access.get_conversation)
+        return await dispatch(request, BrowserConversationRequest, read_conversation)
+
+    @app.post("/api/neighborhood")
+    async def neighborhood(request: Request):
+        return await dispatch(request, NeighborhoodRequest, access.neighborhood)
+
+    @app.post("/api/neighborhood/evidence")
+    async def neighborhood_evidence(request: Request):
+        return await dispatch(request, NeighborhoodEvidenceRequest, access.neighborhood_evidence)
 
     def read_handoff(document_id: str, project: str) -> dict:
         return access.session_handoff(document_id=document_id, project=project, link_origin=origin)

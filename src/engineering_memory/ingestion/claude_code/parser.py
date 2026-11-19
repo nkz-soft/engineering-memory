@@ -52,7 +52,7 @@ def _result_content(value):
     return "\n".join(parts), tuple(markers)
 
 
-def _messages(record, calls, sent_at):
+def _messages(record, calls, sent_at, recorded_cwd):
     role = Role(record["type"])
     content = record["message"]["content"]
     if isinstance(content, str):
@@ -74,9 +74,16 @@ def _messages(record, calls, sent_at):
             if call_id in calls or not isinstance(block.get("input"), dict):
                 raise ValueError
             calls[call_id] = name
-            fields["tool_activity"] = (
-                ToolActivity(name=name, request=_json({"id": call_id, "input": block["input"]})),
-            )
+            request = {"id": call_id, "input": block["input"]}
+            if recorded_cwd is not None and name in {
+                "Bash",
+                "Edit",
+                "MultiEdit",
+                "Write",
+                "NotebookEdit",
+            }:
+                request["recorded_cwd"] = recorded_cwd
+            fields["tool_activity"] = (ToolActivity(name=name, request=_json(request)),)
         elif kind == "tool_result":
             call_id = _string(block.get("tool_use_id"))
             error = block.get("is_error", False)
@@ -145,8 +152,9 @@ def _parse(raw):
             if value is not None and not isinstance(value, str):
                 raise ValueError
         repository = repository or (record.get("repository") or "").strip() or None
-        cwd = cwd or (record.get("cwd") or "").strip() or None
-        messages.extend(_messages(record, calls, sent_at))
+        record_cwd = (record.get("cwd") or "").strip() or None
+        cwd = cwd or record_cwd
+        messages.extend(_messages(record, calls, sent_at, record_cwd))
     if session_id is None:
         return None
     return Conversation(

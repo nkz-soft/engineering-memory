@@ -17,6 +17,14 @@ const statusPanel = element("status-panel");
 const statusButton = element("show-status");
 const statusRows = element("status-rows");
 const statusFeedback = element("status-feedback");
+const sessionNeighborhood = element("session-neighborhood");
+const fileNeighborhood = element("file-neighborhood");
+const browseFile = element("browse-file");
+const neighborhood = element("neighborhood");
+const graphHeading = element("neighborhood-heading");
+const graphStatus = element("neighborhood-status");
+const graph = element("neighborhood-graph");
+const graphDetail = element("neighborhood-detail");
 
 let token = "";
 let lookupRequest;
@@ -24,6 +32,8 @@ let conversationRequest;
 let handoffRequest;
 let statusRequest;
 let statusTimer;
+let graphRequest;
+let edgeRequest;
 
 const answerStates = {
   completed: "Answer ready.",
@@ -65,6 +75,8 @@ function clearEvidence() {
   next.hidden = true;
   first.onclick = null;
   next.onclick = null;
+  sessionNeighborhood.hidden = true;
+  sessionNeighborhood.onclick = null;
 }
 
 function clearResults() {
@@ -73,6 +85,9 @@ function clearResults() {
   element("query-status").textContent = "";
   element("results-heading").hidden = true;
   clearEvidence();
+  clearNeighborhood();
+  fileNeighborhood.reset();
+  showFilePicker(false);
 }
 
 function showLock(message = "") {
@@ -292,6 +307,144 @@ function showCoverage(data, label = "Coverage limitations") {
   }
 }
 
+const relationLabels = {
+  file_edit: "Recorded file edit",
+  commit: "Recorded commit",
+  pr_reference: "PR reference",
+  continuation: "Explicit continuation",
+};
+const nodeLabels = {session: "Session", file: "File", commit: "Commit", pr: "Pull request"};
+const validSnapshot = (value) => typeof value === "string" &&
+  value.length === 64 && /^[a-f0-9]{64}$/.test(value);
+const targetFields = ["text", "tool_request", "tool_result"];
+
+function clearNeighborhood() {
+  graphRequest?.abort();
+  edgeRequest?.abort();
+  neighborhood.hidden = true;
+  graphStatus.textContent = "";
+  graph.replaceChildren();
+  graphDetail.replaceChildren();
+}
+
+function showFilePicker(visible) {
+  fileNeighborhood.hidden = !visible;
+  browseFile.setAttribute("aria-expanded", String(visible));
+}
+
+browseFile.addEventListener("click", () => {
+  if (!project.reportValidity()) return;
+  showFilePicker(fileNeighborhood.hidden);
+  if (!fileNeighborhood.hidden) element("file-repository").focus();
+});
+
+fileNeighborhood.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!project.reportValidity()) return;
+  openNeighborhood(project.value.trim(), {
+    kind: "file",
+    identity: element("file-path").value,
+    repository: element("file-repository").value,
+  });
+});
+
+element("close-neighborhood").addEventListener("click", () => {
+  clearNeighborhood();
+  (sessionNeighborhood.hidden ? browseFile : sessionNeighborhood).focus();
+});
+
+function nodeLabel(node) {
+  return node.label || node.identity;
+}
+
+function nodeType(node) {
+  return [nodeLabels[node.kind] ?? node.kind, node.repository].filter(Boolean).join(" · ");
+}
+
+function sameNode(left, right) {
+  return left.kind === right.kind && left.identity === right.identity &&
+    (left.kind !== "file" || left.repository === right.repository);
+}
+
+async function openNeighborhood(scope, root) {
+  clearNeighborhood();
+  neighborhood.hidden = false;
+  graphHeading.focus();
+  graphStatus.textContent = "Opening neighborhood…";
+  const request = new AbortController();
+  graphRequest = request;
+  try {
+    const response = await read("neighborhood", {project: scope, root}, request.signal);
+    if (request.signal.aborted) return;
+    const displayedRoot = response.root ?? root;
+    graph.append(textNode("h3", nodeType(displayedRoot) + " · " + nodeLabel(displayedRoot), "graph-root"));
+    const notices = [];
+    if (response.status === "unindexed") {
+      notices.push("This project has no neighborhood index.");
+    } else {
+      if (response.status === "partial") notices.push("Index coverage is partial.");
+      if (!response.edges.length) notices.push("No recorded links for this root.");
+      if (response.truncated) notices.push("Showing a limited set of recorded links.");
+    }
+    graphStatus.textContent = notices.join(" ");
+    const coverage = response.coverage;
+    if (coverage) {
+      const counts = [coverage.completed_at, coverage.indexed + " indexed", coverage.skipped + " skipped"];
+      graph.append(textNode("p", counts.filter(Boolean).join(" · "), "metadata"));
+    }
+    if (!response.edges.length) return;
+    const list = textNode("ul", "", "graph-edges");
+    list.setAttribute("aria-label", "Direct connections");
+    for (const edge of response.edges) {
+      const outgoing = sameNode(displayedRoot, edge.origin);
+      const neighbor = outgoing ? edge.target : edge.origin;
+      const relation = relationLabels[edge.relation];
+      const row = textNode("li", "", "graph-edge");
+      row.append(textNode("p", [outgoing ? "Outgoing" : "Incoming", relation, nodeType(neighbor)].join(" · "), "metadata"));
+      const controls = textNode("div", "", "actions");
+      if (neighbor.kind === "session" || neighbor.kind === "file") {
+        const nextRoot = {kind: neighbor.kind, identity: neighbor.identity};
+        if (neighbor.kind === "file") nextRoot.repository = neighbor.repository;
+        controls.append(action("Browse " + nodeLabel(neighbor), () => openNeighborhood(scope, nextRoot)));
+      } else {
+        controls.append(textNode("span", nodeLabel(neighbor)));
+      }
+      const inspect = action("Inspect " + relation, () => inspectEdge(scope, edge, inspect));
+      inspect.setAttribute("aria-label", inspect.textContent + " for " + nodeLabel(neighbor));
+      controls.append(inspect);
+      row.append(controls);
+      list.append(row);
+    }
+    graph.append(list);
+  } catch (error) {
+    if (request.signal.aborted) return;
+    graphStatus.textContent = error instanceof TypeError ? "Neighborhood is unavailable." : error.message;
+  }
+}
+
+async function inspectEdge(scope, edge, inspect) {
+  edgeRequest?.abort();
+  const request = new AbortController();
+  edgeRequest = request;
+  graphDetail.replaceChildren(textNode("p", "Loading supporting record…"));
+  try {
+    const data = await read("neighborhood/evidence", {project: scope, handle: edge.handle}, request.signal);
+    if (request.signal.aborted) return;
+    const {document_id: documentId, message, tool, field, snapshot} = data.selector;
+    if (!validSnapshot(snapshot) || data.relation !== edge.relation) throw new Error();
+    const link = sessionLink(documentId, scope, message, tool ?? undefined, field, snapshot);
+    link.textContent = "Open supporting field";
+    const heading = textNode("h3", relationLabels[data.relation]);
+    heading.tabIndex = -1;
+    graphDetail.replaceChildren(heading, textNode("pre", data.text, "content"), link);
+    if (document.activeElement === inspect) heading.focus();
+  } catch {
+    if (!request.signal.aborted) {
+      graphDetail.replaceChildren(textNode("p", "Supporting record is unavailable. Reopen the neighborhood to refresh its links."));
+    }
+  }
+}
+
 function citedEvidence(anchor, scope, label) {
   const citation = textNode("blockquote", "", "citation");
   citation.append(
@@ -481,11 +634,12 @@ function recordedField(value, field) {
   return view;
 }
 
-function sessionLink(documentId, scope, index, toolIndex, field = "text") {
+function sessionLink(documentId, scope, index, toolIndex, field = "text", snapshot) {
   const params = new URLSearchParams({view: "session", project: scope, document: documentId,
     message: String(index)});
   if (toolIndex !== undefined) params.set("tool", String(toolIndex));
   params.set("field", field);
+  if (snapshot) params.set("snapshot", snapshot);
   const link = textNode("a", toolIndex === undefined ? "Link to message" :
     "Link to " + (field === "tool_request" ? "request" : "result"), "metadata");
   link.href = "#" + params.toString();
@@ -500,7 +654,7 @@ function sessionLink(documentId, scope, index, toolIndex, field = "text") {
   return link;
 }
 
-function showMessage(message, index, anchor, documentId, scope) {
+function showMessage(message, index, anchor, documentId, scope, target) {
   const row = textNode("article", "", anchor ? "message cited" : "message");
   row.append(textNode(
     "p",
@@ -509,7 +663,8 @@ function showMessage(message, index, anchor, documentId, scope) {
   ));
   row.dataset.message = index;
   row.tabIndex = -1;
-  row.append(sessionLink(documentId, scope, index));
+  row.append(sessionLink(documentId, scope, index, undefined, "text",
+    target?.field === "text" ? target.snapshot : undefined));
   if (anchor) {
     const fields = { text: "Message text", tool_request: "Tool request", tool_result: "Tool result" };
     row.append(textNode("p", fields[anchor.field], "metadata"), textNode("mark", anchor.quote));
@@ -527,8 +682,10 @@ function showMessage(message, index, anchor, documentId, scope) {
       container.dataset.tool = toolIndex;
       container.dataset.field = "tool_" + field;
       container.tabIndex = -1;
+      const snapshot = target?.field === "tool_" + field && target.tool_index === toolIndex
+        ? target.snapshot : undefined;
       container.append(textNode("p", label, "metadata"),
-        sessionLink(documentId, scope, index, toolIndex, "tool_" + field),
+        sessionLink(documentId, scope, index, toolIndex, "tool_" + field, snapshot),
         recordedField(activity[field], field));
       tool.append(container);
     }
@@ -583,21 +740,31 @@ function showHandoff(documentId, scope) {
 
 async function openConversation(documentId, offset, scope, anchor, target) {
   clearEvidence();
+  clearNeighborhood();
   evidence.hidden = false;
   element("evidence-heading").focus();
   const status = element("evidence-status");
   status.textContent = "Opening conversation…";
   const request = new AbortController();
   conversationRequest = request;
+  const snapshot = target?.snapshot;
+  const unavailable = anchor || snapshot ? "Cited evidence is unavailable." : "Conversation is unavailable.";
   try {
-    const record = await read("conversation", {
-      document_id: documentId, offset, page_size: 50,
-    }, request.signal);
+    const payload = {document_id: documentId, offset, page_size: 50};
+    if (snapshot) Object.assign(payload, {project: scope, snapshot});
+    const record = await read("conversation", payload, request.signal);
     if (request.signal.aborted) return;
     if (record.document_id !== documentId || record.offset !== offset ||
         record.provenance.project !== scope) {
-      status.textContent = anchor ? "Cited evidence is unavailable." : "Conversation is unavailable.";
+      status.textContent = unavailable;
       return;
+    }
+    if (snapshot) {
+      const value = evidenceField(record.messages[0], target);
+      if (typeof value !== "string" || value.length === 0) {
+        status.textContent = unavailable;
+        return;
+      }
     }
     if (anchor) {
       const message = record.messages[0];
@@ -611,7 +778,8 @@ async function openConversation(documentId, offset, scope, anchor, target) {
     }
     element("conversation-provenance").textContent = provenance(record);
     record.messages.forEach((message, index) => {
-      messages.append(showMessage(message, record.offset + index, index === 0 ? anchor : null, documentId, scope));
+      messages.append(showMessage(message, record.offset + index, index === 0 ? anchor : null,
+        documentId, scope, index === 0 ? target : null));
     });
     const selected = target ?? anchor;
     if (selected) {
@@ -623,7 +791,7 @@ async function openConversation(documentId, offset, scope, anchor, target) {
       }
       if (!node) {
         messages.replaceChildren();
-        status.textContent = "Session target is unavailable.";
+        status.textContent = snapshot ? unavailable : "Session target is unavailable.";
         return;
       }
       node.classList.add("cited");
@@ -632,6 +800,8 @@ async function openConversation(documentId, offset, scope, anchor, target) {
       node.scrollIntoView({block: "nearest"});
     }
     showHandoff(documentId, scope);
+    sessionNeighborhood.hidden = false;
+    sessionNeighborhood.onclick = () => openNeighborhood(scope, {kind: "session", identity: documentId});
     status.textContent = record.messages.length ? "" : "No messages on this page.";
     first.hidden = offset === 0;
     first.onclick = () => openConversation(documentId, 0, scope);
@@ -639,17 +809,19 @@ async function openConversation(documentId, offset, scope, anchor, target) {
     next.onclick = () => openConversation(documentId, record.next_offset, scope);
   } catch (error) {
     if (!request.signal.aborted) {
-      status.textContent = anchor ? "Cited evidence is unavailable." : "Conversation is unavailable.";
+      status.textContent = unavailable;
     }
   }
 }
 
 function resolveSessionTarget() {
-  if (!location.hash) { clearEvidence(); return; }
+  if (!location.hash) { clearEvidence(); clearNeighborhood(); return; }
   try {
-    if (location.hash.length > 4096) throw new Error();
+    // A graph link can encode 1,024 Unicode identifier characters plus its scope and guard.
+    if (location.hash.length > 13000) throw new Error();
     const params = new URLSearchParams(location.hash.slice(1));
-    const allowed = ["view", "project", "document", "message", "tool", "field"];
+    if (!params.has("snapshot") && location.hash.length > 4096) throw new Error();
+    const allowed = ["view", "project", "document", "message", "tool", "field", "snapshot"];
     for (const key of params.keys()) {
       if (!allowed.includes(key) || params.getAll(key).length !== 1) throw new Error();
     }
@@ -663,10 +835,14 @@ function resolveSessionTarget() {
     if (params.get("view") !== "session" || !scope || !doc) throw new Error();
     const offset = integer("message");
     const field = params.get("field") ?? "text";
-    if (!["text", "tool_request", "tool_result"].includes(field) ||
+    if (!targetFields.includes(field) ||
         (field === "text") === params.has("tool")) throw new Error();
     const target = {field};
     if (params.has("tool")) target.tool_index = integer("tool");
+    if (params.has("snapshot")) {
+      target.snapshot = params.get("snapshot");
+      if (!validSnapshot(target.snapshot)) throw new Error();
+    }
     if (!token) return;
     clearResults();
     if (project.value !== scope) {
@@ -676,6 +852,7 @@ function resolveSessionTarget() {
     openConversation(doc, offset, scope, null, target);
   } catch {
     clearEvidence();
+    clearNeighborhood();
     evidence.hidden = false;
     element("evidence-status").textContent = "Session target is unavailable.";
   }

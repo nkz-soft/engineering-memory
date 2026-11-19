@@ -25,6 +25,8 @@ def result(command: str, *, dry_run: bool = False) -> dict:
             data.update(imported=0, skipped=0, failed=0, terminal_error=None, outcomes=[])
     elif command == "import-sessions":
         data.update(sources=[])
+    elif command == "rebuild-neighborhood":
+        data.update(coverage=None)
     elif command == "acquire-chatgpt":
         data.update(
             outcome="empty", digest=None, imported=0, skipped=0, failed=0, terminal_error=None
@@ -85,6 +87,12 @@ def emit(data: dict, *, structured: bool) -> None:
                     f"{row['source']}: check the configured history directory ({row['error']}).",
                     err=True,
                 )
+    elif data["command"] == "rebuild-neighborhood":
+        if coverage := data["coverage"]:
+            typer.echo(
+                f"Neighborhood index updated: {coverage['indexed']} indexed, "
+                f"{coverage['skipped']} skipped."
+            )
     elif data["command"] == "acquire-chatgpt":
         typer.echo(
             f"Export acquisition: {data['outcome']}. "
