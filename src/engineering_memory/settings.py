@@ -580,11 +580,10 @@ class DeepRecallSettings(LlmSettings):
         return value
 
 
-class AccessSettings(BaseSettings):
-    """Read-only server configuration, without importer/extraction requirements."""
+class ArchiveAccessSettings(BaseSettings):
+    """Archive and optional synthesis configuration for reads without the memory engine."""
 
     model_config = Settings.model_config
-    hindsight: HindsightSettings
     deep_recall: DeepRecallSettings | None = None
     archive_root: Path = Field(default_factory=lambda: _storage_default("archive"))
 
@@ -594,16 +593,30 @@ class AccessSettings(BaseSettings):
     _resolve = field_validator("archive_root")(Settings._resolve_against_the_project_root.__func__)
 
 
-def load_access_settings() -> AccessSettings:
+class AccessSettings(ArchiveAccessSettings):
+    """Read-only server configuration, without importer/extraction requirements."""
+
+    hindsight: HindsightSettings
+
+
+def _load_read_settings[T: ArchiveAccessSettings](settings_type: type[T]) -> T:
     """Read the established environment prefix; hide invalid inputs and chains."""
     try:
         env_file = _default_env_file()
         if env_file is not None:
             _reject_malformed(env_file)
-        return AccessSettings(_env_file=env_file)
+        return settings_type(_env_file=env_file)
     except (ValidationError, SettingsError):
         pass
     raise SettingsError("configuration invalid")
+
+
+def load_archive_access_settings() -> ArchiveAccessSettings:
+    return _load_read_settings(ArchiveAccessSettings)
+
+
+def load_access_settings() -> AccessSettings:
+    return _load_read_settings(AccessSettings)
 
 
 def access_subprocess_environment() -> dict[str, str]:

@@ -107,3 +107,136 @@ def test_selected_symlink_finishes_with_one_failure(configured, monkeypatch):  #
     monkeypatch.setattr(Path, "is_symlink", lambda p: p == path or original(p))
     data = invoke(["--source", "claude-code", "--export", str(path)], 1)
     assert data["failed"] == 1 and len(data["outcomes"]) == 1
+
+
+def test_handoff_from_imported_claude_session(configured, monkeypatch):  # noqa: F811
+    from typer.testing import CliRunner
+
+    from engineering_memory.access.synthesis import OpenAICompatibleSynthesizer
+    from engineering_memory.cli import app
+
+    root, _ = configured
+    records = synth.debugging()
+    records[0]["repository"] = "https://example.test/org/orchard.git"
+    records[0]["message"]["content"] = "Investigate the relay failure."
+    records[3]["message"]["content"][0]["input"]["file_path"] = "relay.conf"
+    records.extend(
+        [
+            synth.record(content="Use port 8123. Should we document the upgrade?"),
+            synth.record(
+                "assistant",
+                [
+                    {
+                        "type": "tool_use",
+                        "id": "call-4",
+                        "name": "Bash",
+                        "input": {"command": "relay --check"},
+                    },
+                    {
+                        "type": "tool_use",
+                        "id": "call-5",
+                        "name": "Edit",
+                        "input": {"file_path": "proposed.conf"},
+                    },
+                ],
+            ),
+            synth.record(
+                content=[
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "call-3",
+                        "content": "Updated relay.conf",
+                    },
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "call-4",
+                        "content": "relay check passed",
+                    },
+                ]
+            ),
+        ]
+    )
+    for index, record in enumerate(records):
+        record["uuid"] = f"handoff-turn-{index}"
+    path = synth.write(root / "handoff.jsonl", records)
+    foreign = synth.write(root / "foreign.jsonl", synth.debugging("foreign"))
+    for source in (path, foreign):
+        assert invoke(["--source", "claude-code", "--export", str(source)])["imported"] == 1
+
+    def summarize(self, passages, times):
+        assert passages.keys() == times.keys()
+        assert "synthetic-secret-123" not in str(passages)
+        assert any("password=" in text for text in passages.values())
+
+        def entry(section, status, text, evidence, *, outcome=None):
+            selectors = [
+                next(key for key, passage in passages.items() if marker in passage)
+                for marker in evidence
+            ]
+            return {
+                "section": section,
+                "status": status,
+                "text": text,
+                "selectors": selectors,
+                "outcome": outcome,
+            }
+
+        return {
+            "entries": [
+                entry(
+                    "goal", "recorded", "Investigate the relay failure.", ["Investigate the relay"]
+                ),
+                entry("decisions", "recorded", "Use port 8123.", ["Use port 8123"]),
+                entry(
+                    "files",
+                    "recorded",
+                    "Updated relay.conf.",
+                    ['"id":"call-3"', "Updated relay.conf"],
+                    outcome="changed",
+                ),
+                entry(
+                    "checks",
+                    "recorded",
+                    "Relay check rerun passed.",
+                    ['"id":"call-4"', "relay check passed"],
+                    outcome="passed",
+                ),
+                entry(
+                    "checks",
+                    "recorded",
+                    "Initial relay check failed.",
+                    ['"id":"call-1"', "port zero is disabled"],
+                    outcome="failed",
+                ),
+                entry(
+                    "files",
+                    "unknown",
+                    "proposed.conf edit has no recorded result.",
+                    ["proposed.conf"],
+                ),
+                entry(
+                    "questions",
+                    "unknown",
+                    "Should we document the upgrade?",
+                    ["document the upgrade"],
+                ),
+            ]
+        }
+
+    monkeypatch.delenv("ENGINEERING_MEMORY_HINDSIGHT__BASE_URL")
+    monkeypatch.setenv("ENGINEERING_MEMORY_DEEP_RECALL__BASE_URL", "http://proxy")
+    monkeypatch.setenv("ENGINEERING_MEMORY_DEEP_RECALL__MODEL", "fixture-model")
+    monkeypatch.setattr(OpenAICompatibleSynthesizer, "synthesize_handoff", summarize)
+    result = CliRunner().invoke(
+        app, ["session-handoff", "claude-code:session-one", "--project", "orchard"]
+    )
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert len(result.stdout.encode()) <= 8 * 1024
+    assert "Recorded** — Changed relay.conf" in result.stdout
+    assert "Unknown** — proposed.conf edit has no recorded result." in result.stdout
+    assert "Command failed: relay --check" in result.stdout
+    assert "Command succeeded: relay --check" in result.stdout
+    assert result.stdout.index("Command failed:") < result.stdout.index("Command succeeded:")
+    assert result.stdout.count("document=claude-code%3Asession-one") == 10
+    assert result.stdout.count("field=tool_result") == 3
+    (root / "handoff.md").write_text(result.stdout, encoding="utf-8")

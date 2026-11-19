@@ -69,3 +69,25 @@ change those positions; links do not preserve old revisions. Existing verified
 citations additionally check original timestamp and quoted source text and show
 unavailable evidence if those checks fail. Invalid message/tool selectors are
 reported as unavailable rather than silently selecting a nearby message.
+
+## Prepare a session handoff
+
+Open an archived session and select **Generate handoff**, then **Copy Markdown**.
+Review the Markdown and paste it manually into the receiving session. If the
+browser denies clipboard access, select and copy the text from the field.
+Generation uses the configured [Deep Recall synthesis endpoint](deep-recall.md)
+for bounded excerpts of the selected sanitized session. The brief marks missing,
+conflicting or omitted evidence and links to the supporting archive fields.
+
+From the CLI, pass the archived document ID and its project:
+
+```text
+engineering-memory session-handoff claude-code:SESSION_ID --project PROJECT
+```
+
+The CLI prints Markdown to stdout. Its citations use viewer fragments by
+default. To make them clickable against a running explorer, pass
+`--explorer-origin http://127.0.0.1:PORT` with the printed origin. Citations
+address the current archived snapshot and require normal viewer access.
+Neither generation nor copying launches, resumes, or sends a message to an
+agent.

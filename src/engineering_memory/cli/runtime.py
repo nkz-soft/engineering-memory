@@ -270,6 +270,24 @@ def run_status(data: dict) -> None:
         state.close()
 
 
+def read_session_handoff(
+    *, document_id: str, project: str, link_origin: str | None
+) -> dict[str, str]:
+    from engineering_memory.access.handoff import session_handoff
+    from engineering_memory.access.synthesis import OpenAICompatibleSynthesizer
+    from engineering_memory.settings import load_archive_access_settings
+
+    settings = load_archive_access_settings()
+    synthesis = OpenAICompatibleSynthesizer(settings.deep_recall) if settings.deep_recall else None
+    return session_handoff(
+        LocalRawArchive(settings.archive_root),
+        synthesis,
+        document_id=document_id,
+        project=project,
+        link_origin=link_origin,
+    )
+
+
 def make_read_access(resources: ExitStack, *, include_models: bool = False):
     from engineering_memory.access.service import MemoryAccess
     from engineering_memory.access.synthesis import OpenAICompatibleSynthesizer
@@ -289,6 +307,7 @@ def make_read_access(resources: ExitStack, *, include_models: bool = False):
         models=models,
         reflection=memory,
         synthesis=synthesis,
+        handoff_synthesis=synthesis,
     )
 
 

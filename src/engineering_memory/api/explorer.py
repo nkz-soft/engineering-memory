@@ -16,6 +16,7 @@ from engineering_memory.access.service import (
     ConversationRequest,
     DeepRecallRequest,
     MemoryAccess,
+    SessionHandoffRequest,
     SynthesisUnconfigured,
 )
 from engineering_memory.normalization.base import Slug
@@ -29,6 +30,9 @@ ERROR_STATUS = {
     "corrupt_record": 500,
     "rejected": 500,
     "internal": 500,
+    "synthesis_invalid": 502,
+    "synthesis_response_limit": 502,
+    "synthesis_timeout": 504,
 }
 
 
@@ -163,6 +167,13 @@ def create_explorer_app(
     @app.post("/api/conversation")
     async def conversation(request: Request):
         return await dispatch(request, ConversationRequest, access.get_conversation)
+
+    def read_handoff(document_id: str, project: str) -> dict:
+        return access.session_handoff(document_id=document_id, project=project, link_origin=origin)
+
+    @app.post("/api/session-handoff")
+    async def session_handoff(request: Request):
+        return await dispatch(request, SessionHandoffRequest, read_handoff)
 
     if read_status is not None:
 
