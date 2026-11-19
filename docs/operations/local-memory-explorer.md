@@ -14,6 +14,28 @@ Open the printed loopback URL and enter the access key from the terminal. Each l
 
 4. Enter a decision topic and choose **Decision history**. The timeline links proposals, adoptions, revisions and replacements to their archived messages. It flags uncertain dates and unresolved conflicts. Decision history uses the same synthesis configuration as Deep Recall.
 
+## Import and model status
+
+After unlocking the explorer, choose **Status** to check all four import
+sources. The latest attempt and the last successful import are separate fields.
+A failed attempt leaves the previous success visible. A clean scan clears old
+errors, and skips or dry runs leave the success timestamp alone. **Waiting**
+means the automatic importer observed deferred sessions. **No completed attempt
+recorded** is expected before the first observed run, including after upgrading
+an older state database. Reopen or reload the panel to read the latest
+observations. They persist in the configured import-state database.
+
+Enter a classified project slug to see the architecture, stack and decisions
+models. **Stale** indicates an explicit stale signal from the model service
+or a confirmed import for that project that began after the last refresh on
+the same workstation. For remote endpoints, the view uses the service's
+freshness signal. **Unknown** means the available evidence cannot establish
+freshness. A failed refresh can appear
+alongside the last successful refresh time. Status reads do not start imports
+or model refreshes, and display only operational metadata.
+
+## Search and evidence
+
 Search and transcript reads work without synthesis configuration. If the explorer says Deep Recall needs synthesis configuration, set up the synthesis endpoint using the linked guide. If a source message has changed or is missing, the explorer marks the evidence as unavailable.
 
 The listener is private to the workstation. Keep the printed key private and stop the process when finished.

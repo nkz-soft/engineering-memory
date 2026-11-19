@@ -6,6 +6,7 @@ import json
 import re
 import time
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from urllib.parse import quote
 
 import httpx
@@ -19,6 +20,7 @@ from engineering_memory.memory.interface.project_models import (
     ModelEvidenceSelector,
     ModelSupport,
     ProjectModelKey,
+    ProjectModelMetadata,
     ProjectModelRead,
     ProjectModelSnapshot,
     RefreshOutcome,
@@ -173,11 +175,13 @@ class HindsightProjectModels(HindsightStore):
             return action()
         return self._retry.run(action, deadline, operation="model_read")
 
-    def _model(self, key, deadline, *, legacy=False):
+    def _model(self, key, deadline, *, legacy=False, metadata_only=False):
         definition = model_definition(key, legacy=legacy)
-        model = self._send(
-            "GET", self._root + "/mental-models/" + definition["id"], deadline, missing=True
-        )
+        path = self._root + "/mental-models/" + definition["id"]
+        if metadata_only:
+            # This detail level keeps the definition required for scope validation.
+            path += "?detail=content"
+        model = self._send("GET", path, deadline, missing=True)
         if model is not None:
             trigger = model.get("trigger")
             if (
@@ -307,12 +311,48 @@ class HindsightProjectModels(HindsightStore):
         except (KeyError, TypeError, ValueError, ValidationError):
             raise MemoryStoreRejected("invalid completed model") from None
 
+    def _find_model(self, key, deadline, *, metadata_only=False):
+        model = self._model(key, deadline, metadata_only=metadata_only)
+        legacy = model is None and key.kind in _SELECTOR_QUESTIONS
+        if legacy:
+            model = self._model(key, deadline, legacy=True, metadata_only=metadata_only)
+        return model, legacy
+
     def get_project_model(self, key: ProjectModelKey) -> ProjectModelRead:
         deadline = time.monotonic() + self._timeout
-        model = self._model(key, deadline)
-        if model is None and key.kind in _SELECTOR_QUESTIONS:
-            return self._read(key, self._model(key, deadline, legacy=True), deadline, legacy=True)
-        return self._read(key, model, deadline)
+        model, legacy = self._find_model(key, deadline)
+        return self._read(key, model, deadline, legacy=legacy)
+
+    def get_project_model_metadata(self, key: ProjectModelKey) -> ProjectModelMetadata:
+        model, _ = self._find_model(key, time.monotonic() + self._timeout, metadata_only=True)
+        if model is None:
+            return ProjectModelMetadata(refresh_state="missing")
+
+        def timestamp(raw: object) -> datetime | None:
+            if not isinstance(raw, str):
+                return None
+            try:
+                stamp = datetime.fromisoformat(raw)
+                return stamp.astimezone(UTC) if stamp.tzinfo is not None else None
+            except (ValueError, OverflowError):
+                return None
+
+        reported_refresh = model.get("last_refreshed_at")
+        reported_failure = model.get("last_refresh_failed_at")
+        refreshed, failed = timestamp(reported_refresh), timestamp(reported_failure)
+        stale = model.get("is_stale")
+        if refreshed is not None:
+            state = "ready"
+        elif reported_refresh is not None or (reported_failure is not None and failed is None):
+            state = "unavailable"
+        else:
+            state = "failed" if failed else "pending"
+        return ProjectModelMetadata(
+            refresh_state=state,
+            last_refreshed_at=refreshed,
+            last_refresh_failed_at=failed,
+            stale=stale if refreshed and isinstance(stale, bool) else None,
+        )
 
     @staticmethod
     def _operation_id(value):

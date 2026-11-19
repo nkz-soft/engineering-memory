@@ -72,6 +72,17 @@ class RefreshOutcome(FrozenModel):
     error: Literal["rejected", "unavailable", "internal"] | None = None
 
 
+class ProjectModelMetadata(FrozenModel):
+    refresh_state: Literal["ready", "missing", "pending", "failed", "unavailable"]
+    last_refreshed_at: Timestamp | None = None
+    last_refresh_failed_at: Timestamp | None = None
+    stale: StrictBool | None = None
+
+
+class ProjectModelMetadataReader(Protocol):
+    def get_project_model_metadata(self, key: ProjectModelKey) -> ProjectModelMetadata: ...
+
+
 class ProjectModelReader(Protocol):
     def get_project_model(self, key: ProjectModelKey) -> ProjectModelRead: ...
 

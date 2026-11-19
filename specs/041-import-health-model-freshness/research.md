@@ -10,7 +10,7 @@ The existing per-conversation record is overwritten by a later failure and canno
 
 The current `ProjectModelReader` expands provenance and requires model content. Define a metadata-only projection over the same model identity lookup, including the existing legacy fallback. Preserve explicit backend stale evidence and last successful or failed refresh timestamps. Confirm timestamp and stale-flag semantics in the isolated live suite. When no trustworthy freshness result is available, use unknown. This avoids a transcript scan, a new model refresh or an inference from raw archive modification times.
 
-For a confirmed local project import and comparable refresh time, a strictly newer import establishes stale. Treat an explicit backend stale flag as positive stale evidence. Accept current only for usable affirmative backend freshness with no contradictory local evidence. Absent, equal or uncertain timestamps alone cannot establish current. If the backend cannot establish the meaning of its freshness flag, map that flag to unknown. Positive evidence from a different project never applies.
+Treat an explicit backend stale flag as positive stale evidence. With the model endpoint on loopback, a confirmed import whose pre-retain start strictly follows the model refresh establishes stale. A refresh inside the import acknowledgement window, including coincident bounds, has unknown ordering. Remote endpoints use the backend's scoped flag because absolute timestamps do not establish ordering across independent clocks. Accept current only on an affirmative backend signal when local state is readable and comparable evidence has no conflict. Positive evidence from a different project never applies.
 
 ## Operator interface
 

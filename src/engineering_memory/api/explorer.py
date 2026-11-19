@@ -1,6 +1,7 @@
 """Authenticated, loopback-only HTTP adapter for the shared read service."""
 
 import json
+from collections.abc import Callable
 from hmac import compare_digest
 from pathlib import Path
 from typing import Literal
@@ -8,7 +9,7 @@ from typing import Literal
 from fastapi import FastAPI, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from engineering_memory.access.service import (
     AccessError,
@@ -17,6 +18,7 @@ from engineering_memory.access.service import (
     MemoryAccess,
     SynthesisUnconfigured,
 )
+from engineering_memory.normalization.base import Slug
 
 ASSETS = Path(__file__).with_name("explorer_assets")
 MAX_BODY_BYTES = 16 * 1024
@@ -38,6 +40,18 @@ class _BrowserDeepRecallRequest(DeepRecallRequest):
     def require_mode_if_present(cls, value):
         if value is None:
             raise ValueError("mode cannot be null")
+        return value
+
+
+class _StatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    project: Slug | None = None
+
+    @field_validator("project")
+    @classmethod
+    def require_classified_project(cls, value):
+        if value in {"unknown", "unclassified"}:
+            raise ValueError("a classified project is required")
         return value
 
 
@@ -66,8 +80,14 @@ async def _read_json(request: Request) -> dict:
     return data
 
 
-def create_explorer_app(access: MemoryAccess, *, token: str, authority: str) -> FastAPI:
-    """Expose the browser shell and exactly three authenticated read operations."""
+def create_explorer_app(
+    access: MemoryAccess,
+    *,
+    token: str,
+    authority: str,
+    read_status: Callable[..., dict] | None = None,
+) -> FastAPI:
+    """Expose the browser shell and authenticated read operations."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
     origin = f"http://{authority}"
     expected_authorization = f"Bearer {token}".encode("ascii")
@@ -143,5 +163,11 @@ def create_explorer_app(access: MemoryAccess, *, token: str, authority: str) -> 
     @app.post("/api/conversation")
     async def conversation(request: Request):
         return await dispatch(request, ConversationRequest, access.get_conversation)
+
+    if read_status is not None:
+
+        @app.post("/api/status")
+        async def status(request: Request):
+            return await dispatch(request, _StatusRequest, read_status)
 
     return app

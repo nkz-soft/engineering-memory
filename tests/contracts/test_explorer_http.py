@@ -1,7 +1,9 @@
-"""The explorer's local transport forwards only the three authorized read operations."""
+"""The explorer's local transport forwards authorized read operations."""
 
+import asyncio
 from unittest.mock import Mock
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -198,3 +200,47 @@ def test_rejects_invalid_decision_mode(explorer, mode):
     )
     assert response.json() == {"error": "invalid_input"}
     assert not access.mock_calls
+
+
+@pytest.mark.parametrize(
+    ("payload", "headers", "code"),
+    [
+        ({"project": "orchard"}, {}, 200),
+        ({}, {}, 200),
+        ({"project": "unknown"}, {}, 400),
+        ({"project": "includes space"}, {}, 400),
+        ({"project": 3}, {}, 400),
+        ({"token": "PRIVATE_INPUT"}, {}, 400),
+        ({}, {"Origin": "https://foreign.example"}, 403),
+        ({}, {"Host": "foreign.example"}, 403),
+        ({}, {"Authorization": "Bearer wrong"}, 401),
+    ],
+)
+def test_status_read_is_protected_and_scoped(payload, headers, code):
+    from engineering_memory.api.explorer import create_explorer_app
+
+    result = {"source_status": "available", "sources": [], "models": []}
+    read_status = Mock(return_value=result)
+    app = create_explorer_app(
+        Mock(spec=MemoryAccess),
+        token=TOKEN,
+        authority=AUTHORITY,
+        read_status=read_status,
+    )
+
+    async def request():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url=f"http://{AUTHORITY}",
+        ) as client:
+            return await client.post("/api/status", json=payload, headers=HEADERS | headers)
+
+    response = asyncio.run(request())
+    assert response.status_code == code
+    assert response.headers["Cache-Control"] == "no-store"
+    assert "PRIVATE_INPUT" not in response.text
+    if code == 200:
+        read_status.assert_called_once_with(project=payload.get("project"))
+        assert response.json() == result
+    else:
+        read_status.assert_not_called()

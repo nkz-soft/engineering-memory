@@ -8,7 +8,7 @@ Update the attempt tuple atomically in observed completion order. Order competin
 
 ## Project import evidence
 
-Keyed by a validated classified project slug. Take the maximum retained-and-committed import timestamp for that project. Record it in the transaction with the successful conversation import-state write and source success update. Exclude unclassified imports from the project aggregate. Unchanged skips and failed imports create no freshness evidence. An interrupted import preserves aggregates only for successful committed conversations. This is a lower bound from available instrumentation, not a history index.
+Keyed by a validated classified project slug. Keep the maximum pre-retain start and the maximum acknowledged completion time observed across confirmed imports. Commit them atomically with the successful conversation record and source success timestamp. Exclude unclassified imports, failed imports, unchanged skips and observations with a backwards clock. A crash preserves only committed observations. The two timestamps bound possible ordering and do not identify individual imports.
 
 Use a transactional additive migration from SQLite schema v1 and v2. The read-only path accepts both old schemas and returns absent health data. Keep the existing strict schema checks for each version. Use atomic upserts and no backfill from mutable conversation records. An unreadable database returns unavailable rather than empty.
 

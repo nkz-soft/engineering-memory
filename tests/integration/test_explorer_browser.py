@@ -30,7 +30,12 @@ def explorer(request):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         authority = f"127.0.0.1:{listener.getsockname()[1]}"
-        app = create_explorer_app(access, token=TOKEN, authority=authority)
+        app = create_explorer_app(
+            access,
+            token=TOKEN,
+            authority=authority,
+            read_status=getattr(access, "read_status", None),
+        )
         server = uvicorn.Server(uvicorn.Config(app, access_log=False, log_level="warning"))
         with ThreadPoolExecutor() as pool, sync_playwright() as playwright:
             running = pool.submit(server.run, sockets=[listener])
@@ -692,3 +697,67 @@ def test_session_real_read_message_history_and_missing_tool(explorer, source):
     expect(page.get_by_text("Session target is unavailable.", exact=True)).to_be_visible()
     expect(page.locator(".message")).to_have_count(0)
     access.archive.load_original.assert_not_called()
+
+
+class StatusAccess:
+    def get_conversation(self, **_):
+        raise AccessError("not_found")
+
+    def read_status(self, project):
+        from datetime import UTC, datetime
+
+        from engineering_memory.access.status import ExplorerStatus
+        from engineering_memory.ingestion.health import ProjectImportEvidence, SourceHealth
+
+        imported = datetime(2026, 11, 19, tzinfo=UTC)
+        refreshed = datetime(2026, 11, 18, tzinfo=UTC)
+        return ExplorerStatus(
+            lambda scope: (
+                [
+                    SourceHealth(
+                        source="codex",
+                        outcome="failed",
+                        last_attempt_at=imported,
+                        last_success_at=refreshed,
+                        error_categories=("source",),
+                    )
+                ],
+                ProjectImportEvidence(started_at=imported, completed_at=imported)
+                if scope == "orchard"
+                else None,
+            ),
+            self,
+        ).read(project)
+
+    def get_project_model_metadata(self, key):
+        from datetime import UTC, datetime
+
+        from engineering_memory.memory.interface.project_models import ProjectModelMetadata
+
+        return ProjectModelMetadata(
+            refresh_state="ready",
+            last_refreshed_at=datetime(2026, 11, 18, tzinfo=UTC),
+        )
+
+
+@pytest.mark.parametrize("explorer", [StatusAccess], indirect=True)
+def test_status_handles_project_change_and_lock(explorer):
+    from playwright.sync_api import expect
+
+    page, _ = explorer
+    page.get_by_label("Project slug").fill("orchard")
+    page.get_by_role("button", name="Status", exact=True).click()
+    status = page.get_by_role("region", name="Import and model status")
+    expect(status.get_by_text("Codex", exact=True)).to_be_visible()
+    expect(status.get_by_text("Last successful import", exact=False).last).to_be_visible()
+    expect(status.get_by_text("Stale", exact=True)).to_have_count(3)
+    page.get_by_label("Project slug").fill("another")
+    expect(status.get_by_text("Unknown", exact=True)).to_have_count(3)
+    expect(status.get_by_text("Stale", exact=True)).to_have_count(0)
+    page.evaluate(
+        "location.hash = '#view=session&project=orchard&document=codex%3Afixture&message=0'"
+    )
+    expect(status.get_by_text("Stale", exact=True)).to_have_count(3)
+    page.get_by_role("button", name="Lock", exact=True).click()
+    expect(status).to_be_hidden()
+    expect(page.locator("#status-rows")).to_be_empty()

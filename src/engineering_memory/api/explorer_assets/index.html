@@ -34,8 +34,19 @@
           <button type="submit" value="search">Search</button>
           <button type="submit" class="quiet" value="deep-recall">Deep Recall</button>
           <button type="submit" class="quiet" value="decision-history">Decision history</button>
+          <button type="button" id="show-status" class="quiet"
+                  aria-expanded="false" aria-controls="status-panel">Status</button>
         </div>
       </form>
+
+      <section id="status-panel" aria-labelledby="status-heading" hidden>
+        <header class="actions">
+          <h2 id="status-heading">Import and model status</h2>
+          <button type="button" id="refresh-status" class="quiet">Reload status</button>
+        </header>
+        <p id="status-feedback" role="status"></p>
+        <div id="status-rows"></div>
+      </section>
 
       <div class="columns">
         <section aria-labelledby="results-heading">
