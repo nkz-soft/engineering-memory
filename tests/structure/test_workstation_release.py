@@ -52,3 +52,18 @@ def test_interactive_install_offers_setup_in_current_user_session():
     assert 'Filename: "{app}\\engineering-memory.exe"' in launch[0]
     assert {"postinstall", "skipifsilent", "runasoriginaluser"} <= set(launch[0].split())
     assert "postinst" not in linux
+
+
+def test_workstation_proxy_overlay_routes_only_litellm_and_keeps_hindsight_direct():
+    path = "deploy/workstation/compose.proxy.yaml"
+    overlay = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+    assert set(overlay["services"]) == {"hindsight", "litellm"}
+    settings = overlay["services"]["litellm"]["environment"]
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY"):
+        assert settings[name] == settings[name.lower()]
+    for name in ("localhost", "127.0.0.1", "::1", "hindsight", "litellm"):
+        assert name in settings["NO_PROXY"]
+    direct = overlay["services"]["hindsight"]["environment"]
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+        assert direct[name] == direct[name.lower()] == ""
+    assert path in (ROOT / "packaging/workstation/build.py").read_text(encoding="utf-8")

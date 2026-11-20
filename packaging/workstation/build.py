@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 NAME = "engineering-memory"
 ASSETS = (
     "deploy/workstation/compose.yaml",
+    "deploy/workstation/compose.proxy.yaml",
     "deploy/workstation/app.env.example",
     "deploy/workstation/compose.env.example",
     "deploy/hindsight/service.yaml",

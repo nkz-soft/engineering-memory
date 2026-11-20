@@ -2,7 +2,7 @@
 
 ## Compose routing
 
-**Decision** — Use a static, bundled LiteLLM-only Compose override when a workstation profile opts into managed proxy routing. Interpolate private `WORKSTATION_` fields already covered by the environment filter. Explicitly set uppercase and lowercase HTTP(S), bypass and empty catch-all settings in that service. Verify effective environment with synthetic values and Docker client proxy defaults, because Docker can inject both cases. Retain existing base Compose behavior for profiles without managed routing.
+**Decision** — Use a static, bundled Compose override when a workstation profile opts into managed proxy routing. Forward the configured proxy only to LiteLLM. Interpolate private `WORKSTATION_` fields already covered by the environment filter. Explicitly set uppercase and lowercase HTTP(S), bypass and empty catch-all settings in that service. Docker client defaults can inject both cases. Clear those inherited proxy variables in Hindsight when the overlay is active to preserve direct local health and LiteLLM requests. Retain existing base Compose behavior for profiles without managed routing.
 
 **Rationale** — Repository deployment already uses LiteLLM's proxy environment. A conditional override preserves the installed deployment's current behavior when disabled, including operator-managed Docker defaults. The profile owns effective routing when enabled. The same Compose project, mounts and volumes survive toggling the override. A normal `up` should recreate LiteLLM when effective configuration changes. Confirm this on the pinned deployment.
 

@@ -4,6 +4,7 @@ import pytest
 from dotenv import dotenv_values
 
 from engineering_memory import setup_profile
+from engineering_memory.settings import workstation_compose_values
 
 
 def test_profile_writes_matching_endpoints_and_keeps_secret_on_retry(tmp_path, monkeypatch):
@@ -17,6 +18,9 @@ def test_profile_writes_matching_endpoints_and_keeps_secret_on_retry(tmp_path, m
             "5000",
             str(data / "archive"),
             str(data / "import-state.db"),
+            "keep",
+            "keep",
+            "",
         ]
     )
     monkeypatch.setattr(setup_profile.typer, "prompt", lambda *a, **kw: next(answers))
@@ -24,7 +28,7 @@ def test_profile_writes_matching_endpoints_and_keeps_secret_on_retry(tmp_path, m
     assert setup_profile.configure(profile, data)
     compose = profile / "compose.env"
     app = profile / "app.env"
-    configured = setup_profile._compose_values(compose)
+    configured = workstation_compose_values(compose)
     assert configured["PRODUCT_PROVIDER_API_KEY"] == "test-${VARIABLE}#'key\\\\trail"
     assert (
         configured["WORKSTATION_PROXY_KEY"] == dotenv_values(app)["ENGINEERING_MEMORY_LLM__API_KEY"]
@@ -37,7 +41,7 @@ def test_profile_writes_matching_endpoints_and_keeps_secret_on_retry(tmp_path, m
     monkeypatch.setattr(setup_profile.typer, "prompt", lambda *a, **kw: kw.get("default", ""))
     assert setup_profile.configure(profile, data)
     assert (
-        setup_profile._compose_values(compose)["PRODUCT_PROVIDER_API_KEY"]
+        workstation_compose_values(compose)["PRODUCT_PROVIDER_API_KEY"]
         == "test-${VARIABLE}#'key\\\\trail"
     )
     assert "# local comment\nCUSTOM=keep\n" in compose.read_text(encoding="utf-8")
