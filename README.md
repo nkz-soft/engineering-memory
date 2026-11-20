@@ -56,7 +56,7 @@ follow as separate work with their own specifications and decision records.
 
 ## Workstation installation
 
-See the [Windows and Ubuntu installation guide](docs/operations/workstation-install.md)
+See the [Windows and Ubuntu installer and guided setup instructions](docs/operations/workstation-install.md)
 for release packages, local setup, and coding-agent access.
 
 ## Development

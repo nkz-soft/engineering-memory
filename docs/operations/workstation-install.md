@@ -10,39 +10,73 @@ provider and credentials that LiteLLM can use.
 
 ## Download and install
 
-On Windows, compare the PowerShell hash with the downloaded checksum sidecar,
-then run the installer as your own user. Open a new terminal so it receives the
-updated user PATH.
+Download the platform files and their SHA-256 sidecars from
+[version 0.0.1](https://github.com/nkz-soft/engineering-memory/releases/tag/v0.0.1).
+
+### Windows 11 x64
+
+From the download folder, compare the PowerShell hash with the first field of
+the checksum sidecar.
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\engineering-memory-0.1.0-windows-x64-setup.exe
-Get-Content .\engineering-memory-0.1.0-windows-x64-setup.exe.sha256
+Get-FileHash -Algorithm SHA256 .\engineering-memory-0.0.1-windows-x64-setup.exe
+Get-Content .\engineering-memory-0.0.1-windows-x64-setup.exe.sha256
 ```
 
-On Ubuntu, run these commands from the download directory.
+If the hashes match, run the installer as your own user.
+
+```powershell
+.\engineering-memory-0.0.1-windows-x64-setup.exe
+```
+
+Leave **Run Engineering Memory guided setup** selected on the final screen.
+When you finish the installation, the wizard opens automatically. Silent
+installation only places the CLI and runtime.
+
+### Ubuntu 24.04 LTS amd64
+
+Download the launcher, the `.deb` and both sidecars into the same directory
+under your user account. Use a directory that only your account can modify.
+From an interactive terminal in that directory, run:
 
 ```bash
-sha256sum -c engineering-memory_0.1.0_amd64.deb.sha256
-sudo apt install ./engineering-memory_0.1.0_amd64.deb
+sha256sum -c engineering-memory-0.0.1-ubuntu-amd64-install.sh.sha256
+sha256sum -c engineering-memory_0.0.1_amd64.deb.sha256
 ```
 
-Run `engineering-memory --version`. The first release reports `engineering-memory 0.1.0`.
+If both checks report `OK`, start the launcher as your own user.
+
+```bash
+bash engineering-memory-0.0.1-ubuntu-amd64-install.sh ./engineering-memory_0.0.1_amd64.deb
+```
+
+Authorize apt when prompted for sudo. The launcher then starts guided setup
+in the same terminal using your account. If a development build with a higher
+version is present, use a clean workstation or review it in apt before retrying.
 
 ## Guided setup
 
-On Windows, select **Run Engineering Memory guided setup** on the installer's
-final screen. On Ubuntu, run this command in your own terminal after apt exits:
+Enter your model identifier and provider credentials when prompted. The wizard
+checks Docker, starts the local services and provisions the shared bank.
+Wait for `Shared memory bank provisioned.` The wizard then offers optional
+MCP registration and history import. Review the detected histories before
+selecting any to import. For a local ChatGPT or Claude export outside the
+configured inbox, enter its path when prompted.
+
+Open a new terminal from any directory, so Windows picks up the updated user
+PATH, then check the installed version and service state.
 
 ```text
-engineering-memory setup
+engineering-memory --version
+engineering-memory stack status
 ```
 
-Run the same command to continue a deferred setup or update an existing
-profile. The wizard configures the local backend and shared bank, then offers
-MCP registration for detected Codex and Claude Code profiles and an optional
-history import. Review the detected histories before selecting any to import.
-For a local ChatGPT or Claude export outside the configured inbox, enter its
-path when prompted.
+Expect `engineering-memory 0.0.1` and running, healthy services. Use
+`engineering-memory stack stop` to stop the services and
+`engineering-memory stack start` to start them again. If setup fails or you
+defer it, resolve the reported problem and rerun the installer. You can also
+resume an installed profile with `engineering-memory setup`. Reinstalling
+preserves the profile and data.
 
 ## Manual setup
 
@@ -111,20 +145,20 @@ under the same user account.
 
 ## Maintainer release procedure
 
-Each PR build uploads versioned packages and checksum sidecars. After merge,
-tag the approved commit `v0.1.0` and push the tag. The same workflow uses the
+Each PR build uploads versioned packages, the Ubuntu launcher and checksum
+sidecars. After merge, tag the approved commit `v0.0.1` and push the tag. The same workflow uses the
 locked uv environment and pinned Python and Inno Setup versions, checks the
 installed version on both platforms, and creates a draft release with the
-packages, checksums and installation notes. To reproduce the payload locally,
+packages, launcher, checksums and installation notes. To reproduce the payload locally,
 run `uv sync --locked --no-dev --group release` followed by
-`uv run --no-sync python packaging/workstation/build.py v0.1.0 build/payload`
+`uv run --no-sync python packaging/workstation/build.py v0.0.1 build/payload`
 on native x64. On Ubuntu run `bash packaging/workstation/build-deb.sh
-build/payload/engineering-memory build/assets 0.1.0`. On Windows compile
+build/payload/engineering-memory build/assets 0.0.1`. On Windows compile
 `packaging/workstation/windows.iss` with Inno Setup 6.5.4, defining
-`AppVersion=0.1.0` and `Payload=<absolute path to build/payload/engineering-memory>`
+`AppVersion=0.0.1` and `Payload=<absolute path to build/payload/engineering-memory>`
 with ISCC's `/D` options.
 
 Download the exact draft assets and record both passes of the
-[clean-workstation acceptance guide](../../specs/035-workstation-installers/quickstart.md).
+[clean-workstation acceptance guide](../../specs/045-workstation-release/quickstart.md).
 Publish the draft only after both passes, then re-download the public assets
 and compare them to the published sidecars.
