@@ -22,11 +22,14 @@ from engineering_memory.memory.interface import (
 from engineering_memory.memory.interface.project_models import ProjectModelKey, ProjectModelReader
 from engineering_memory.normalization import AnyTag, ProjectTag, Source
 from engineering_memory.normalization.base import OpaqueIdentifier
+from engineering_memory.playbooks.interface import CatalogUnavailable
+from engineering_memory.playbooks.models import GetPlaybookRequest, ListPlaybooksRequest
 
 if TYPE_CHECKING:
     from engineering_memory.access.deep_recall import DeepRecallSynthesizer
     from engineering_memory.access.handoff import HandoffSynthesizer
     from engineering_memory.access.neighborhood import NeighborhoodReader
+    from engineering_memory.playbooks.interface import PlaybookReader
 
 _TAG = TypeAdapter(AnyTag)
 _ID = TypeAdapter(OpaqueIdentifier)
@@ -54,7 +57,7 @@ def _safe[T](action: Callable[[], T]) -> T:
         code = "not_found"
     except ArchiveRejected:
         code = "corrupt_record"
-    except (ArchiveUnavailable, MemoryStoreUnavailable):
+    except (ArchiveUnavailable, MemoryStoreUnavailable, CatalogUnavailable):
         code = "unavailable"
     except MemoryStoreRejected:
         code = "rejected"
@@ -187,6 +190,7 @@ class MemoryAccess:
         synthesis: DeepRecallSynthesizer | None = None,
         handoff_synthesis: HandoffSynthesizer | None = None,
         neighborhood_index: NeighborhoodReader | None = None,
+        playbooks: PlaybookReader | None = None,
     ):
         self.memory = memory
         self.archive = archive
@@ -195,6 +199,39 @@ class MemoryAccess:
         self.synthesis = synthesis
         self.handoff_synthesis = handoff_synthesis
         self.neighborhood_index = neighborhood_index
+        self.playbooks = playbooks
+
+    def list_project_playbooks(self, **arguments) -> dict:
+        request = _validate(ListPlaybooksRequest, arguments)
+
+        def read():
+            items = []
+            if self.playbooks is not None:
+                items = self.playbooks.list_approved(
+                    request.project, request.after_id, request.limit + 1
+                )
+            page = items[: request.limit]
+            return {
+                "items": [item.model_dump(mode="json") for item in page],
+                "next_after_id": page[-1].id if len(items) > request.limit else None,
+            }
+
+        return _safe(read)
+
+    def get_project_playbook(self, **arguments) -> dict:
+        request = _validate(GetPlaybookRequest, arguments)
+
+        def read():
+            record = self.playbooks and self.playbooks.get_approved(
+                request.project, request.id, request.version
+            )
+            if record is None:
+                raise AccessError("not_found")
+            return record.model_dump(mode="json", exclude={"content"}) | record.content.model_dump(
+                mode="json"
+            )
+
+        return _safe(read)
 
     def neighborhood(self, **arguments) -> dict:
         from engineering_memory.access.neighborhood import NeighborhoodRequest, graph
@@ -213,11 +250,11 @@ class MemoryAccess:
 
     def get_neighborhood_conversation(self, **arguments) -> dict:
         from engineering_memory.access.neighborhood import (
-            BrowserConversationRequest,
+            GuardedConversationRequest,
             checked_record,
         )
 
-        request = _validate(BrowserConversationRequest, arguments)
+        request = _validate(GuardedConversationRequest, arguments)
         document_id = _document_id(request.document_id)
         if request.project is None or request.snapshot is None:
             raise AccessError("invalid_input")
@@ -399,7 +436,11 @@ class MemoryAccess:
         return _safe(read)
 
     def get_conversation(self, **arguments) -> dict:
-        request = _validate(ConversationRequest, arguments)
+        from engineering_memory.access.neighborhood import GuardedConversationRequest
+
+        request = _validate(GuardedConversationRequest, arguments)
+        if request.snapshot is not None:
+            return self.get_neighborhood_conversation(**arguments)
         document_id = _document_id(request.document_id)
 
         def read():

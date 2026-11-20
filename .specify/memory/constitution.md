@@ -174,6 +174,7 @@ engineering-memory
 ├── memory
 │   ├── interface
 │   └── hindsight
+├── playbooks
 ├── evaluation
 └── observability
 ```
@@ -255,7 +256,7 @@ reference outside the memory store, a consumer configured against Hindsight
 rather than the access surface, or a path that serves an original or writes
 memory through the access surface.
 
-**Version**: 1.5.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-16
+**Version**: 1.5.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-11-20
 
 Patch 1.3.1 records the independently specified Claude plain-chat source (#26, ADR-009)
 in the module layout. No principle, technology choice or boundary policy changes.
@@ -264,3 +265,7 @@ Minor 1.4.0 adds native workstation CLI packaging alongside Docker service deplo
 
 Minor 1.5.0 permits the authenticated local explorer to use the shared read
 service under ADR-014.
+
+Patch 1.5.1 records the playbook catalog module (#90). The local operator CLI
+writes curated procedures through this boundary, and the shared access service
+reads approved versions. The archive remains authoritative for source sessions.

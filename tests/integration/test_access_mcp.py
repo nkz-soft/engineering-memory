@@ -19,6 +19,42 @@ def test_stdio_consumer(tmp_path):
     archive.store(
         enriched, OriginalPayload(content=b"ORIGINAL_SECRET_SENTINEL", media_type="text/plain")
     )
+    from engineering_memory.playbooks.service import PlaybookOperator
+    from engineering_memory.playbooks.sqlite import SQLitePlaybookCatalog
+
+    operator = PlaybookOperator(
+        SQLitePlaybookCatalog(tmp_path / "archive" / "playbooks.sqlite3"), archive
+    )
+    project = "engineering-memory"
+    draft = operator.stage(
+        project,
+        "release",
+        {
+            "title": "Release",
+            "steps": ["First"],
+            "examples": [enriched.document_id],
+        },
+    )
+    assert operator.approve(project, "release", draft.revision) == 1
+    update = operator.stage(
+        project,
+        "release",
+        {
+            "title": "Release",
+            "steps": ["Second"],
+            "examples": [enriched.document_id],
+        },
+    )
+    assert operator.approve(project, "release", update.revision) == 2
+    operator.stage(
+        project,
+        "release",
+        {
+            "title": "Pending",
+            "steps": ["Draft only"],
+            "examples": [enriched.document_id],
+        },
+    )
     env = {k: v for k, v in os.environ.items() if not k.startswith("ENGINEERING_MEMORY_")}
     env.update(
         ENGINEERING_MEMORY_ARCHIVE_ROOT=str(tmp_path / "archive"),
@@ -41,6 +77,8 @@ def test_stdio_consumer(tmp_path):
                     "get_project_model",
                     "reflect",
                     "deep_recall",
+                    "list_project_playbooks",
+                    "get_project_playbook",
                 }
                 assert all(tool.annotations.read_only_hint for tool in tools.tools)
                 for tool in tools.tools:
@@ -57,6 +95,28 @@ def test_stdio_consumer(tmp_path):
                 )
                 assert data["next_offset"] == 1
                 assert "ORIGINAL_SECRET_SENTINEL" not in page.model_dump_json()
+                listing = await client.call_tool("list_project_playbooks", {"project": project})
+                assert listing.structured_content["items"] == [
+                    {"id": "release", "title": "Release", "version": 2}
+                ]
+                detail = await client.call_tool(
+                    "get_project_playbook",
+                    {"project": project, "id": "release", "version": 1},
+                )
+                approved = detail.structured_content
+                assert approved["steps"] == ["First"]
+                assert approved["latest_version"] == 2
+                example = dict(approved["examples"][0])
+                example.pop("source_timestamp")
+                guarded = await client.call_tool("get_conversation", example)
+                assert not guarded.is_error
+                assert guarded.structured_content["document_id"] == enriched.document_id
+                assert "ORIGINAL_SECRET_SENTINEL" not in guarded.model_dump_json()
+                wrong = await client.call_tool(
+                    "get_project_playbook",
+                    {"project": "wrong", "id": "release"},
+                )
+                assert wrong.is_error
                 invalid = await client.call_tool(
                     "get_conversation", {"document_id": "PRIVATE/../secret"}
                 )

@@ -90,7 +90,7 @@ class NeighborhoodEvidenceRequest(_Request):
     handle: Handle
 
 
-class BrowserConversationRequest(ConversationRequest):
+class GuardedConversationRequest(ConversationRequest):
     project: Project | None = None
     snapshot: Snapshot | None = None
 

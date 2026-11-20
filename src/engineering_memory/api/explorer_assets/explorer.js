@@ -13,6 +13,11 @@ const messages = element("messages");
 const handoff = element("session-handoff");
 const first = element("first");
 const next = element("next");
+const playbooksPanel = element("playbooks-panel");
+const playbooksButton = element("show-playbooks");
+const playbooksFeedback = element("playbooks-feedback");
+const playbooksList = element("playbooks-list");
+const playbooksDetail = element("playbooks-detail");
 const statusPanel = element("status-panel");
 const statusButton = element("show-status");
 const statusRows = element("status-rows");
@@ -29,8 +34,10 @@ const graphDetail = element("neighborhood-detail");
 let token = "";
 let lookupRequest;
 let conversationRequest;
+let viewingPlaybookExample = false;
 let handoffRequest;
 let statusRequest;
+let playbooksRequest;
 let statusTimer;
 let graphRequest;
 let edgeRequest;
@@ -64,6 +71,7 @@ function provenance(record) {
 }
 
 function clearEvidence() {
+  viewingPlaybookExample = false;
   conversationRequest?.abort();
   handoffRequest?.abort();
   handoff.replaceChildren();
@@ -86,6 +94,7 @@ function clearResults() {
   element("results-heading").hidden = true;
   clearEvidence();
   clearNeighborhood();
+  closePlaybooks();
   fileNeighborhood.reset();
   showFilePicker(false);
 }
@@ -156,6 +165,105 @@ async function read(operation, payload, signal) {
   }
   return response.json();
 }
+
+function clearPlaybookEvidence() {
+  if (viewingPlaybookExample) clearEvidence();
+}
+
+function closePlaybooks() {
+  clearPlaybookEvidence();
+  playbooksRequest?.abort();
+  playbooksPanel.hidden = true;
+  playbooksButton.setAttribute("aria-expanded", "false");
+  playbooksFeedback.textContent = "";
+  playbooksList.replaceChildren();
+  playbooksDetail.replaceChildren();
+}
+
+async function readPlaybooks(operation, payload, render) {
+  playbooksRequest?.abort();
+  const request = new AbortController();
+  playbooksRequest = request;
+  playbooksDetail.replaceChildren();
+  playbooksFeedback.textContent = "Opening playbooks…";
+  try {
+    const data = await read("playbooks/" + operation, payload, request.signal);
+    if (request.signal.aborted) return;
+    playbooksFeedback.textContent = "";
+    render(data);
+  } catch (error) {
+    if (!request.signal.aborted) playbooksFeedback.textContent = error.message;
+  }
+}
+
+function listPlaybooks(scope, afterId) {
+  clearPlaybookEvidence();
+  playbooksList.replaceChildren();
+  return readPlaybooks("list", {project: scope, after_id: afterId}, (data) => {
+    if (!data.items.length) playbooksFeedback.textContent = "No approved playbooks in this project.";
+    const items = textNode("ul", "");
+    for (const item of data.items) {
+      const entry = textNode("li", "");
+      const label = item.title + " · " + item.id + " · v" + item.version;
+      entry.append(action(label, () => selectPlaybook(scope, item.id)));
+      items.append(entry);
+    }
+    playbooksList.append(items);
+    if (afterId) playbooksList.append(action("First playbooks", () => listPlaybooks(scope)));
+    if (data.next_after_id) {
+      playbooksList.append(action("More playbooks", () => listPlaybooks(scope, data.next_after_id)));
+    }
+  });
+}
+
+function selectPlaybook(scope, id, version) {
+  clearPlaybookEvidence();
+  return readPlaybooks("get", {project: scope, id, version}, (book) => {
+    const heading = textNode("h3", book.title);
+    heading.tabIndex = -1;
+    const versions = textNode("div", "", "actions");
+    versions.append(textNode("span", "Version " + book.version + " of " + book.latest_version));
+    if (book.version > 1) {
+      versions.append(action("Older version", () => selectPlaybook(scope, id, book.version - 1)));
+    }
+    if (book.version < book.latest_version) {
+      versions.append(action("Newer version", () => selectPlaybook(scope, id, book.version + 1)));
+    }
+    const steps = textNode("ol", "");
+    book.steps.forEach((step) => steps.append(textNode("li", step)));
+    const examples = textNode("ul", "");
+    for (const example of book.examples) {
+      const entry = textNode("li", "");
+      entry.append(
+        action("Open example " + example.document_id, () =>
+          openConversation(example.document_id, 0, scope, null, null, {
+            snapshot: example.snapshot, playbook: true,
+          })),
+        textNode("span", " " + example.source_timestamp, "metadata"),
+      );
+      examples.append(entry);
+    }
+    playbooksDetail.append(heading, versions, steps, textNode("h4", "Examples"), examples);
+    heading.focus();
+  });
+}
+
+playbooksButton.addEventListener("click", () => {
+  if (!playbooksPanel.hidden) {
+    closePlaybooks();
+    return;
+  }
+  if (!project.reportValidity()) return;
+  playbooksPanel.hidden = false;
+  playbooksButton.setAttribute("aria-expanded", "true");
+  element("playbooks-heading").focus();
+  listPlaybooks(project.value.trim());
+});
+
+element("close-playbooks").addEventListener("click", () => {
+  closePlaybooks();
+  playbooksButton.focus();
+});
 
 const sourceLabels = {
   chatgpt: "ChatGPT", "claude-chat": "Claude Chat", "claude-code": "Claude Code", codex: "Codex",
@@ -738,8 +846,10 @@ function showHandoff(documentId, scope) {
   handoff.replaceChildren(generate, feedback);
 }
 
-async function openConversation(documentId, offset, scope, anchor, target) {
+async function openConversation(documentId, offset, scope, anchor, target, options = {}) {
   clearEvidence();
+  const snapshot = options.snapshot ?? target?.snapshot;
+  viewingPlaybookExample = options.playbook === true;
   clearNeighborhood();
   evidence.hidden = false;
   element("evidence-heading").focus();
@@ -747,7 +857,7 @@ async function openConversation(documentId, offset, scope, anchor, target) {
   status.textContent = "Opening conversation…";
   const request = new AbortController();
   conversationRequest = request;
-  const snapshot = target?.snapshot;
+
   const unavailable = anchor || snapshot ? "Cited evidence is unavailable." : "Conversation is unavailable.";
   try {
     const payload = {document_id: documentId, offset, page_size: 50};
@@ -759,7 +869,7 @@ async function openConversation(documentId, offset, scope, anchor, target) {
       status.textContent = unavailable;
       return;
     }
-    if (snapshot) {
+    if (snapshot && target) {
       const value = evidenceField(record.messages[0], target);
       if (typeof value !== "string" || value.length === 0) {
         status.textContent = unavailable;
@@ -804,9 +914,10 @@ async function openConversation(documentId, offset, scope, anchor, target) {
     sessionNeighborhood.onclick = () => openNeighborhood(scope, {kind: "session", identity: documentId});
     status.textContent = record.messages.length ? "" : "No messages on this page.";
     first.hidden = offset === 0;
-    first.onclick = () => openConversation(documentId, 0, scope);
+    const pageOptions = {snapshot, playbook: options.playbook};
+    first.onclick = () => openConversation(documentId, 0, scope, null, null, pageOptions);
     next.hidden = record.next_offset === null;
-    next.onclick = () => openConversation(documentId, record.next_offset, scope);
+    next.onclick = () => openConversation(documentId, record.next_offset, scope, null, null, pageOptions);
   } catch (error) {
     if (!request.signal.aborted) {
       status.textContent = unavailable;
