@@ -127,3 +127,38 @@ checkout context. To recover that context for older snapshots, replay the
 appropriate source with `engineering-memory import --source codex --from-archive`
 or use `--source claude-code`, then rebuild the neighborhood index. Terminal PR
 and commit nodes display the recorded identities.
+
+
+## Reviewed project playbooks
+
+Create a UTF-8 draft file with a title, ordered steps, and the document IDs of one or more
+archive sessions in the same classified project.
+
+```json
+{
+  "title": "Release checks",
+  "steps": ["Run the test suite", "Confirm the release notes"],
+  "examples": ["codex:replace-with-an-archived-session-id"]
+}
+```
+
+Use the workstation CLI under the same archive-root configuration as the explorer.
+
+```sh
+engineering-memory playbooks stage --project orchard --id release-checks --file draft.json
+engineering-memory playbooks review --project orchard --id release-checks
+engineering-memory playbooks approve --project orchard --id release-checks --revision REVIEWED_REVISION
+```
+
+Check the sanitized steps and source references shown by review. Pass the revision printed by
+that review to approve. Stage and review again if the referenced session changed before approval.
+
+In the explorer, enter the project slug and select **Playbooks**. Open an approved playbook and
+use **Older version** or **Newer version** to browse publication history. **Open example** opens
+the sanitized archive session. If the reviewed snapshot is unavailable, the version still shows
+its original source reference.
+
+Stage another draft under the same project and ID to update a playbook. The previous approval
+remains current until you approve the update. Back up `playbooks.sqlite3` from the configured
+archive root using SQLite's consistent backup mechanism. Archive replay cannot recover manual
+approvals.

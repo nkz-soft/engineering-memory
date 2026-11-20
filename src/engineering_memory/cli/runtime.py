@@ -306,6 +306,20 @@ def rebuild_neighborhood(data: dict) -> None:
         data.update(status="failure", error="unavailable")
 
 
+def _playbook_catalog(archive_root: Path):
+    from engineering_memory.playbooks.sqlite import SQLitePlaybookCatalog
+
+    return SQLitePlaybookCatalog(archive_root / "playbooks.sqlite3")
+
+
+def make_playbook_operator():
+    from engineering_memory.playbooks.service import PlaybookOperator
+    from engineering_memory.settings import load_archive_access_settings
+
+    root = load_archive_access_settings().archive_root
+    return PlaybookOperator(_playbook_catalog(root), LocalRawArchive(root))
+
+
 def make_read_access(
     resources: ExitStack, *, include_models: bool = False, include_neighborhood: bool = False
 ):
@@ -328,6 +342,7 @@ def make_read_access(
         reflection=memory,
         synthesis=synthesis,
         handoff_synthesis=synthesis,
+        playbooks=_playbook_catalog(settings.archive_root),
         neighborhood_index=_neighborhood_index(settings.archive_root)
         if include_neighborhood
         else None,

@@ -45,9 +45,9 @@ mark { background: #f5e2a2; color: inherit; white-space: pre-wrap; overflow-wrap
 .paging { margin-top: .6rem; }
 [role="status"]:empty { margin: 0; }
 #access-status { margin-top: .65rem; }
-#status-panel { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--edge); border-radius: .65rem; }
-#status-panel header { justify-content: space-between; }
-#status-panel h2, .status-card h4 { margin: 0; }
+#playbooks-panel, #status-panel { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--edge); border-radius: .65rem; }
+#playbooks-panel header, #status-panel header { justify-content: space-between; }
+#playbooks-panel h2, #status-panel h2, .status-card h4 { margin: 0; }
 .status-grid { display: grid; gap: .65rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
 .status-card { padding: .75rem; background: #fff; border: 1px solid var(--edge); border-radius: .45rem; }
 .status-card dl { margin: 0; }
@@ -84,3 +84,7 @@ mark { background: #f5e2a2; color: inherit; white-space: pre-wrap; overflow-wrap
   #neighborhood header, #neighborhood-status { grid-column: 1 / -1; }
   #neighborhood-detail:not(:empty) { border-top: 0; border-left: 1px solid var(--edge); padding: 0 0 0 1rem; }
 }
+
+#playbooks-list, #playbooks-detail { overflow-wrap: anywhere; }
+#playbooks-detail li { white-space: pre-wrap; margin-bottom: .3rem; }
+#playbooks-detail:not(:empty) { border-top: 1px solid var(--edge); margin-top: 1rem; }

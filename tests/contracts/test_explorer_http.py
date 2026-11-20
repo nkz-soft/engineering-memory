@@ -327,3 +327,28 @@ def test_rejects_invalid_neighborhood_requests_before_dispatch(explorer, route, 
     assert response.status_code == 400
     assert response.json() == {"error": "invalid_input"}
     assert not access.mock_calls
+
+
+def test_playbook_routes_require_auth_and_forward_scoped_reads(explorer):
+    client, access = explorer
+    listing = {
+        "items": [{"id": "release", "version": 2, "title": "Release"}],
+        "next_after_id": None,
+    }
+    access.list_project_playbooks.return_value = listing
+    access.get_project_playbook.return_value = {"version": 1}
+    request = {"project": "orchard", "id": "release", "version": 1}
+    denied = client.post("/api/playbooks/get", json=request, headers={"Origin": HEADERS["Origin"]})
+    assert denied.status_code == 401
+    assert not access.mock_calls
+    response = client.post("/api/playbooks/list", json={"project": "orchard"}, headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json() == listing
+    access.list_project_playbooks.assert_called_once_with(
+        project="orchard", after_id=None, limit=20
+    )
+    response = client.post("/api/playbooks/get", json=request, headers=HEADERS)
+    assert response.json() == {"version": 1}
+    access.get_project_playbook.assert_called_once_with(**request)
+    response = client.post("/api/playbooks/get", json=request | {"version": "1"}, headers=HEADERS)
+    assert response.status_code == 400

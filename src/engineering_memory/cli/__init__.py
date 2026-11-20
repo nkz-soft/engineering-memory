@@ -7,6 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 import typer
 
 from engineering_memory.cli.evaluation import app as evaluation_app
+from engineering_memory.cli.playbooks import app as playbooks_app
 from engineering_memory.cli.setup import setup_command
 from engineering_memory.cli.stack import app as stack_app
 
@@ -19,6 +20,7 @@ app = typer.Typer(
 
 app.add_typer(evaluation_app, name="evaluate")
 app.add_typer(stack_app, name="stack")
+app.add_typer(playbooks_app, name="playbooks")
 app.command("setup")(setup_command)
 
 

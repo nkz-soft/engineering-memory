@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from engineering_memory.access.neighborhood import (
-    BrowserConversationRequest,
+    GuardedConversationRequest,
     NeighborhoodEvidenceRequest,
     NeighborhoodRequest,
 )
@@ -24,6 +24,7 @@ from engineering_memory.access.service import (
     SynthesisUnconfigured,
 )
 from engineering_memory.normalization.base import Slug
+from engineering_memory.playbooks.models import GetPlaybookRequest, ListPlaybooksRequest
 
 ASSETS = Path(__file__).with_name("explorer_assets")
 MAX_BODY_BYTES = 16 * 1024
@@ -175,7 +176,15 @@ def create_explorer_app(
 
     @app.post("/api/conversation")
     async def conversation(request: Request):
-        return await dispatch(request, BrowserConversationRequest, read_conversation)
+        return await dispatch(request, GuardedConversationRequest, read_conversation)
+
+    @app.post("/api/playbooks/list")
+    async def list_playbooks(request: Request):
+        return await dispatch(request, ListPlaybooksRequest, access.list_project_playbooks)
+
+    @app.post("/api/playbooks/get")
+    async def get_playbook(request: Request):
+        return await dispatch(request, GetPlaybookRequest, access.get_project_playbook)
 
     @app.post("/api/neighborhood")
     async def neighborhood(request: Request):

@@ -112,6 +112,8 @@ def test_cross_source_import_to_stdio(engine, tmp_path):  # noqa: F811
                         "get_project_model",
                         "reflect",
                         "deep_recall",
+                        "list_project_playbooks",
+                        "get_project_playbook",
                     }
                     assert all(t.annotations.read_only_hint for t in tools.tools)
                     found = await search(client, "chatgpt")
