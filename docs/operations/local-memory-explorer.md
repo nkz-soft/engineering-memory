@@ -159,6 +159,7 @@ the sanitized archive session. If the reviewed snapshot is unavailable, the vers
 its original source reference.
 
 Stage another draft under the same project and ID to update a playbook. The previous approval
-remains current until you approve the update. Back up `playbooks.sqlite3` from the configured
+remains current until you approve the update. Keep the archive root private to your OS account
+and back up `playbooks.sqlite3` from the configured
 archive root using SQLite's consistent backup mechanism. Archive replay cannot recover manual
 approvals.

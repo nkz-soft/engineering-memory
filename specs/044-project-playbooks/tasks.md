@@ -22,6 +22,6 @@
 ## Verification
 
 - [x] T008 Document use and backup in `docs/operations/local-memory-explorer.md` and `docs/operations/coding-agent-memory.md`.
-- [ ] T009 Run the suite and review the branch before opening the PR.
+- [x] T009 Run the suite and review the branch before opening the PR.
 
 US1 establishes the writer and durable catalog. US2 uses the catalog reader. US3 exercises the same boundaries across two versions.

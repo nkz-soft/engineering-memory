@@ -20,7 +20,11 @@ def test_stage_review_and_approve(tmp_path, monkeypatch):
     source = tmp_path / "draft.json"
     source.write_text(
         json.dumps(
-            {"title": "Release", "steps": ["First", "Second"], "examples": [record.document_id]}
+            {
+                "title": "Release",
+                "steps": ["First\nAnother line", "Second"],
+                "examples": [record.document_id],
+            }
         ),
         encoding="utf-8",
     )
@@ -32,6 +36,7 @@ def test_stage_review_and_approve(tmp_path, monkeypatch):
     review = runner.invoke(app, ["playbooks", "review", *scope])
     assert review.exit_code == 0, review.output
     assert revision in review.output
+    assert "1. First\n   Another line\n2. Second" in review.output
     assert review.output.index("1. First") < review.output.index("2. Second")
     assert record.document_id in review.output
     approved = runner.invoke(app, ["playbooks", "approve", *scope, "--revision", revision])

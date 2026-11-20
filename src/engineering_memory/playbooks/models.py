@@ -1,10 +1,11 @@
 """Validated input and persisted playbook records."""
 
-from datetime import datetime
+from datetime import timedelta
 from typing import Annotated
 
 from pydantic import (
     AfterValidator,
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -19,6 +20,12 @@ from engineering_memory.normalization.base import Slug
 def classified(value: str) -> str:
     if value in {"unknown", "unclassified"}:
         raise ValueError("a classified project is required")
+    return value
+
+
+def require_utc(value: AwareDatetime) -> AwareDatetime:
+    if value.utcoffset() != timedelta(0):
+        raise ValueError("a UTC timestamp is required")
     return value
 
 
@@ -37,6 +44,7 @@ DocumentID = Annotated[StrictStr, Field(min_length=1, max_length=1024)]
 Revision = Annotated[StrictStr, Field(pattern=r"^[0-9a-f]{32}$")]
 Snapshot = Annotated[StrictStr, Field(pattern=r"^[0-9a-f]{64}$")]
 Version = Annotated[StrictInt, Field(ge=1, le=2**63 - 1)]
+UTCTimestamp = Annotated[AwareDatetime, AfterValidator(require_utc)]
 
 
 class PlaybookModel(BaseModel):
@@ -64,7 +72,7 @@ class DraftInput(PlaybookModel):
 class Example(PlaybookModel):
     document_id: DocumentID
     project: Project
-    source_timestamp: datetime
+    source_timestamp: UTCTimestamp
     snapshot: Snapshot
 
 
@@ -88,7 +96,7 @@ class Summary(PlaybookModel):
 class ApprovedPlaybook(PlaybookKey):
     version: Version
     latest_version: Version
-    approved_at: datetime
+    approved_at: UTCTimestamp
     content: PlaybookContent
 
 

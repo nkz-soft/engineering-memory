@@ -1056,7 +1056,10 @@ def test_approved_playbook_versions_open_guarded_examples(explorer):
 
     page, access = explorer
     access.list_project_playbooks.return_value = {
-        "items": [{"id": "release", "title": "Release", "version": 2}],
+        "items": [
+            {"id": "release", "title": "Release", "version": 2},
+            {"id": "docs-release", "title": "Release", "version": 1},
+        ],
         "next_after_id": None,
     }
 
@@ -1085,7 +1088,10 @@ def test_approved_playbook_versions_open_guarded_examples(explorer):
     ]
     page.get_by_label("Project slug").fill("orchard")
     page.get_by_role("button", name="Playbooks", exact=True).click()
-    page.get_by_role("button", name="Release", exact=True).click()
+    expect(
+        page.get_by_role("button", name="Release · docs-release · v1", exact=True)
+    ).to_be_visible()
+    page.get_by_role("button", name="Release · release · v2", exact=True).click()
     expect(page.get_by_text(MARKUP, exact=True)).to_be_visible()
     assert page.locator("#playbooks-detail img").count() == 0
     page.get_by_role("button", name="Older version").click()
@@ -1099,3 +1105,46 @@ def test_approved_playbook_versions_open_guarded_examples(explorer):
     ] == ["a" * 64] * 2
     page.get_by_label("Project slug").fill("different")
     expect(page.locator("#playbooks-panel")).to_be_hidden()
+
+
+def test_catalog_paging_discards_an_in_flight_example(explorer):
+    from playwright.sync_api import expect
+
+    page, access = explorer
+    started, release = Event(), Event()
+
+    def example(**arguments):
+        started.set()
+        release.wait(10)
+        return _page(0, "Superseded transcript")
+
+    access.list_project_playbooks.side_effect = [
+        {"items": [{"id": "one", "title": "First", "version": 1}], "next_after_id": "one"},
+        {"items": [{"id": "two", "title": "Second", "version": 1}], "next_after_id": None},
+    ]
+    access.get_project_playbook.return_value = {
+        "title": "First",
+        "version": 1,
+        "latest_version": 1,
+        "steps": ["Read"],
+        "examples": [
+            {
+                "document_id": "codex:one",
+                "source_timestamp": "2026-01-01T00:00:00Z",
+                "snapshot": "a" * 64,
+            }
+        ],
+    }
+    access.get_neighborhood_conversation.side_effect = example
+
+    page.get_by_label("Project slug").fill("orchard")
+    page.get_by_role("button", name="Playbooks", exact=True).click()
+    page.get_by_role("button", name="First · one · v1", exact=True).click()
+    page.get_by_role("button", name="Open example codex:one").click()
+    try:
+        assert started.wait(5)
+        page.get_by_role("button", name="More playbooks").click()
+        expect(page.get_by_role("button", name="Second · two · v1", exact=True)).to_be_visible()
+        expect(page.locator("#evidence")).to_be_hidden()
+    finally:
+        release.set()

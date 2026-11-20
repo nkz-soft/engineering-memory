@@ -1,5 +1,7 @@
 """Publication must preserve exact draft content and archived evidence."""
 
+import os
+import stat
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
@@ -105,3 +107,24 @@ def test_approval_rolls_back_if_the_draft_cannot_be_cleared(catalog):
         operator.approve(PROJECT, BOOK, staged.revision)
     assert operator.review(PROJECT, BOOK) == staged
     assert store.get_approved(PROJECT, BOOK, None) is None
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX file mode")
+def test_catalog_is_created_private_in_a_shared_directory(catalog):
+    _, store, operator, record = catalog
+    store.path.parent.chmod(0o755)
+    operator.stage(PROJECT, BOOK, draft(record, "Run tests"))
+    assert stat.S_IMODE(store.path.stat().st_mode) == 0o600
+
+
+def test_catalog_path_rejects_a_redirected_database(catalog):
+    _, store, operator, record = catalog
+    target = store.path.with_name("redirected.sqlite3")
+    target.touch()
+    try:
+        store.path.symlink_to(target)
+    except OSError:
+        pytest.skip("creating symlinks requires OS permission")
+    with pytest.raises(ValueError, match="catalog_unavailable"):
+        operator.stage(PROJECT, BOOK, draft(record, "Run tests"))
+    assert target.stat().st_size == 0

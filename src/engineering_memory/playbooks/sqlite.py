@@ -1,13 +1,14 @@
 """Durable SQLite catalog with serialized, idempotent publication."""
 
-from collections.abc import Iterator
-from contextlib import contextmanager
+import os
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import ValidationError
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import URL, Connection
+from sqlalchemy.engine import URL, Connection, Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import NullPool
 
@@ -38,7 +39,19 @@ class SQLitePlaybookCatalog:
         self._reader = self._engine("ro")
         self._writer = self._engine("rwc")
 
-    def _engine(self, mode: str):
+    def _check_paths(self) -> None:
+        paths = (
+            self.path.parent,
+            self.path,
+            *(
+                self.path.with_name(self.path.name + suffix)
+                for suffix in ("-journal", "-wal", "-shm")
+            ),
+        )
+        if any(path.is_symlink() or path.is_junction() for path in paths):
+            raise CatalogUnavailable("catalog_unavailable")
+
+    def _engine(self, mode: str) -> Engine:
         url = URL.create(
             "sqlite",
             database=self.path.as_uri(),
@@ -49,8 +62,12 @@ class SQLitePlaybookCatalog:
     @contextmanager
     def _connection(self, *, write: bool = False) -> Iterator[Connection | None]:
         try:
+            self._check_paths()
             if write:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
+                self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                with suppress(FileExistsError):
+                    descriptor = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                    os.close(descriptor)
             else:
                 try:
                     self.path.stat()
@@ -102,7 +119,9 @@ class SQLitePlaybookCatalog:
                 return None
             return self._draft(connection, {"project": project, "id": id})
 
-    def approve(self, project: str, id: str, revision: str, verify) -> int:
+    def approve(
+        self, project: str, id: str, revision: str, verify: Callable[[PlaybookContent], None]
+    ) -> int:
         keys = {"project": project, "id": id, "revision": revision}
         with self._connection(write=True) as connection:
             approved = connection.execute(
@@ -191,6 +210,6 @@ class SQLitePlaybookCatalog:
                 id=id,
                 version=row["version"],
                 latest_version=row["latest_version"],
-                approved_at=datetime.fromisoformat(row["approved_at"]),
+                approved_at=row["approved_at"],
                 content=PlaybookContent.model_validate_json(row["content"]),
             )

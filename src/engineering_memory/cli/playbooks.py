@@ -60,9 +60,12 @@ def review(project: Annotated[str, typer.Option()], id: Annotated[str, typer.Opt
     """Print a pending revision for review."""
     draft = _execute(lambda operator: operator.review(project, id))
     typer.echo(f"Revision {draft.revision}")
-    typer.echo(draft.content.title)
+    title = draft.content.title.replace("\n", "\n       ")
+    typer.echo(f"Title: {title}")
     for number, step in enumerate(draft.content.steps, 1):
-        typer.echo(f"{number}. {step}")
+        prefix = f"{number}. "
+        continuation = "\n" + " " * len(prefix)
+        typer.echo(prefix + step.replace("\n", continuation))
     for example in draft.content.examples:
         typer.echo(
             f"Example {example.document_id} ({example.project}, "

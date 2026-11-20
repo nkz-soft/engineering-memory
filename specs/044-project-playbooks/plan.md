@@ -25,7 +25,7 @@
 | IV. Replaceable boundaries | Separate reader and operator writer interfaces from the SQLite adapter. Both consumers read via `MemoryAccess`. Local CLI writes curated artifacts outside the memory access and ingestion surfaces. Reuse existing stdio and loopback policies. |
 | V. Secrets never reach the memory engine | Sanitize title and steps using `PatternSecretSanitizer.redact_text` before storage and preview. Validate sanitized output, render it as literal content, use normalized evidence only, and keep input bodies and secrets out of diagnostics. No engine writes or synthesis calls. |
 
-Architecture §22 places the feature in Phase 3. The operator writes local curated artifacts through the CLI and the access boundary stays read-only under §21, ADR-008 and ADR-014. The issue omits the optional governance and alternatives fields. The proposal entails no constitution deviation, stack change, Hindsight contract change or new history source. See [research and alternatives](research.md).
+Architecture §22 places the feature in Phase 3. The operator writes local curated artifacts through the CLI and the access boundary stays read-only under §21, ADR-008 and ADR-014. The issue omits the optional governance and alternatives fields. The proposal entails no principle deviation, stack change, Hindsight contract change or new history source. Constitution amendment 1.5.1 records the catalog in the module tree to keep the repository layout check aligned. See [research and alternatives](research.md).
 
 ## Project Structure and Verification Sequence
 

@@ -34,6 +34,7 @@ const graphDetail = element("neighborhood-detail");
 let token = "";
 let lookupRequest;
 let conversationRequest;
+let viewingPlaybookExample = false;
 let handoffRequest;
 let statusRequest;
 let playbooksRequest;
@@ -70,6 +71,7 @@ function provenance(record) {
 }
 
 function clearEvidence() {
+  viewingPlaybookExample = false;
   conversationRequest?.abort();
   handoffRequest?.abort();
   handoff.replaceChildren();
@@ -164,7 +166,12 @@ async function read(operation, payload, signal) {
   return response.json();
 }
 
+function clearPlaybookEvidence() {
+  if (viewingPlaybookExample) clearEvidence();
+}
+
 function closePlaybooks() {
+  clearPlaybookEvidence();
   playbooksRequest?.abort();
   playbooksPanel.hidden = true;
   playbooksButton.setAttribute("aria-expanded", "false");
@@ -190,13 +197,15 @@ async function readPlaybooks(operation, payload, render) {
 }
 
 function listPlaybooks(scope, afterId) {
+  clearPlaybookEvidence();
   playbooksList.replaceChildren();
   return readPlaybooks("list", {project: scope, after_id: afterId}, (data) => {
     if (!data.items.length) playbooksFeedback.textContent = "No approved playbooks in this project.";
     const items = textNode("ul", "");
     for (const item of data.items) {
       const entry = textNode("li", "");
-      entry.append(action(item.title, () => selectPlaybook(scope, item.id)));
+      const label = item.title + " · " + item.id + " · v" + item.version;
+      entry.append(action(label, () => selectPlaybook(scope, item.id)));
       items.append(entry);
     }
     playbooksList.append(items);
@@ -208,7 +217,7 @@ function listPlaybooks(scope, afterId) {
 }
 
 function selectPlaybook(scope, id, version) {
-  clearEvidence();
+  clearPlaybookEvidence();
   return readPlaybooks("get", {project: scope, id, version}, (book) => {
     const heading = textNode("h3", book.title);
     heading.tabIndex = -1;
@@ -227,7 +236,9 @@ function selectPlaybook(scope, id, version) {
       const entry = textNode("li", "");
       entry.append(
         action("Open example " + example.document_id, () =>
-          openConversation(example.document_id, 0, scope, null, null, example.snapshot)),
+          openConversation(example.document_id, 0, scope, null, null, {
+            snapshot: example.snapshot, playbook: true,
+          })),
         textNode("span", " " + example.source_timestamp, "metadata"),
       );
       examples.append(entry);
@@ -835,8 +846,10 @@ function showHandoff(documentId, scope) {
   handoff.replaceChildren(generate, feedback);
 }
 
-async function openConversation(documentId, offset, scope, anchor, target, snapshot = target?.snapshot) {
+async function openConversation(documentId, offset, scope, anchor, target, options = {}) {
   clearEvidence();
+  const snapshot = options.snapshot ?? target?.snapshot;
+  viewingPlaybookExample = options.playbook === true;
   clearNeighborhood();
   evidence.hidden = false;
   element("evidence-heading").focus();
@@ -901,9 +914,10 @@ async function openConversation(documentId, offset, scope, anchor, target, snaps
     sessionNeighborhood.onclick = () => openNeighborhood(scope, {kind: "session", identity: documentId});
     status.textContent = record.messages.length ? "" : "No messages on this page.";
     first.hidden = offset === 0;
-    first.onclick = () => openConversation(documentId, 0, scope, null, null, snapshot);
+    const pageOptions = {snapshot, playbook: options.playbook};
+    first.onclick = () => openConversation(documentId, 0, scope, null, null, pageOptions);
     next.hidden = record.next_offset === null;
-    next.onclick = () => openConversation(documentId, record.next_offset, scope, null, null, snapshot);
+    next.onclick = () => openConversation(documentId, record.next_offset, scope, null, null, pageOptions);
   } catch (error) {
     if (!request.signal.aborted) {
       status.textContent = unavailable;

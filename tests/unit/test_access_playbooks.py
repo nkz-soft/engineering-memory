@@ -59,3 +59,27 @@ def test_incompatible_catalog_is_unavailable(tmp_path):
     access = MemoryAccess(Mock(), Mock(), playbooks=SQLitePlaybookCatalog(catalog_file))
     with pytest.raises(AccessError, match="unavailable"):
         access.list_project_playbooks(project="orchard")
+
+
+def test_malformed_approval_metadata_returns_controlled_error(tmp_path):
+    import sqlite3
+
+    from engineering_memory.playbooks.service import PlaybookOperator
+    from engineering_memory.playbooks.sqlite import SQLitePlaybookCatalog
+
+    archive = LocalRawArchive(tmp_path / "archive")
+    record = fixtures.enrich(fixtures.conversation_using_every_field(), project="orchard")
+    archive.store(record, OriginalPayload(content=b"original", media_type="text/plain"))
+    store = SQLitePlaybookCatalog(tmp_path / "playbooks.sqlite3")
+    operator = PlaybookOperator(store, archive)
+    draft = operator.stage(
+        "orchard",
+        "release",
+        {"title": "Release", "steps": ["Run"], "examples": [record.document_id]},
+    )
+    operator.approve("orchard", "release", draft.revision)
+    with sqlite3.connect(store.path) as connection:
+        connection.execute("UPDATE approvals SET approved_at = 'invalid'")
+    access = MemoryAccess(Mock(), archive, playbooks=store)
+    with pytest.raises(AccessError, match="unavailable"):
+        access.get_project_playbook(project="orchard", id="release")

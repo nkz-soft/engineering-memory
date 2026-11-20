@@ -1,5 +1,6 @@
 """Resolve, sanitize and approve exact revisions through the local writer."""
 
+from datetime import UTC
 from uuid import uuid4
 
 from pydantic import TypeAdapter, ValidationError
@@ -43,7 +44,7 @@ class PlaybookOperator:
         return Example(
             project=project,
             document_id=document_id,
-            source_timestamp=record.conversation.started_at,
+            source_timestamp=record.conversation.started_at.astimezone(UTC),
             snapshot=snapshot_of(record),
         )
 
