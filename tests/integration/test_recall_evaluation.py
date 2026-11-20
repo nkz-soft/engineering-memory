@@ -52,6 +52,7 @@ class Access:
         }
 
     deep_recall = get_conversation = get_project_model = reflect = search_memory
+    list_project_playbooks = get_project_playbook = search_memory
 
 
 run_stdio(Access())
