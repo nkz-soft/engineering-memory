@@ -12,7 +12,7 @@ From a regular interactive user session run:
 bash engineering-memory-0.0.1-ubuntu-amd64-install.sh ./engineering-memory_0.0.1_amd64.deb
 ```
 
-Verify the launcher and package sidecars before invocation. The launcher validates its one local package argument and its matching sidecar before calling apt. A package with an unexpected package name, architecture, candidate or installed version, or an invalid checksum stops the flow. A package-manager refusal reports a failure. The launcher never forces a downgrade.
+Use a download directory writable only by your account. Verify the launcher and package sidecars before invocation. The launcher validates its one local package argument and its matching sidecar before calling apt. A package with an unexpected package name, architecture, candidate or installed version, or an invalid checksum stops the flow. A package-manager refusal reports a failure. The launcher never forces a downgrade.
 
 Only apt runs through sudo. Invoke `/usr/bin/engineering-memory setup` with the original terminal, account and profile after installation and version verification. Return a failure status for invalid inputs or failed package/setup execution. The wizard reports deferred setup distinctly from readiness. Users retry with the same launcher or resume the installed wizard as documented.
 
