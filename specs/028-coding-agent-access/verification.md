@@ -345,11 +345,14 @@ export.write_directory(
         export.linear_record(
             f"issue71-20261120-{project}",
             export.message(
-                "user", f"{project.title()} worker retry policy. password=synthetic-issue71-demo",
+                "user",
+                f"{project.title()} worker retry policy. password=synthetic-issue71-demo",
                 create_time=timestamp,
             ),
             export.message(
-                "assistant", "Synthetic contract fact: " + decision, create_time=timestamp + 1,
+                "assistant",
+                "Synthetic contract fact: " + decision,
+                create_time=timestamp + 1,
             ),
             title=f"{project.title()} worker retries",
             create_time=timestamp,
