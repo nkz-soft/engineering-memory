@@ -3,7 +3,9 @@
 The original verification was recorded on 2026-11-03 for PR #70. The T014
 follow-up below records the 2026-11-07 live client checks against `8c7629f`.
 The [November 13 retry](#t014-retry-2026-11-13) verified authenticated Codex
-startup. The before-import search remains unverified.
+startup. The [November 20 retry](#t014-retry-2026-11-20) verified live Codex MCP
+access to the synthetic ChatGPT corpus. The before-import refinement search
+remains unverified.
 
 ## Status
 
@@ -289,6 +291,187 @@ Resume after Claude Code sign-in and backend preparation. Use a new synthetic
 refinement and capture fresh Codex searches before and after importing its
 completed Claude Code snapshot. T005 retains its November 7 pass. T008 and
 T014 remain open.
+
+## T014 retry (2026-11-20)
+
+Windows, checked out from `origin/main` at
+`a1ea3b7eb98dc4b5cb165f63a3059840dc8e08d2`. The previous worktree branch
+`docs/verify-codex-refinement` remains at `5cf55b9`. Versions observed:
+Claude Code 2.1.198, desktop Codex CLI 0.169.1, npm Codex CLI 0.128.0,
+uv 0.12.5, Python 3.13.18, MCP SDK 2.3.0, Docker server 29.9.3 and
+Hindsight 1.2.0 (digest pinned in `deploy/hindsight/service.yaml`).
+
+| Check | Result |
+|---|---|
+| ChatGPT to Claude Code (T005) | November 7 pass remains on record. The new Claude Code run is blocked by sign-in. |
+| Live Codex MCP preflight | Pass. A fresh authenticated Codex turn searched the two imported ChatGPT decisions and paged their sanitized contexts. |
+| Fresh Codex baseline and recall of a new native Claude Code refinement (T008/T014) | Unverified. No new native refinement was produced or imported. |
+
+### Isolated corpus and client commands
+
+The old port 8889 did not accept a TCP connection. The following commands
+built a separate loopback test corpus with a Docker volume unique to this
+Compose project, a separate local archive and SQLite state, and the existing
+contract extraction fixture. Hindsight, the importer and the stdio server
+were real. The extractor generated facts from explicitly marked synthetic text.
+
+```powershell
+uv sync --locked
+$env:CONTRACT_ENGINE_PORT = '18771'
+$env:CONTRACT_FIXTURE_PORT = '18772'
+docker compose -p engmem-issue71-20261120 -f deploy/hindsight/compose.contract.yaml up -d --wait --wait-timeout 150
+$data = 'data/issue-71-20261120'
+New-Item -ItemType Directory -Force $data | Out-Null
+```
+
+Save the following as `$data/prepare.py` and pipe its contents to
+`.venv/Scripts/python.exe -` from the checkout. Keep the export and expected
+answers outside the consumer working directories.
+
+```python
+from pathlib import Path
+
+from tests.synthetic import chatgpt_export as export
+from tests.synthetic import projects
+
+root = Path("data/issue-71-20261120")
+cases = (
+    ("orchard", "Orchard uses a copper latch to isolate worker retries.", 1774000800),
+    ("cypress", "Orchard competitor uses a silver queue to isolate worker retries.", 1774004400),
+)
+export.write_directory(
+    root / "chatgpt",
+    [
+        export.linear_record(
+            f"issue71-20261120-{project}",
+            export.message(
+                "user", f"{project.title()} worker retry policy. password=synthetic-issue71-demo",
+                create_time=timestamp,
+            ),
+            export.message(
+                "assistant", "Synthetic contract fact: " + decision, create_time=timestamp + 1,
+            ),
+            title=f"{project.title()} worker retries",
+            create_time=timestamp,
+        )
+        for project, decision, timestamp in cases
+    ],
+)
+(root / "projects.toml").write_text(
+    projects.document(projects.entry("orchard"), projects.entry("cypress", priority=10)),
+    encoding="utf-8",
+)
+```
+
+Use a dedicated PowerShell process for these environment settings.
+
+```powershell
+Get-Content "$data/prepare.py" -Raw | & .venv/Scripts/python.exe -
+Get-ChildItem Env:ENGINEERING_MEMORY_* | ForEach-Object {
+    Remove-Item -LiteralPath "Env:$($_.Name)"
+}
+$root = (Resolve-Path $data).Path
+$service = (Resolve-Path .venv/Scripts/engineering-memory.exe).Path
+$env:ENGINEERING_MEMORY_ARCHIVE_ROOT = Join-Path $root 'archive'
+$env:ENGINEERING_MEMORY_IMPORT_STATE_PATH = Join-Path $root 'import-state.db'
+$env:ENGINEERING_MEMORY_PROJECT_RULES_PATH = Join-Path $root 'projects.toml'
+$env:ENGINEERING_MEMORY_HINDSIGHT__BASE_URL = 'http://127.0.0.1:18771'
+$env:ENGINEERING_MEMORY_HINDSIGHT__BANK_ID = 'engineering-global'
+$env:ENGINEERING_MEMORY_LLM__BASE_URL = 'http://127.0.0.1:18772/v1'
+& $service import --source chatgpt --export "$root/chatgpt" --dry-run --json
+& $service provision --json
+& $service import --source chatgpt --export "$root/chatgpt" --json
+$before = (Invoke-RestMethod http://127.0.0.1:18772/stats).calls
+& $service import --source chatgpt --export "$root/chatgpt" --json
+$after = (Invoke-RestMethod http://127.0.0.1:18772/stats).calls
+```
+
+The dry-run reported two candidates with the expected project tags and
+`password` redactions. Provision verified the retain mission. The first
+import reported `imported: 2, skipped: 0, failed: 0`. The unchanged ChatGPT
+reimport reported `imported: 0, skipped: 2, failed: 0` with the same IDs.
+The extractor counter stayed at 2. The Claude Code reimport check remains due.
+
+In an external temporary consumer directory named `orchard`, set
+`CLAUDE_CONFIG_DIR` to `$root/claude-home` and run:
+
+```powershell
+claude mcp add --transport stdio --scope local engineering-memory -- "$service" serve
+claude mcp list
+claude auth status
+```
+
+Registration and the MCP health check succeeded. Auth status exited 1 with
+`loggedIn: false` and `authMethod: none`. No login was initiated.
+
+### Live Codex MCP preflight
+
+`Get-Command codex.exe -All` identified the bundled executable under
+`C:/Program Files/WindowsApps/OpenAI.Codex_26.1111.9664.0_x64__2p2nqsd0c76g0/app/resources/codex.exe`.
+The bundled executable completed a repeat of the November 13 READY probe and the fresh
+MCP turn below. Both used an external temporary directory, per-command config
+and ephemeral sessions. The MCP turn reported transient connection errors
+before completing successfully with exit 0.
+
+The local launcher `$data/codex-check.py` passed the following argument
+vector after the executable. JSON-encode the strings and arrays for the
+TOML overrides and pass each override as one argument. The launcher used
+Python's `subprocess.run` to preserve Windows argument quoting and captured
+stdout to `$data/codex-smoke.jsonl`.
+
+```text
+exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --sandbox read-only --json
+-c mcp_servers.engineering-memory.command="<absolute path to .venv/Scripts/engineering-memory.exe>"
+-c mcp_servers.engineering-memory.args=["serve"]
+-c mcp_servers.engineering-memory.env_vars=["ENGINEERING_MEMORY_ARCHIVE_ROOT","ENGINEERING_MEMORY_HINDSIGHT__BASE_URL","ENGINEERING_MEMORY_HINDSIGHT__BANK_ID","ENGINEERING_MEMORY_HINDSIGHT__TOKEN"]
+-c mcp_servers.engineering-memory.required=true
+<one prompt argument>
+```
+
+The prompt asked only for worker retry isolation, searching ChatGPT with
+the Orchard and Cypress project filters, then opening each returned ID
+and paging through it. The JSON log contained six completed
+`mcp_tool_call` events and `turn.completed`:
+
+| `search_memory` tags, query `worker retry isolation` | Only returned document | Original start (UTC) | Decision |
+|---|---|---|---|
+| `project:orchard`, `source:chatgpt` | `chatgpt:issue71-20261120-orchard` | `2026-03-20T10:00:00Z` | Copper latch |
+| `project:cypress`, `source:chatgpt` | `chatgpt:issue71-20261120-cypress` | `2026-03-20T11:00:00Z` | Silver queue |
+
+`get_conversation` used `page_size: 1` and offsets 0 and 1 for each
+document. The corresponding `next_offset` values were 1 and null.
+Both returned matching IDs and provenance (source `chatgpt`, native source
+ID, expected project and importer version `0.1.0`), the original start
+time, and `password=[REDACTED]` on the first page. The second pages
+contained the respective decisions. The fresh Codex baseline must search
+for a unique refinement discussed in Claude Code before the native
+snapshot enters the corpus.
+
+### Independent backend regression
+
+With plugin autoload disabled, the isolated gate passed with exit 0:
+36 passed in 49.79 seconds, with no skips.
+
+```powershell
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = '1'
+& .venv/Scripts/python.exe deploy/hindsight/e2e.py
+```
+
+This separate gate exercises importer and SDK-to-stdio behavior with
+synthetic extraction and a disposable engine. It does not use coding-agent
+accounts.
+
+### Resume live acceptance
+
+Sign in with `claude auth login` using the isolated test profile
+(`$data/claude-home`). The local `$data/claude-environment.ps1` sets the
+profile and enters the external Orchard workspace. Then follow the
+[two Phase 2 journeys](../../docs/operations/coding-agent-memory.md#demonstrate-the-two-phase-2-journeys).
+Use a new refinement and preserve the complete, quiescent native snapshot
+unchanged. The contract extractor accepts a bounded marked fact. If the
+native transcript exceeds that fixture's contract, use a real extraction
+provider on an isolated backend and repeat the before/after sequence in
+that corpus.
 
 ## Secret-scan follow-up
 
