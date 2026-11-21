@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import sys
+from functools import partial
 
 import typer
 
@@ -28,7 +29,26 @@ class StackError(RuntimeError):
 deployment_file = workstation.deployment_file
 
 
-def run_stack(action: str) -> None:
+def _docker_command(
+    docker: str, args: list[str], timeout: int = 30
+) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            [docker, *args],
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=timeout,
+            check=False,
+            env=workstation_subprocess_environment(),
+        )
+    except subprocess.TimeoutExpired:
+        raise StackError("Docker timed out. Check the daemon and retry.") from None
+    except OSError:
+        raise StackError("Docker could not start. Check the Docker installation.") from None
+
+
+def check_docker() -> str:
     docker = shutil.which("docker")
     if docker is None:
         raise StackError("Install Docker with the Docker Compose plugin.")
@@ -38,27 +58,11 @@ def run_stack(action: str) -> None:
         if not ctypes.windll.kernel32.SetDllDirectoryW(None):
             raise StackError("Could not set the native Docker library search path.")
 
-    def run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess[str]:
-        try:
-            return subprocess.run(
-                [docker, *args],
-                capture_output=True,
-                text=True,
-                errors="replace",
-                timeout=timeout,
-                check=False,
-                env=workstation_subprocess_environment(),
-            )
-        except subprocess.TimeoutExpired:
-            raise StackError("Docker timed out. Check the daemon and retry.") from None
-        except OSError:
-            raise StackError("Docker could not start. Check the Docker installation.") from None
-
-    compose_version = run(["compose", "version", "--short"])
+    compose_version = _docker_command(docker, ["compose", "version", "--short"])
     match = re.match(r"v?(\d+)\.(\d+)\.(\d+)", compose_version.stdout.strip())
     if compose_version.returncode or not match or tuple(map(int, match.groups())) < MIN_COMPOSE:
         raise StackError("Install Docker Compose 2.24.4 or newer.")
-    daemon = run(["info", "--format", "{{.OSType}} {{.ServerVersion}}"])
+    daemon = _docker_command(docker, ["info", "--format", "{{.OSType}} {{.ServerVersion}}"])
     if daemon.returncode:
         raise StackError("Start Docker and check permissions to access the daemon.")
     os_type, _, engine_version = daemon.stdout.strip().partition(" ")
@@ -68,6 +72,11 @@ def run_stack(action: str) -> None:
     if not engine_major.isdecimal() or int(engine_major) < 28:
         raise StackError("Install Docker Engine 28 or newer for loopback-only port publishing.")
 
+    return docker
+
+
+def run_stack(action: str) -> None:
+    run = partial(_docker_command, check_docker())
     profile, _ = workstation.locations()
     env_file = profile / "compose.env"
     if not env_file.is_file():

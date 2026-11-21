@@ -10,53 +10,86 @@ provider and credentials that LiteLLM can use.
 
 ## Download and install
 
-On Windows, compare the PowerShell hash with the downloaded checksum sidecar,
-then run the installer as your own user. Open a new terminal so it receives the
-updated user PATH.
+Download the platform files and their SHA-256 sidecars from
+[version 0.0.1](https://github.com/nkz-soft/engineering-memory/releases/tag/v0.0.1).
+
+### Windows 11 x64
+
+From the download folder, compare the PowerShell hash with the first field of
+the checksum sidecar.
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\engineering-memory-0.1.0-windows-x64-setup.exe
-Get-Content .\engineering-memory-0.1.0-windows-x64-setup.exe.sha256
+Get-FileHash -Algorithm SHA256 .\engineering-memory-0.0.1-windows-x64-setup.exe
+Get-Content .\engineering-memory-0.0.1-windows-x64-setup.exe.sha256
 ```
 
-On Ubuntu, run these commands from the download directory.
+If the hashes match, run the installer as your own user.
+
+```powershell
+.\engineering-memory-0.0.1-windows-x64-setup.exe
+```
+
+After copying files, the installer opens **Configure Engineering Memory**.
+A fresh profile starts with OpenRouter, model `openai/gpt-oss-20b` and API base
+`https://openrouter.ai/api/v1`. Edit the provider, model, API base, ports and
+data paths as needed. Enter your API key in the masked field. On reinstall, the
+installer loads saved settings and retains outbound proxy settings. Leave the key
+blank to keep it for the saved provider, or enter a replacement.
+
+Select **Save**, then choose whether to start the local stack and provision the
+shared bank. Start Docker before selecting this option. If setup fails, retry
+from the installer or finish and continue later. Select **Configure later** to
+finish before saving. `/SILENT` and `/VERYSILENT` skip configuration.
+
+### Ubuntu 24.04 LTS amd64
+
+Download the launcher, the `.deb` and both sidecars into the same directory
+under your user account. Use a directory that only your account can modify.
+From an interactive terminal in that directory, run:
 
 ```bash
-sha256sum -c engineering-memory_0.1.0_amd64.deb.sha256
-sudo apt install ./engineering-memory_0.1.0_amd64.deb
+sha256sum -c engineering-memory-0.0.1-ubuntu-amd64-install.sh.sha256
+sha256sum -c engineering-memory_0.0.1_amd64.deb.sha256
 ```
 
-Run `engineering-memory --version`. The first release reports `engineering-memory 0.1.0`.
+If both checks report `OK`, start the launcher as your own user.
 
-## Guided setup
+```bash
+bash engineering-memory-0.0.1-ubuntu-amd64-install.sh ./engineering-memory_0.0.1_amd64.deb
+```
 
-On Windows, the installer opens **Configure Engineering Memory** after copying
-files. A fresh profile starts with OpenRouter, model `openai/gpt-oss-20b` and API
-base `https://openrouter.ai/api/v1`. Edit the provider, model, API base, ports and
-data paths as needed. Enter your API key in the masked field. On reinstall, the
-installer loads saved settings. Leave the key blank to keep it for the saved
-provider, or enter a replacement. Existing outbound proxy settings are preserved.
+Authorize apt when prompted for sudo. The launcher then starts guided setup
+in the same terminal using your account. If a development build with a higher
+version is present, use a clean workstation or review it in apt before retrying.
 
-Select **Save**, then choose whether to start the local stack and
-provision the shared bank. Starting requires Docker to be running. If startup
-fails, you can retry from the installer or finish and continue later. Select
-**Configure later** to finish before saving. `/SILENT` and `/VERYSILENT` skip
-configuration and leave any saved profile and running services alone.
+## Verify and manage the installation
 
-On Ubuntu after apt exits, or on Windows to continue setup from your own
-terminal, run:
+On Ubuntu, the terminal wizard checks Docker before prompting for provider
+settings. After you confirm startup, it provisions the shared bank and offers
+optional MCP registration and history import.
+
+After completing setup and opting in to startup, open a new terminal and check
+the installed version and service state. On Windows, a new terminal also picks
+up the updated user PATH.
+
+```text
+engineering-memory --version
+engineering-memory stack status
+```
+
+Expect `engineering-memory 0.0.1` and healthy services. Use
+`engineering-memory stack stop` to stop the services and
+`engineering-memory stack start` to start them again. To resume deferred setup,
+update an existing profile, edit outbound proxies, register coding agents or
+import history, run:
 
 ```text
 engineering-memory setup
 ```
 
-Use terminal setup to update an existing profile, edit outbound proxies, or
-configure coding agents and import history. The terminal wizard configures the
-local backend and shared bank, then offers
-MCP registration for detected Codex and Claude Code profiles and an optional
-history import. Review the detected histories before selecting any to import.
-For a local ChatGPT or Claude export outside the configured inbox, enter its
-path when prompted.
+Review the detected histories before selecting any to import. For a local
+ChatGPT or Claude export outside the configured inbox, enter its path when
+prompted. Reinstalling preserves the profile and data.
 
 ### Outbound proxy for the LLM provider
 
@@ -161,20 +194,20 @@ under the same user account.
 
 ## Maintainer release procedure
 
-Each PR build uploads versioned packages and checksum sidecars. After merge,
-tag the approved commit `v0.1.0` and push the tag. The same workflow uses the
+Each PR build uploads versioned packages, the Ubuntu launcher and checksum
+sidecars. After merge, tag the approved commit `v0.0.1` and push the tag. The same workflow uses the
 locked uv environment and pinned Python and Inno Setup versions, checks the
 installed version on both platforms, and creates a draft release with the
-packages, checksums and installation notes. To reproduce the payload locally,
+packages, launcher, checksums and installation notes. To reproduce the payload locally,
 run `uv sync --locked --no-dev --group release` followed by
-`uv run --no-sync python packaging/workstation/build.py v0.1.0 build/payload`
+`uv run --no-sync python packaging/workstation/build.py v0.0.1 build/payload`
 on native x64. On Ubuntu run `bash packaging/workstation/build-deb.sh
-build/payload/engineering-memory build/assets 0.1.0`. On Windows compile
+build/payload/engineering-memory build/assets 0.0.1`. On Windows compile
 `packaging/workstation/windows.iss` with Inno Setup 6.5.4, defining
-`AppVersion=0.1.0` and `Payload=<absolute path to build/payload/engineering-memory>`
+`AppVersion=0.0.1` and `Payload=<absolute path to build/payload/engineering-memory>`
 with ISCC's `/D` options.
 
 Download the exact draft assets and record both passes of the
-[clean-workstation acceptance guide](../../specs/035-workstation-installers/quickstart.md).
+[clean-workstation acceptance guide](../../specs/045-workstation-release/quickstart.md).
 Publish the draft only after both passes, then re-download the public assets
 and compare them to the published sidecars.
