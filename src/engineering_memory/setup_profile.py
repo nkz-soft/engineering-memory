@@ -5,6 +5,9 @@ import os
 import re
 import secrets
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
+from hashlib import sha256
 from io import StringIO
 from ipaddress import IPv6Address
 from pathlib import Path
@@ -26,6 +29,10 @@ from engineering_memory.settings import (
 
 class ProfileError(RuntimeError):
     """A safe message about profile configuration."""
+
+
+class InstallerProfileError(ProfileError):
+    """A fixed installer status identifying an invalid field or stale profile."""
 
 
 def _private(path: Path, *, directory: bool = False) -> None:
@@ -156,9 +163,17 @@ def _prompt(label: str, default: str, valid, *, secret: bool = False) -> str:
             hide_input=secret,
         )
         value = value or default if secret else value
-        if not any(ord(char) < 32 or ord(char) == 127 for char in value) and valid(value):
+        if _plain(value) and valid(value):
             return value
         typer.echo(f"Invalid {label.lower()}. Enter a valid value.", err=True)
+
+
+def _plain(value: str) -> bool:
+    return all(ord(char) >= 32 and ord(char) != 127 for char in value)
+
+
+def _valid_model(value: str) -> bool:
+    return bool(re.fullmatch(r"[^\s/]+/\S+", value))
 
 
 def _valid_url(value: str) -> bool:
@@ -236,7 +251,7 @@ def _port(value: str) -> bool:
 
 
 def _storage(value: str, *, directory: bool) -> bool:
-    if "${" in value:
+    if "${" in value or (os.name == "nt" and os.path.isreserved(value)):
         return False
     path = Path(value)
     if not path.is_absolute():
@@ -249,17 +264,34 @@ def _storage(value: str, *, directory: bool) -> bool:
     return path.is_dir() if directory else path.is_file()
 
 
+def _archive_location(value: str, profile: Path) -> bool:
+    return _storage(value, directory=True) and not Path(value).resolve().is_relative_to(
+        profile.resolve()
+    )
+
+
+def _sqlite_location(value: str, archive: str, profile: Path) -> bool:
+    return (
+        _storage(value, directory=False)
+        and not Path(archive).resolve().is_relative_to(Path(value).resolve())
+        and not Path(value).resolve().is_relative_to(profile.resolve())
+    )
+
+
+def _provider_key(compose: dict[str, str]) -> str:
+    key = compose.get("PRODUCT_PROVIDER_API_KEY") or ""
+    return "" if key == "replace-with-provider-key" else key
+
+
 def _collect(
     compose: dict, app: dict, data: Path, profile: Path
 ) -> tuple[dict[str, str], dict[str, str]]:
     model = _prompt(
         "Provider/model (for example openai/gpt-4o-mini)",
         compose.get("PRODUCT_PROVIDER_MODEL") or "",
-        lambda value: bool(re.fullmatch(r"[^\s/]+/\S+", value)),
+        _valid_model,
     )
-    current_key = compose.get("PRODUCT_PROVIDER_API_KEY") or ""
-    if current_key == "replace-with-provider-key":
-        current_key = ""
+    current_key = _provider_key(compose)
     key = _prompt(
         "Provider credential (blank keeps existing)" if current_key else "Provider credential",
         current_key,
@@ -282,19 +314,12 @@ def _collect(
     archive = _prompt(
         "Archive directory",
         app.get("ENGINEERING_MEMORY_ARCHIVE_ROOT") or str(data / "archive"),
-        lambda value: (
-            _storage(value, directory=True)
-            and not Path(value).resolve().is_relative_to(profile.resolve())
-        ),
+        lambda value: _archive_location(value, profile),
     )
     state = _prompt(
         "SQLite path",
         app.get("ENGINEERING_MEMORY_IMPORT_STATE_PATH") or str(data / "import-state.db"),
-        lambda value: (
-            _storage(value, directory=False)
-            and not Path(archive).resolve().is_relative_to(Path(value).resolve())
-            and not Path(value).resolve().is_relative_to(profile.resolve())
-        ),
+        lambda value: _sqlite_location(value, archive, profile),
     )
     network_proxies = {
         name: _proxy_url(scheme, compose.get(name) or "")
@@ -308,79 +333,210 @@ def _collect(
     network_proxies[WORKSTATION_NO_PROXY] = (
         "" if bypass in {"", "-"} else ",".join(host.strip() for host in bypass.split(","))
     )
+    fields = {
+        "model": model,
+        "api_base": endpoint,
+        "backend_port": backend_port,
+        "litellm_port": proxy_port,
+        "archive": archive,
+        "sqlite": state,
+    }
+    compose_updates, app_updates = _settings_updates(compose, app, fields, key)
+    compose_updates.update(network_proxies)
+    return compose_updates, app_updates
+
+
+def _settings_updates(
+    compose: dict[str, str], app: dict[str, str], fields: dict[str, str], key: str
+) -> tuple[dict[str, str], dict[str, str]]:
+    backend_port = int(fields["backend_port"])
+    proxy_port = int(fields["litellm_port"])
     proxy_key = compose.get("WORKSTATION_PROXY_KEY") or app.get("ENGINEERING_MEMORY_LLM__API_KEY")
     if not proxy_key or proxy_key == "replace-with-local-proxy-key":
         proxy_key = "sk-" + secrets.token_urlsafe(32)
     return (
         {
-            **network_proxies,
-            "WORKSTATION_HINDSIGHT_PORT": str(int(backend_port)),
-            "WORKSTATION_PROXY_PORT": str(int(proxy_port)),
+            "WORKSTATION_HINDSIGHT_PORT": str(backend_port),
+            "WORKSTATION_PROXY_PORT": str(proxy_port),
             "WORKSTATION_PROXY_KEY": proxy_key,
-            "PRODUCT_PROVIDER_MODEL": model,
+            "PRODUCT_PROVIDER_MODEL": fields["model"],
             "PRODUCT_PROVIDER_API_KEY": key,
-            "PRODUCT_PROVIDER_API_BASE": endpoint,
+            "PRODUCT_PROVIDER_API_BASE": fields["api_base"],
         },
         {
-            "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL": f"http://127.0.0.1:{int(backend_port)}",
-            "ENGINEERING_MEMORY_LLM__BASE_URL": f"http://127.0.0.1:{int(proxy_port)}/v1",
+            "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL": f"http://127.0.0.1:{backend_port}",
+            "ENGINEERING_MEMORY_LLM__BASE_URL": f"http://127.0.0.1:{proxy_port}/v1",
             "ENGINEERING_MEMORY_LLM__API_KEY": proxy_key,
-            "ENGINEERING_MEMORY_ARCHIVE_ROOT": Path(archive).resolve().as_posix(),
-            "ENGINEERING_MEMORY_IMPORT_STATE_PATH": Path(state).resolve().as_posix(),
+            "ENGINEERING_MEMORY_ARCHIVE_ROOT": Path(fields["archive"]).resolve().as_posix(),
+            "ENGINEERING_MEMORY_IMPORT_STATE_PATH": Path(fields["sqlite"]).resolve().as_posix(),
         },
     )
 
 
-def configure(profile: Path, data: Path) -> bool:
-    """Recover an interrupted write and offer a coordinated profile update."""
-    compose, app = files = (profile / "compose.env", profile / "app.env")
-    journal = profile / ".setup-recovery"
+def _readable(path: Path) -> bool:
+    if path.is_symlink() or path.is_junction():
+        raise ProfileError("The private profile contains a redirected path. Check its location.")
+    return path.exists()
+
+
+@contextmanager
+def _locked_profile(profile: Path, *, create: bool) -> Iterator[None]:
     try:
-        profile.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if create:
+            profile.mkdir(mode=0o700, parents=True, exist_ok=True)
         _private(profile, directory=True)
         with acquisition_lock(profile / ".setup") as acquired:
             if not acquired:
                 raise ProfileError("Another setup is editing this profile. Retry when it finishes.")
-            for path in (*files, journal):
-                if path.is_symlink() or path.is_junction():
-                    raise ProfileError("The private profile contains a redirected file.")
-                if path.exists():
+            compose, app = _profile_files(profile)
+            journal = profile / ".setup-recovery"
+            for path in (compose, app, journal):
+                if _readable(path):
                     if not path.is_file():
                         raise ProfileError("A private profile entry is not a regular file.")
                     _private(path)
             if journal.exists():
-                _restore(journal, files)
-            old = tuple(
-                path.read_bytes().decode("utf-8") if path.exists() else None for path in files
-            )
-            compose_values = workstation_compose_values(compose)
-            values = _collect(
-                compose_values,
-                workstation_dotenv(app),
-                data,
-                profile,
-            )
-            if not typer.confirm("Save these workstation settings?", default=True):
-                return False
-            provider_key = "PRODUCT_PROVIDER_API_KEY"
-            if values[0][provider_key] == compose_values.get(provider_key):
-                # Retain the existing assignment, including any Compose interpolation.
-                del values[0][provider_key]
-            _atomic_write(journal, json.dumps(old))
-            try:
-                for path, original, updates in zip(files, old, values, strict=True):
-                    _atomic_write(
-                        path, _replace_settings(original, updates, compose=path == compose)
-                    )
-            except (OSError, KeyboardInterrupt):
-                _restore(journal, files)
-                raise
-            journal.unlink()
-            _sync_directory(profile)
-    except ProfileError:
-        raise
-    except (OSError, ValueError, AcquisitionError) as error:
+                _restore(journal, (compose, app))
+            yield
+    except (OSError, ValueError, AcquisitionError):
         raise ProfileError(
             "Could not update the private profile. Check access and retry."
-        ) from error
+        ) from None
+
+
+def _profile_files(profile: Path) -> tuple[Path, Path]:
+    return profile / "compose.env", profile / "app.env"
+
+
+def _persist(
+    profile: Path, compose: dict[str, str], values: tuple[dict[str, str], dict[str, str]]
+) -> None:
+    files = _profile_files(profile)
+    journal = profile / ".setup-recovery"
+    old = tuple(path.read_bytes().decode("utf-8") if path.exists() else None for path in files)
+    provider_key = "PRODUCT_PROVIDER_API_KEY"
+    if values[0][provider_key] == compose.get(provider_key):
+        # Retain the existing assignment, including any Compose interpolation.
+        del values[0][provider_key]
+    _atomic_write(journal, json.dumps(old))
+    try:
+        for index, (path, original, updates) in enumerate(zip(files, old, values, strict=True)):
+            _atomic_write(path, _replace_settings(original, updates, compose=index == 0))
+    except (OSError, KeyboardInterrupt):
+        _restore(journal, files)
+        raise
+    journal.unlink()
+    _sync_directory(profile)
+
+
+def configure(profile: Path, data: Path) -> bool:
+    """Recover an interrupted write and offer a coordinated profile update."""
+    with _locked_profile(profile, create=True):
+        compose_file, app_file = _profile_files(profile)
+        compose = workstation_compose_values(compose_file)
+        values = _collect(compose, workstation_dotenv(app_file), data, profile)
+        if not typer.confirm("Save these workstation settings?", default=True):
+            return False
+        _persist(profile, compose, values)
     return True
+
+
+INSTALLER_FIELDS = (
+    "provider",
+    "model",
+    "api_base",
+    "backend_port",
+    "litellm_port",
+    "archive",
+    "sqlite",
+)
+
+
+def _installer_snapshot(
+    compose: dict[str, str], app: dict[str, str], data: Path
+) -> tuple[dict[str, str], bool, str]:
+    model_id = compose.get("PRODUCT_PROVIDER_MODEL") or ""
+    endpoint = compose.get("PRODUCT_PROVIDER_API_BASE") or ""
+    if not model_id and not compose and not app:
+        model_id = "openrouter/openai/gpt-oss-20b"
+        endpoint = "https://openrouter.ai/api/v1"
+    provider, separator, model = model_id.partition("/")
+    fields = {
+        "provider": provider if separator else "",
+        "model": model if separator else provider,
+        "api_base": endpoint if _plain(endpoint) and _valid_url(endpoint) else "",
+        "backend_port": compose.get("WORKSTATION_HINDSIGHT_PORT") or "8888",
+        "litellm_port": compose.get("WORKSTATION_PROXY_PORT") or "4000",
+        "archive": app.get("ENGINEERING_MEMORY_ARCHIVE_ROOT") or str(data / "archive"),
+        "sqlite": app.get("ENGINEERING_MEMORY_IMPORT_STATE_PATH") or str(data / "import-state.db"),
+    }
+    has_key = bool(_provider_key(compose).strip())
+    token = sha256(json.dumps([fields, has_key], sort_keys=True).encode()).hexdigest()
+    return fields, has_key, token
+
+
+def read_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str], bool, str]:
+    """Read only the fields the wizard edits, without exposing the saved credential."""
+    if not _readable(profile):
+        return _installer_snapshot({}, {}, data)
+    with _locked_profile(profile, create=False):
+        compose, app = _profile_files(profile)
+        return _installer_snapshot(
+            workstation_compose_values(compose), workstation_dotenv(app), data
+        )
+
+
+def _check_installer_fields(fields: dict[str, str], profile: Path, key: str) -> None:
+    if fields.keys() != set(INSTALLER_FIELDS):
+        raise InstallerProfileError("request")
+    for field, value in fields.items():
+        if not _plain(value):
+            raise InstallerProfileError(field)
+    if not re.fullmatch(r"[^\s/]+", fields["provider"]):
+        raise InstallerProfileError("provider")
+    if not _valid_model(fields["provider"] + "/" + fields["model"]):
+        raise InstallerProfileError("model")
+    if not _valid_url(fields["api_base"]) or any(c.isspace() for c in fields["api_base"]):
+        raise InstallerProfileError("api_base")
+    if not _port(fields["backend_port"]):
+        raise InstallerProfileError("backend_port")
+    if not _port(fields["litellm_port"]) or int(fields["backend_port"]) == int(
+        fields["litellm_port"]
+    ):
+        raise InstallerProfileError("litellm_port")
+    if not _archive_location(fields["archive"], profile):
+        raise InstallerProfileError("archive")
+    if not _sqlite_location(fields["sqlite"], fields["archive"], profile):
+        raise InstallerProfileError("sqlite")
+    if key and (not _plain(key) or not key.strip()):
+        raise InstallerProfileError("api_key")
+
+
+def apply_installer_profile(
+    profile: Path, data: Path, fields: dict[str, str], token: str, key: str
+) -> None:
+    """Apply an approved wizard edit while preserving the newest hidden settings."""
+    try:
+        _check_installer_fields(fields, profile, key)
+    except (OSError, ValueError):
+        raise InstallerProfileError("storage") from None
+    with _locked_profile(profile, create=True):
+        compose_file, app_file = _profile_files(profile)
+        compose = workstation_compose_values(compose_file)
+        app = workstation_dotenv(app_file)
+        current, has_key, current_token = _installer_snapshot(compose, app, data)
+        if token != current_token:
+            raise InstallerProfileError("stale")
+        if not key and (not has_key or fields["provider"] != current["provider"]):
+            raise InstallerProfileError("api_key")
+        model = fields["provider"] + "/" + fields["model"]
+        values = _settings_updates(
+            compose, app, {**fields, "model": model}, key or _provider_key(compose)
+        )
+        for updates, saved, name in (
+            (values[0], compose, "WORKSTATION_PROXY_KEY"),
+            (values[1], app, "ENGINEERING_MEMORY_LLM__API_KEY"),
+        ):
+            if updates[name] == saved.get(name):
+                del updates[name]
+        _persist(profile, compose, values)

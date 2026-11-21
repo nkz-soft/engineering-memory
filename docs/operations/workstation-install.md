@@ -29,9 +29,17 @@ If the hashes match, run the installer as your own user.
 .\engineering-memory-0.0.1-windows-x64-setup.exe
 ```
 
-Leave **Run Engineering Memory guided setup** selected on the final screen.
-When you finish the installation, the wizard opens automatically. Silent
-installation only places the CLI and runtime.
+After copying files, the installer opens **Configure Engineering Memory**.
+A fresh profile starts with OpenRouter, model `openai/gpt-oss-20b` and API base
+`https://openrouter.ai/api/v1`. Edit the provider, model, API base, ports and
+data paths as needed. Enter your API key in the masked field. On reinstall, the
+installer loads saved settings and retains outbound proxy settings. Leave the key
+blank to keep it for the saved provider, or enter a replacement.
+
+Select **Save**, then choose whether to start the local stack and provision the
+shared bank. Start Docker before selecting this option. If setup fails, retry
+from the installer or finish and continue later. Select **Configure later** to
+finish before saving. `/SILENT` and `/VERYSILENT` skip configuration.
 
 ### Ubuntu 24.04 LTS amd64
 
@@ -54,29 +62,34 @@ Authorize apt when prompted for sudo. The launcher then starts guided setup
 in the same terminal using your account. If a development build with a higher
 version is present, use a clean workstation or review it in apt before retrying.
 
-## Guided setup
+## Verify and manage the installation
 
-Enter your model identifier and provider credentials when prompted. The wizard
-checks Docker, starts the local services and provisions the shared bank.
-Wait for `Shared memory bank provisioned.` The wizard then offers optional
-MCP registration and history import. Review the detected histories before
-selecting any to import. For a local ChatGPT or Claude export outside the
-configured inbox, enter its path when prompted.
+On Ubuntu, the terminal wizard checks Docker before prompting for provider
+settings. After you confirm startup, it provisions the shared bank and offers
+optional MCP registration and history import.
 
-Open a new terminal from any directory, so Windows picks up the updated user
-PATH, then check the installed version and service state.
+After completing setup and opting in to startup, open a new terminal and check
+the installed version and service state. On Windows, a new terminal also picks
+up the updated user PATH.
 
 ```text
 engineering-memory --version
 engineering-memory stack status
 ```
 
-Expect `engineering-memory 0.0.1` and running, healthy services. Use
+Expect `engineering-memory 0.0.1` and healthy services. Use
 `engineering-memory stack stop` to stop the services and
-`engineering-memory stack start` to start them again. If setup fails or you
-defer it, resolve the reported problem and rerun the installer. You can also
-resume an installed profile with `engineering-memory setup`. Reinstalling
-preserves the profile and data.
+`engineering-memory stack start` to start them again. To resume deferred setup,
+update an existing profile, edit outbound proxies, register coding agents or
+import history, run:
+
+```text
+engineering-memory setup
+```
+
+Review the detected histories before selecting any to import. For a local
+ChatGPT or Claude export outside the configured inbox, enter its path when
+prompted. Reinstalling preserves the profile and data.
 
 ### Outbound proxy for the LLM provider
 

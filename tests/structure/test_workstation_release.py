@@ -64,11 +64,27 @@ def test_interactive_install_offers_setup_in_current_user_session():
     directory = ROOT / "packaging/workstation"
     windows = (directory / "windows.iss").read_text(encoding="utf-8")
     linux = (directory / "build-deb.sh").read_text(encoding="utf-8")
-    launch = [line for line in windows.splitlines() if 'Parameters: "setup --installer"' in line]
-    assert len(launch) == 1
-    assert 'Filename: "{app}\\engineering-memory.exe"' in launch[0]
-    assert {"postinstall", "skipifsilent", "runasoriginaluser"} <= set(launch[0].split())
+    assert "CreateCustomPage(wpInstalling" in windows
+    assert "WizardSilent" in windows
+    assert "IsAdmin" in windows
+    assert "PasswordChar := " in windows
+    assert "ExecAndCaptureOutput" in windows
+    assert "[Run]" not in windows
+    assert "StartPage.Values[0] := False" in windows
+    assert "if not StartPage.Values[0] then" in windows
+    assert "EM_INSTALLER_UI_" in windows
     assert "postinst" not in linux
+
+
+def test_windows_release_smoke_covers_both_silent_modes_and_profile_preservation():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8"))
+    build = workflow["jobs"]["build"]["steps"]
+    smoke = next(
+        step["run"] for step in build if "smoke-test Windows installer" in step.get("name", "")
+    )
+    assert all(flag in smoke for flag in ("'/SILENT'", "'/VERYSILENT'", "'/LOG="))
+    assert "Silent install created a workstation profile" in smoke
+    assert "Silent reinstall changed the workstation profile" in smoke
 
 
 def test_workstation_proxy_overlay_routes_only_litellm_and_keeps_hindsight_direct():

@@ -2,7 +2,7 @@
 
 ## Windows
 
-Start `engineering-memory-0.0.1-windows-x64-setup.exe` as the signed-in user after verifying the sidecar. The normal flow leaves the guided-setup action selected. The action invokes the installed executable with `setup --installer` as the original user. Silent installation only places the payload. Windows package success alone is insufficient evidence of backend readiness.
+Start `engineering-memory-0.0.1-windows-x64-setup.exe` as the signed-in user after verifying the sidecar. The installer opens the [embedded configuration page](../../047-windows-setup-ui/spec.md) after copying files. Save the profile and opt in to starting the stack and provisioning the shared bank. Silent installation skips configuration and preserves existing settings. Windows package success alone is insufficient evidence of backend readiness.
 
 ## Ubuntu
 
@@ -18,4 +18,4 @@ Only apt runs through sudo. Invoke `/usr/bin/engineering-memory setup` with the 
 
 ## Shared Outcome
 
-Compatible Docker access is checked before provider prompts. The wizard reports a ready backend and provisioned shared bank after successful checks. Optional registration or import may be declined. Use the installed `stack status` command and inspect service state for confirmation. Failed setup must explain the stage and recovery without exposing secrets. Existing configuration and data survive reinstall.
+Ubuntu checks Docker access before provider prompts. Windows checks Docker access after the user elects to start the stack. The wizard reports a ready backend and provisioned shared bank after successful checks. Optional registration and import are offered by terminal setup and can be deferred. Use the installed `stack status` command and inspect service state for confirmation. Failed setup must explain the stage and recovery without exposing secrets. Existing configuration and data survive reinstall.
