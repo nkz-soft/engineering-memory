@@ -9,7 +9,13 @@ import sys
 import typer
 
 from engineering_memory import workstation
-from engineering_memory.settings import SettingsError, workstation_subprocess_environment
+from engineering_memory.settings import (
+    WORKSTATION_HTTP_PROXIES,
+    WORKSTATION_NO_PROXY,
+    SettingsError,
+    workstation_compose_values,
+    workstation_subprocess_environment,
+)
 
 app = typer.Typer(help="Manage the installed workstation backend.", no_args_is_help=True)
 MIN_COMPOSE = (2, 24, 4)
@@ -78,6 +84,13 @@ def run_stack(action: str) -> None:
         "--file",
         str(compose),
     ]
+    try:
+        values = workstation_compose_values(env_file)
+    except (OSError, UnicodeError):
+        raise StackError("Could not read the private Compose profile. Rerun setup.") from None
+    if any(values.get(name) for name in (*WORKSTATION_HTTP_PROXIES, WORKSTATION_NO_PROXY)):
+        base.extend(["--file", str(compose.with_name("compose.proxy.yaml"))])
+
     if action in {"check", "start"}:
         if run([*base, "config", "--quiet"]).returncode:
             raise StackError("Check the required settings and port numbers in compose.env.")
