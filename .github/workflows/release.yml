@@ -67,8 +67,25 @@ jobs:
           & $compiler "/DAppVersion=$env:VERSION" "/DPayload=$payload" "/O$output" packaging/workstation/windows.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $installer = Join-Path $output "engineering-memory-$env:VERSION-windows-x64-setup.exe"
-          $process = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -WindowStyle Hidden -Wait -PassThru
-          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
+          function Install-Silent([string]$mode, [string]$log) {
+            $process = Start-Process -FilePath $installer -ArgumentList $mode,'/SUPPRESSMSGBOXES','/NORESTART',('/LOG="' + $log + '"') -WindowStyle Hidden -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "Windows installer exited with $($process.ExitCode)" }
+          }
+          $profile = Join-Path $env:LOCALAPPDATA 'EngineeringMemory'
+          if (Test-Path -LiteralPath $profile) { throw 'Expected a clean runner profile' }
+          Install-Silent '/VERYSILENT' (Join-Path $env:RUNNER_TEMP 'install-very-silent.log')
+          if (Test-Path -LiteralPath $profile) { throw 'Silent install created a workstation profile' }
+
+          $config = (New-Item -ItemType Directory (Join-Path $profile 'config') -Force).FullName
+          $compose = Join-Path $config 'compose.env'
+          $app = Join-Path $config 'app.env'
+          Set-Content -LiteralPath $compose -Value 'PRODUCT_PROVIDER_MODEL=custom_openai/fixture'
+          Set-Content -LiteralPath $app -Value 'ENGINEERING_MEMORY_LLM__BASE_URL=http://127.0.0.1:4500/v1'
+          $before = (Get-FileHash -LiteralPath $compose,$app).Hash -join ':'
+          Install-Silent '/SILENT' (Join-Path $env:RUNNER_TEMP 'install-silent.log')
+          $after = (Get-FileHash -LiteralPath $compose,$app).Hash -join ':'
+          if ($before -ne $after) { throw 'Silent reinstall changed the workstation profile' }
+
           $path = [Environment]::GetEnvironmentVariable('Path', 'User')
           $env:Path = "$path;$env:Path"
           $installed = (Get-Command engineering-memory -CommandType Application).Source

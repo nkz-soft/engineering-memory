@@ -1,9 +1,10 @@
 """Interactive first-run setup for the installed workstation bundle."""
 
+import ctypes
 import json
 import os
 import sys
-from contextlib import suppress
+from contextlib import redirect_stderr, redirect_stdout, suppress
 from pathlib import Path
 
 import httpx
@@ -13,6 +14,8 @@ from engineering_memory import cli, setup_clients, setup_history, setup_profile,
 from engineering_memory.cli.stack import StackError, run_stack
 from engineering_memory.settings import (
     WORKSTATION_HTTP_PROXIES,
+    SettingsError,
+    take_installer_setup_environment,
     workstation_compose_values,
     workstation_setup_overrides,
 )
@@ -91,10 +94,96 @@ def _prepare_backend(profile: Path) -> None:
     typer.echo("Shared memory bank provisioned.")
 
 
+_INSTALLER_PROTOCOL = "EM1"
+
+
+def _supported_installer_user() -> bool:
+    return (
+        sys.platform == "win32"
+        and workstation.is_installed()
+        and not ctypes.windll.shell32.IsUserAnAdmin()
+    )
+
+
+def _installer_save(profile: Path, data: Path, request: dict[str, str]) -> str:
+    if request.pop("version", None) != _INSTALLER_PROTOCOL:
+        return "request"
+    token = request.pop("token", "")
+    names = {*setup_profile.INSTALLER_FIELDS, "api_key"}
+    if (
+        len(token) != 64
+        or request.keys() != names
+        or any(not value.startswith("v") or len(value) > 8193 for value in request.values())
+    ):
+        return "request"
+    key = request.pop("api_key")[1:]
+    fields = {name: value[1:] for name, value in request.items()}
+    setup_profile.apply_installer_profile(profile, data, fields, token, key)
+    return "saved"
+
+
+def _installer_start() -> str:
+    try:
+        run_stack("check")
+    except (StackError, SettingsError):
+        return "prerequisite"
+    try:
+        run_stack("start")
+    except (StackError, SettingsError):
+        return "startup"
+    try:
+        cli.run_provision({})
+    except Exception:
+        return "bank"
+    return "ready"
+
+
+def _installer_output(action: str, request: dict[str, str]) -> tuple[str, ...]:
+    if not _supported_installer_user():
+        return ("user",)
+    if workstation_setup_overrides():
+        return ("overrides",)
+    profile, data = workstation.locations()
+    if action == "read":
+        fields, has_key, token = setup_profile.read_installer_profile(profile, data)
+        # ASCII framing preserves empty fields and UTF-8 through Inno's pipe reader.
+        encoded = tuple(
+            "v" + fields[name].encode().hex() for name in setup_profile.INSTALLER_FIELDS
+        )
+        return (_INSTALLER_PROTOCOL, str(int(has_key)), token, *encoded)
+    if action == "save":
+        return (_installer_save(profile, data, request),)
+    if action == "start":
+        return (_installer_start(),)
+    return ("request",)
+
+
+def _run_installer_ui(action: str) -> None:
+    request = take_installer_setup_environment()
+    try:
+        with (
+            open(os.devnull, "w", encoding="utf-8") as quiet,
+            redirect_stdout(quiet),
+            redirect_stderr(quiet),
+        ):
+            output = _installer_output(action, request)
+    except setup_profile.InstallerProfileError as error:
+        output = (str(error),)
+    except Exception:
+        output = ("profile",)
+    typer.echo("\n".join(output))
+    if output[0] not in {_INSTALLER_PROTOCOL, "saved", "ready"}:
+        raise typer.Exit(1)
+
+
 def setup_command(
     installer: bool = typer.Option(False, "--installer", hidden=True),
+    installer_ui: str | None = typer.Option(None, "--installer-ui", hidden=True),
 ) -> None:
     """Configure the workstation profile, backend, coding agents and optional history."""
+    if installer_ui is not None:
+        _run_installer_ui(installer_ui)
+        return
     try:
         _run_setup()
     finally:

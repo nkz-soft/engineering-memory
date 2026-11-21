@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -88,3 +89,84 @@ def test_setup_rejects_ambient_backend_override(monkeypatch):
     assert result.exit_code == 1
     assert "ENGINEERING_MEMORY_HINDSIGHT__BASE_URL" in result.output
     assert "example.invalid" not in result.output
+
+
+def installer_home(monkeypatch, tmp_path):
+    from engineering_memory.cli import setup
+
+    profile, data = tmp_path / "config", tmp_path / "Данные 🚀"
+    monkeypatch.setattr(setup, "_supported_installer_user", lambda: True, raising=False)
+    monkeypatch.setattr(setup.workstation, "locations", lambda: (profile, data))
+    return setup, profile, data
+
+
+def test_installer_read_and_save_keep_key_private(monkeypatch, tmp_path):
+    setup, profile, data = installer_home(monkeypatch, tmp_path)
+    read = runner.invoke(app, ["setup", "--installer-ui", "read"])
+    assert read.exit_code == 0, read.output
+    lines = read.stdout.splitlines()
+    assert lines[:2] == ["EM1", "0"]
+    fields = [bytes.fromhex(line[1:]).decode("utf-8") for line in lines[3:]]
+    assert fields[:3] == ["openrouter", "openai/gpt-oss-20b", "https://openrouter.ai/api/v1"]
+    assert str(data / "archive") in fields
+    assert not profile.exists()
+
+    monkeypatch.setenv("EM_INSTALLER_UI_VERSION", "EM1")
+    monkeypatch.setenv("EM_INSTALLER_UI_TOKEN", lines[2])
+    for field, value in zip(setup.setup_profile.INSTALLER_FIELDS, fields, strict=True):
+        monkeypatch.setenv("EM_INSTALLER_UI_" + field.upper(), "v" + value)
+    monkeypatch.setenv("EM_INSTALLER_UI_API_KEY", "vSYNTHETIC-install-key")
+    assert runner.invoke(app, ["setup", "--installer-ui", "save"]).stdout == "saved\n"
+    assert "EM_INSTALLER_UI_API_KEY" not in os.environ
+    reopened = runner.invoke(app, ["setup", "--installer-ui", "read"])
+    assert reopened.stdout.splitlines()[:2] == ["EM1", "1"]
+    assert "SYNTHETIC-install-key" not in reopened.output
+    assert "EM_INSTALLER_UI_" not in "\n".join(os.environ)
+
+
+def test_installer_malformed_request_clears_environment(monkeypatch, tmp_path):
+    _, profile, _ = installer_home(monkeypatch, tmp_path)
+    monkeypatch.setenv("EM_INSTALLER_UI_VERSION", "invalid")
+    monkeypatch.setenv("EM_INSTALLER_UI_API_KEY", "vSYNTHETIC-install-key")
+    invalid = runner.invoke(app, ["setup", "--installer-ui", "save"])
+    assert invalid.exit_code == 1
+    assert invalid.stdout == "request\n"
+    assert "SYNTHETIC" not in invalid.output
+    assert "EM_INSTALLER_UI_API_KEY" not in os.environ
+    assert not profile.exists()
+
+
+@pytest.mark.parametrize(
+    ("failure", "status", "events"),
+    [
+        ("check", "prerequisite", ["check"]),
+        ("start", "startup", ["check", "start"]),
+        ("provision", "bank", ["check", "start", "provision"]),
+        (None, "ready", ["check", "start", "provision"]),
+    ],
+)
+def test_installer_reports_safe_backend_stage(monkeypatch, tmp_path, failure, status, events):
+    setup, _, _ = installer_home(monkeypatch, tmp_path)
+    from engineering_memory.cli.stack import StackError
+
+    calls = []
+    monkeypatch.setenv("EM_INSTALLER_UI_API_KEY", "vSYNTHETIC-install-key")
+
+    def stack(action):
+        assert not os.environ.get("EM_INSTALLER_UI_API_KEY")
+        calls.append(action)
+        if action == failure:
+            raise StackError("SYNTHETIC-install-key")
+
+    def provision(_):
+        calls.append("provision")
+        if failure == "provision":
+            raise RuntimeError("SYNTHETIC-install-key")
+
+    monkeypatch.setattr(setup, "run_stack", stack)
+    monkeypatch.setattr(setup.cli, "run_provision", provision)
+    result = runner.invoke(app, ["setup", "--installer-ui", "start"])
+    assert result.stdout == status + "\n"
+    assert result.exit_code == bool(failure)
+    assert calls == events
+    assert "SYNTHETIC" not in result.output

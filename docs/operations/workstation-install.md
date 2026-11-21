@@ -30,15 +30,29 @@ Run `engineering-memory --version`. The first release reports `engineering-memor
 
 ## Guided setup
 
-On Windows, select **Run Engineering Memory guided setup** on the installer's
-final screen. On Ubuntu, run this command in your own terminal after apt exits:
+On Windows, the installer opens **Configure Engineering Memory** after copying
+files. A fresh profile starts with OpenRouter, model `openai/gpt-oss-20b` and API
+base `https://openrouter.ai/api/v1`. Edit the provider, model, API base, ports and
+data paths as needed. Enter your API key in the masked field. On reinstall, the
+installer loads saved settings. Leave the key blank to keep it for the saved
+provider, or enter a replacement. Existing outbound proxy settings are preserved.
+
+Select **Save**, then choose whether to start the local stack and
+provision the shared bank. Starting requires Docker to be running. If startup
+fails, you can retry from the installer or finish and continue later. Select
+**Configure later** to finish before saving. `/SILENT` and `/VERYSILENT` skip
+configuration and leave any saved profile and running services alone.
+
+On Ubuntu after apt exits, or on Windows to continue setup from your own
+terminal, run:
 
 ```text
 engineering-memory setup
 ```
 
-Run the same command to continue a deferred setup or update an existing
-profile. The wizard configures the local backend and shared bank, then offers
+Use terminal setup to update an existing profile, edit outbound proxies, or
+configure coding agents and import history. The terminal wizard configures the
+local backend and shared bank, then offers
 MCP registration for detected Codex and Claude Code profiles and an optional
 history import. Review the detected histories before selecting any to import.
 For a local ChatGPT or Claude export outside the configured inbox, enter its

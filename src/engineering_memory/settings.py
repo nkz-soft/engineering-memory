@@ -114,6 +114,16 @@ def workstation_agent_profiles() -> tuple[Path, Path, Path]:
     return codex, claude, claude_config
 
 
+def take_installer_setup_environment() -> dict[str, str]:
+    """Consume the installer's process-local request before any child process runs."""
+    prefix = "EM_INSTALLER_UI_"
+    return {
+        name.removeprefix(prefix).lower(): os.environ.pop(name)
+        for name in tuple(os.environ)
+        if name.startswith(prefix)
+    }
+
+
 def workstation_setup_overrides() -> list[str]:
     roots = {"ARCHIVE_ROOT", "IMPORT_STATE_PATH", "HINDSIGHT", "LLM"}
     return sorted(
