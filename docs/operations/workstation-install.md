@@ -78,6 +78,42 @@ defer it, resolve the reported problem and rerun the installer. You can also
 resume an installed profile with `engineering-memory setup`. Reinstalling
 preserves the profile and data.
 
+### Outbound proxy for the LLM provider
+
+Use **Custom provider API base** for the address of an OpenAI-compatible
+provider, such as `https://provider.example/v1`. Use **Outbound proxy for HTTP
+destinations** or **Outbound proxy for HTTPS destinations** for the network
+forward proxy that LiteLLM uses to reach that provider.
+
+Enter a proxy URL in the form `http://host:port` or `https://host:port`. Choose
+the field by the provider URL's scheme. For example, enter
+`http://host.docker.internal:3128` in the HTTPS destination field to reach an
+HTTPS provider through a host-based HTTP proxy using CONNECT. The proxy must
+listen on an address reachable from Docker and allow connections from the
+container. A proxy bound only to the host's loopback may be unreachable. Inside
+LiteLLM, `localhost` refers to the container. Use an HTTPS proxy URL when the
+proxy itself accepts TLS and its certificate is trusted by LiteLLM.
+
+For an authenticated proxy, use `http://username:password@host:port` and
+percent-encode reserved characters in the username and password. The wizard
+hides the URL input and saves it with the existing private Compose settings.
+While the profile manages routing, the bypass always includes `localhost`,
+`127.0.0.1`, `::1`, `hindsight` and `litellm`. Enter additional hosts as a
+comma-separated list if LiteLLM should reach them directly.
+
+Rerun `engineering-memory setup` and select **set** to change a URL or **clear**
+to remove it. Enter a single hyphen to clear additional bypass hosts. Save and
+start the stack from setup, or run `engineering-memory stack start` afterward.
+Clearing both URLs and the additional bypass restores the base Docker behavior,
+including any proxy defaults configured separately in Docker. The wizard
+controls LiteLLM's provider route. Docker daemon access and image pulls use
+Docker's own settings.
+
+When a URL is configured, setup offers to send one synthetic completion to
+check the provider route. This may incur one provider request. If it fails,
+check container reachability, proxy authentication or access policy, and the
+provider settings before retrying.
+
 ## Manual setup
 
 Copy `app.env.example` to `app.env` and `compose.env.example` to `compose.env`

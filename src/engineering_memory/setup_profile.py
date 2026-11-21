@@ -6,6 +6,7 @@ import re
 import secrets
 import tempfile
 from io import StringIO
+from ipaddress import IPv6Address
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -14,7 +15,13 @@ import typer
 from engineering_memory import workstation
 from engineering_memory.ingestion.acquisition_lock import acquisition_lock
 from engineering_memory.ingestion.acquisition_source import AcquisitionError
-from engineering_memory.settings import workstation_dotenv, workstation_dotenv_entries
+from engineering_memory.settings import (
+    WORKSTATION_HTTP_PROXIES,
+    WORKSTATION_NO_PROXY,
+    workstation_compose_values,
+    workstation_dotenv,
+    workstation_dotenv_entries,
+)
 
 
 class ProfileError(RuntimeError):
@@ -122,28 +129,6 @@ def _restore(journal: Path, files: tuple[Path, Path]) -> None:
     _sync_directory(journal.parent)
 
 
-def _compose_values(path: Path) -> dict[str, str | None]:
-    if not path.exists():
-        return {}
-    values = {}
-    with path.open(encoding="utf-8") as stream:
-        for binding in workstation_dotenv_entries(stream):
-            if binding.key is None:
-                continue
-            raw = binding.original.string.partition("=")[2].lstrip()
-            value = binding.value
-            if raw.startswith("'"):
-                # Compose preserves literal backslashes inside single quotes except for \'
-                # (unlike python-dotenv, which also decodes \\).
-                match = re.match(r"'((?:\\'|[^'])*)'", raw)
-                if match:
-                    value = match[1].replace("\\'", "'")
-            elif value is not None and raw.startswith('"'):
-                value = value.replace("$$", "$")
-            values[binding.key] = value
-    return values
-
-
 def _replace_settings(text: str | None, values: dict[str, str], *, compose: bool = False) -> str:
     text = "".join(
         entry.original.string
@@ -192,6 +177,58 @@ def _valid_url(value: str) -> bool:
         )
     except ValueError:
         return False
+
+
+def _valid_proxy_url(value: str) -> bool:
+    if not value or any(char.isspace() or char == "\\" for char in value):
+        return False
+    if any(char in value for char in "?#") or re.search(r"%(?![0-9a-fA-F]{2})", value):
+        return False
+    try:
+        url = urlsplit(value)
+        return (
+            url.scheme in {"http", "https"}
+            and bool(url.hostname)
+            and url.netloc.count("@") <= 1
+            and url.path in {"", "/"}
+            and (url.port is None or 0 < url.port <= 65535)
+        )
+    except ValueError:
+        return False
+
+
+def _proxy_url(scheme: str, current: str) -> str:
+    state = "configured" if current else "unset"
+    action = _prompt(
+        f"Outbound proxy for {scheme} destinations ({state}, keep/set/clear)",
+        "keep",
+        {"keep", "set", "clear"}.__contains__,
+    )
+    if action == "set":
+        return _prompt(f"{scheme} destination proxy URL", "", _valid_proxy_url, secret=True)
+    return current if action == "keep" else ""
+
+
+def _valid_bypass_host(host: str) -> bool:
+    host = host.strip()
+    if ":" in host:
+        try:
+            IPv6Address(host)
+        except ValueError:
+            return False
+        return "%" not in host
+    return (
+        re.fullmatch(
+            r"\.?[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?"
+            r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.?",
+            host,
+        )
+        is not None
+    )
+
+
+def _valid_bypass(value: str) -> bool:
+    return value in {"", "-"} or all(_valid_bypass_host(host) for host in value.split(","))
 
 
 def _port(value: str) -> bool:
@@ -259,11 +296,24 @@ def _collect(
             and not Path(value).resolve().is_relative_to(profile.resolve())
         ),
     )
+    network_proxies = {
+        name: _proxy_url(scheme, compose.get(name) or "")
+        for name, scheme in zip(WORKSTATION_HTTP_PROXIES, ("HTTP", "HTTPS"), strict=True)
+    }
+    bypass = _prompt(
+        "Additional outbound proxy bypass hosts (comma separated, '-' clears)",
+        compose.get(WORKSTATION_NO_PROXY) or "",
+        _valid_bypass,
+    )
+    network_proxies[WORKSTATION_NO_PROXY] = (
+        "" if bypass in {"", "-"} else ",".join(host.strip() for host in bypass.split(","))
+    )
     proxy_key = compose.get("WORKSTATION_PROXY_KEY") or app.get("ENGINEERING_MEMORY_LLM__API_KEY")
     if not proxy_key or proxy_key == "replace-with-local-proxy-key":
         proxy_key = "sk-" + secrets.token_urlsafe(32)
     return (
         {
+            **network_proxies,
             "WORKSTATION_HINDSIGHT_PORT": str(int(backend_port)),
             "WORKSTATION_PROXY_PORT": str(int(proxy_port)),
             "WORKSTATION_PROXY_KEY": proxy_key,
@@ -303,7 +353,7 @@ def configure(profile: Path, data: Path) -> bool:
             old = tuple(
                 path.read_bytes().decode("utf-8") if path.exists() else None for path in files
             )
-            compose_values = _compose_values(compose)
+            compose_values = workstation_compose_values(compose)
             values = _collect(
                 compose_values,
                 workstation_dotenv(app),

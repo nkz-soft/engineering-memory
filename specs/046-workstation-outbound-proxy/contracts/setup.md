@@ -1,0 +1,6 @@
+# Contract: Installed guided setup
+
+1. Run `engineering-memory setup` as the installing user. The proxy controls are available in the same wizard as the provider model, credential and API base.
+2. Select Keep, Set or Clear independently for HTTP and HTTPS destination proxy URLs. Set uses hidden input. Default to Keep for an existing profile. Show only whether a URL is set. Additional bypass hosts are editable and clearable. Mandatory defaults apply while the profile manages the route.
+3. Confirm the profile update and start the stack in setup, or apply later with `engineering-memory stack start`. Compose applies the changed service configuration. Clear both URLs and additional bypass entries to return to the base route, including any Docker-managed defaults.
+4. When a proxy URL is configured, the wizard offers a provider-route check after startup. A successful synthetic completion confirms connectivity. A failure tells the operator to check container reachability, proxy authentication or policy, and provider settings as appropriate. The check emits no provider response content, raw exception or proxy URL. If the operator accepts the check and it fails, defer the remaining setup stages so they can correct settings and retry.

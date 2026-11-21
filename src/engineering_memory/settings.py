@@ -17,6 +17,7 @@ none, so giving it a peer package would misrepresent it as a sixteenth boundary 
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Annotated, Any, Final, get_args, get_origin
@@ -134,6 +135,32 @@ def workstation_dotenv_entries(stream):
     from dotenv.parser import parse_stream
 
     return parse_stream(stream)
+
+
+WORKSTATION_HTTP_PROXIES = ("WORKSTATION_HTTP_PROXY", "WORKSTATION_HTTPS_PROXY")
+WORKSTATION_NO_PROXY = "WORKSTATION_NO_PROXY"
+
+
+def workstation_compose_values(path: Path) -> dict[str, str | None]:
+    if not path.exists():
+        return {}
+    values = {}
+    with path.open(encoding="utf-8") as stream:
+        for binding in workstation_dotenv_entries(stream):
+            if binding.key is None:
+                continue
+            raw = binding.original.string.partition("=")[2].lstrip()
+            value = binding.value
+            if raw.startswith("'"):
+                # Compose preserves literal backslashes inside single quotes except for \'
+                # (unlike python-dotenv, which also decodes \\).
+                match = re.match(r"'((?:\\'|[^'])*)'", raw)
+                if match:
+                    value = match[1].replace("\\'", "'")
+            elif value is not None and raw.startswith('"'):
+                value = value.replace("$$", "$")
+            values[binding.key] = value
+    return values
 
 
 def _default_env_file() -> Path | None:

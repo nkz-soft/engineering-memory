@@ -1,0 +1,21 @@
+services:
+  # Docker client proxy defaults can otherwise catch Hindsight's local requests.
+  hindsight:
+    environment:
+      HTTP_PROXY: ""
+      http_proxy: ""
+      HTTPS_PROXY: ""
+      https_proxy: ""
+      ALL_PROXY: ""
+      all_proxy: ""
+
+  litellm:
+    environment:
+      HTTP_PROXY: ${WORKSTATION_HTTP_PROXY:-}
+      http_proxy: ${WORKSTATION_HTTP_PROXY:-}
+      HTTPS_PROXY: ${WORKSTATION_HTTPS_PROXY:-}
+      https_proxy: ${WORKSTATION_HTTPS_PROXY:-}
+      NO_PROXY: localhost,127.0.0.1,::1,hindsight,litellm${WORKSTATION_NO_PROXY:+,${WORKSTATION_NO_PROXY}}
+      no_proxy: localhost,127.0.0.1,::1,hindsight,litellm${WORKSTATION_NO_PROXY:+,${WORKSTATION_NO_PROXY}}
+      ALL_PROXY: ""
+      all_proxy: ""
