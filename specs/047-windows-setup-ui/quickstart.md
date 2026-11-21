@@ -1,0 +1,13 @@
+# Windows installed acceptance
+
+Use separate snapshots of a clean Windows 11 x64 VM with the supported Docker and Compose prerequisites from the workstation guide. Build the Windows bundle and compile the installer with the release workflow's pinned Inno Setup. Use a synthetic key and controlled provider, or separately authorized OpenRouter credentials for a live check. Record installer hash, OS, compiler, case results, and sanitized evidence.
+
+| Case | Procedure and expected result |
+| --- | --- |
+| Fresh save and start | Launch normally. Reach the embedded page before Finish with editable defaults, no console, and an unchecked startup box. Save with startup selected. Verify the stack status and provisioned bank through the installed CLI. Send one controlled completion to the `engineering-extraction` alias and confirm the provider model ID and endpoint. |
+| Save only, defer and cancel | Leave startup unselected and save. Verify profile saved and no stack start or provisioning. On fresh snapshots, defer or cancel before saving and verify no profile settings were written. |
+| Reinstall | Seed a custom model, ports, path with spaces and Unicode, nonempty archive and database, and #107 proxy and bypass values. Verify saved nonsecret values, a blank masked key, and preservation of data, proxy settings, and keys after changing one visible field. Verify a pre-#107 profile and a blank saved API base as separate cases. |
+| Failures | Try duplicate ports, wrong path type, missing Docker, a blocked port, stale profile, and provisioning failure after successful start. Check specific guidance, unchanged prior files on declined or failed save, and an actionable retry after startup failure. |
+| Silent and CLI | Run both `/SILENT` and `/VERYSILENT` with `/LOG` on clean or preconfigured snapshots. Check that no helper runs, no configuration or stack side effects occur, and the installed command is on PATH as before. Run terminal `engineering-memory setup` and verify the saved configuration is editable. |
+| Credential handling | Use a synthetic key marker with Compose-sensitive characters. Inspect process creation arguments and check the marker is absent from installer, application, and failure logs. Confirm never displayed as plaintext, including on reinstall, and that the helper's environment values are gone before stack subprocesses run. |
+| Interaction | Use the standard keyboard flow at normal and high DPI. Verify focus and labels, masking, back/retry behavior, error text, and deferral without requiring Docker. |
