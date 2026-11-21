@@ -53,6 +53,6 @@ Initial and post-design checks find no deviations.
 - Backend startup and bank failures are distinguished, with no duplicated provisioning side effects on retry.
 - `/SILENT` and `/VERYSILENT` skip every helper call. A normal unelevated interactive launch uses the signed-in user's profile.
 
-## Approval gate
+## Approval
 
-Resolve fresh-provider preselection in [spec.md](spec.md) and approve this plan before generating tasks or implementing.
+The plan is approved with the editable OpenRouter preset preselected on a fresh interactive Windows profile. Reinstall loads the saved provider.

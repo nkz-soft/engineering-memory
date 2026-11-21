@@ -4,7 +4,7 @@ Use separate snapshots of a clean Windows 11 x64 VM with the supported Docker an
 
 | Case | Procedure and expected result |
 | --- | --- |
-| Fresh save and start | Launch normally. Reach the embedded page before Finish with editable defaults, no console, and an unchecked startup box. Save with startup selected. Verify the stack status and provisioned bank through the installed CLI. Send one controlled completion to the `engineering-extraction` alias and confirm the provider model ID and endpoint. |
+| Fresh save and start | Launch normally. Reach the embedded page before Finish with OpenRouter preselected, editable defaults, no console, and an unchecked startup box. Save with startup selected. Verify the stack status and provisioned bank through the installed CLI. Send one controlled completion to the `engineering-extraction` alias and confirm the provider model ID and endpoint. |
 | Save only, defer and cancel | Leave startup unselected and save. Verify profile saved and no stack start or provisioning. On fresh snapshots, defer or cancel before saving and verify no profile settings were written. |
 | Reinstall | Seed a custom model, ports, path with spaces and Unicode, nonempty archive and database, and #107 proxy and bypass values. Verify saved nonsecret values, a blank masked key, and preservation of data, proxy settings, and keys after changing one visible field. Verify a pre-#107 profile and a blank saved API base as separate cases. |
 | Failures | Try duplicate ports, wrong path type, missing Docker, a blocked port, stale profile, and provisioning failure after successful start. Check specific guidance, unchanged prior files on declined or failed save, and an actionable retry after startup failure. |

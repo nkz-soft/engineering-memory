@@ -2,7 +2,7 @@
 
 - **Feature Branch**: `047-windows-setup-ui`
 - **Created**: 2026-11-21
-- **Status**: Draft for approval
+- **Status**: Approved
 - **Tracking**: Follow-up to [#94](https://github.com/nkz-soft/engineering-memory/issues/94) and [#105](https://github.com/nkz-soft/engineering-memory/issues/105)
 
 ## User Scenarios & Testing
@@ -32,7 +32,7 @@ A silent install completes with the current package and PATH behavior, skips set
 ## Requirements
 
 - **FR-001**: Show the embedded page by default on a standard first interactive Windows install and on interactive reinstall. Provide an explicit way to defer configuration to the CLI.
-- **FR-002**: On a fresh profile propose backend port `8888`, LiteLLM port `4000`, archive under `%LOCALAPPDATA%/EngineeringMemory/data/archive`, and SQLite at `%LOCALAPPDATA%/EngineeringMemory/data/import-state.db`. For the OpenRouter preset, propose model `openai/gpt-oss-20b` and API base `https://openrouter.ai/api/v1`. All proposed values are editable.
+- **FR-002**: On a fresh profile, preselect OpenRouter and propose backend port `8888`, LiteLLM port `4000`, archive under `%LOCALAPPDATA%/EngineeringMemory/data/archive`, and SQLite at `%LOCALAPPDATA%/EngineeringMemory/data/import-state.db`. For the OpenRouter preset, propose model `openai/gpt-oss-20b` and API base `https://openrouter.ai/api/v1`. All proposed values are editable.
 - **FR-003**: Mask the provider credential. Keep its value out of process arguments, logs, installer answer files, and displayed diagnostics. Never return the stored credential to the page. Save a replacement only when the user supplies one.
 - **FR-004**: Validate and save through the existing per-user profile rules. Preserve outbound HTTP(S) proxy URLs, bypass settings, unrelated profile assignments, the local proxy key, and storage on reinstall. The provider base remains separate from the outbound network proxy.
 - **FR-005**: Ask for affirmative consent before starting the stack and provisioning the shared bank. The default is unchecked. Saving or declining does not start either action. Report the outcome of the approved operation and allow the user to retry or defer it.
@@ -44,9 +44,9 @@ A silent install completes with the current package and PATH behavior, skips set
 - **SC-002**: A reinstall with customized values and proxy credentials preserves the expected configuration and data. A controlled provider request through the installed LiteLLM route verifies the model mapping.
 - **SC-003**: A synthetic key marker is absent from process arguments, setup output and logs in both successful and failing runs. Silent install leaves setup and the stack untouched. A subsequent terminal run can reconfigure the installation.
 
-## Decision for approval
+## Approved provider selection
 
-**Proposed**: preselect the editable OpenRouter preset for a fresh interactive Windows profile. **Alternative**: start with a neutral provider selector and fill the same suggested model and URL only when the user chooses OpenRouter. Both choices use the same page and leave existing profiles untouched. No provider is contacted while entering or saving settings.
+Preselect the editable OpenRouter preset on a fresh interactive Windows profile. Reinstall loads the saved provider. No provider is contacted while entering or saving settings.
 
 ## Assumptions and scope
 
