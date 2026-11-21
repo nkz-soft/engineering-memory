@@ -1,6 +1,6 @@
 [project]
 name = "engineering-memory"
-version = "0.1.0"
+version = "0.0.1"
 description = "Engineering memory: private conversation history, retained and recallable."
 readme = "README.md"
 license = "MIT"

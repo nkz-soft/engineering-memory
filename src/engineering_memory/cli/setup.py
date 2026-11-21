@@ -10,7 +10,7 @@ import httpx
 import typer
 
 from engineering_memory import cli, setup_clients, setup_history, setup_profile, workstation
-from engineering_memory.cli.stack import StackError, run_stack
+from engineering_memory.cli.stack import StackError, check_docker, run_stack
 from engineering_memory.settings import (
     WORKSTATION_HTTP_PROXIES,
     workstation_compose_values,
@@ -125,6 +125,7 @@ def _run_setup() -> None:
 
     stages = []
     try:
+        check_docker()
         profile, data = workstation.locations()
         if not setup_profile.configure(profile, data):
             raise typer.Abort

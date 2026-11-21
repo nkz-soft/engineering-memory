@@ -41,14 +41,15 @@ jobs:
           if [[ "$REF_TYPE" == tag ]]; then tag="$REF_NAME"; fi
           uv run --no-sync python packaging/workstation/build.py "$tag" build/payload
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Package and smoke-test Ubuntu installer
+      - name: Package Ubuntu installer
         if: runner.os == 'Linux'
         env:
           VERSION: ${{ steps.payload.outputs.version }}
         run: |
           bash packaging/workstation/build-deb.sh build/payload/engineering-memory build/assets "$VERSION"
-          sudo apt-get install -y "./build/assets/engineering-memory_${VERSION}_amd64.deb"
-          uv run --no-sync python packaging/workstation/smoke.py /usr/bin/engineering-memory "$VERSION"
+          launcher="build/assets/engineering-memory-$VERSION-ubuntu-amd64-install.sh"
+          sed "s/@VERSION@/$VERSION/g" packaging/workstation/install-ubuntu.sh > "$launcher"
+          bash -n "$launcher"
       - name: Package and smoke-test Windows installer
         if: runner.os == 'Windows'
         shell: pwsh
@@ -80,6 +81,27 @@ jobs:
             sha256sum "$installer" > "$installer.sha256"
             sha256sum -c "$installer.sha256"
           done
+      - name: Verify Ubuntu installer handoff
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ steps.payload.outputs.version }}
+        run: |
+          launcher="build/assets/engineering-memory-$VERSION-ubuntu-amd64-install.sh"
+          package="build/assets/engineering-memory_${VERSION}_amd64.deb"
+          root_code=0
+          root_output=$(sudo bash "$launcher" "./$package" 2>&1) || root_code=$?
+          test "$root_code" -eq 1
+          grep -F 'Run the installer as your regular user without sudo.' <<< "$root_output"
+          # Exercise apt and the installed wizard in a PTY without provider credentials.
+          code=0
+          output=$(ENGINEERING_MEMORY_HINDSIGHT__BASE_URL=http://127.0.0.1:1 \
+            script --quiet --return --command "bash '$launcher' './$package'" /dev/null </dev/null) || code=$?
+          printf '%s\n' "$output"
+          test "$code" -eq 1
+          grep -F 'Unset these environment overrides' <<< "$output"
+          grep -F 'Guided setup failed' <<< "$output"
+          uv run --no-sync python packaging/workstation/smoke.py /usr/bin/engineering-memory "$VERSION"
+          uv run --locked --group release pytest -q tests/structure/test_ubuntu_installer.py
       - uses: actions/upload-artifact@v4
         with:
           name: engineering-memory-${{ matrix.platform }}
@@ -111,12 +133,19 @@ jobs:
           version=${TAG#v}
           windows="engineering-memory-$version-windows-x64-setup.exe"
           linux="engineering-memory_${version}_amd64.deb"
+          launcher="engineering-memory-$version-ubuntu-amd64-install.sh"
+          assets=("$windows" "$linux" "$launcher")
           cd assets
-          for asset in "$windows" "$linux"; do
+          shopt -s dotglob nullglob
+          downloaded=(*)
+          test "${#downloaded[@]}" -eq "$(( 2 * ${#assets[@]} ))"
+          release_files=()
+          for asset in "${assets[@]}"; do
             test -s "$asset"
             test "$(wc -l < "$asset.sha256")" -eq 1
             test "$(cut -d ' ' -f 3 "$asset.sha256")" = "$asset"
             sha256sum -c "$asset.sha256"
+            release_files+=("$asset" "$asset.sha256")
           done
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "A release already exists for $TAG. Keep its reviewed bytes or remove the draft before retrying."
@@ -124,9 +153,9 @@ jobs:
           fi
           guide="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$TAG/docs/operations/workstation-install.md"
           cat > notes.md <<EOF
-          Engineering Memory $version installs the CLI and local deployment files on Windows 11 x64 and Ubuntu 24.04 LTS amd64.
+          Engineering Memory $version provides one interactive installer to install and start the product on Windows 11 x64 and Ubuntu 24.04 LTS amd64. Docker and a compatible LLM provider are prerequisites.
 
           [Platform installation, checksum verification, setup and MCP instructions]($guide)
           EOF
-          gh release create "$TAG" "$windows" "$windows.sha256" "$linux" "$linux.sha256" \
+          gh release create "$TAG" "${release_files[@]}" \
             --verify-tag --draft --title "Engineering Memory $TAG" --notes-file notes.md

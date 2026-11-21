@@ -16,7 +16,7 @@ def test_setup_requires_terminal_before_touching_profile():
     assert "No such command" not in result.output
 
 
-@pytest.mark.parametrize("failure", [None, "start", "provision", "clients"])
+@pytest.mark.parametrize("failure", [None, "docker", "start", "provision", "clients"])
 def test_setup_orders_workstation_stages(monkeypatch, tmp_path, failure):
     from engineering_memory.cli import setup
     from engineering_memory.cli.stack import StackError
@@ -29,6 +29,12 @@ def test_setup_orders_workstation_stages(monkeypatch, tmp_path, failure):
     monkeypatch.setattr(setup.workstation, "is_installed", lambda: True)
     monkeypatch.setattr(setup.workstation, "locations", lambda: (profile, data))
     monkeypatch.setattr(sys, "executable", str(executable))
+
+    def check_docker() -> str:
+        events.append("docker")
+        if failure == "docker":
+            raise StackError("Start Docker and check permissions to access the daemon.")
+        return "docker"
 
     def save(selected_profile: Path, selected_data: Path) -> bool:
         assert (selected_profile, selected_data) == (profile, data)
@@ -54,6 +60,7 @@ def test_setup_orders_workstation_stages(monkeypatch, tmp_path, failure):
         events.append("import")
         return True
 
+    monkeypatch.setattr(setup, "check_docker", check_docker)
     monkeypatch.setattr(setup.setup_profile, "configure", save)
     monkeypatch.setattr(setup, "run_stack", stack)
     monkeypatch.setattr(setup.cli, "run_provision", provision)
@@ -61,16 +68,22 @@ def test_setup_orders_workstation_stages(monkeypatch, tmp_path, failure):
     monkeypatch.setattr(setup.setup_history, "import_selected", history)
 
     result = runner.invoke(app, ["setup"], input="y\n")
-    expected = ["profile", "check", "start"]
-    if failure != "start":
-        expected.append("provision")
-    if failure not in {"start", "provision"}:
-        expected.extend(["clients", "import"])
+    expected = ["docker"]
+    if failure != "docker":
+        expected.extend(["profile", "check", "start"])
+        if failure != "start":
+            expected.append("provision")
+        if failure not in {"start", "provision"}:
+            expected.extend(["clients", "import"])
     assert events == expected
     assert result.exit_code == (1 if failure else 0)
     assert "synthetic-secret-marker" not in result.output
-    if failure in {"start", "provision"}:
+    if failure in {"docker", "start", "provision"}:
         assert "History import deferred" in result.output
+        assert "Backend ready and bank provisioned" not in result.output
+    if failure == "docker":
+        assert "Start Docker" in result.output
+        assert "Start the local backend" not in result.output
 
 
 def test_setup_rejects_ambient_backend_override(monkeypatch):
