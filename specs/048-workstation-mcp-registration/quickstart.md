@@ -3,8 +3,8 @@
 ## Automated acceptance after implementation
 
 1. Run `uv run --locked pytest -q tests/unit/test_setup_client_discovery.py tests/unit/test_setup_clients.py tests/unit/test_setup_mcp_probe.py tests/unit/test_workstation_setup.py tests/structure/test_ubuntu_installer.py`. Confirm the dedicated PR check completes on both runner targets and the required GitHub check covers both results.
-2. Run the normal Windows and Ubuntu packaging and installed smoke steps documented in [release.yml](../../.github/workflows/release.yml). Exercise a compiled Windows wizard fixture and the Ubuntu launcher under isolated regular-user homes. Save PR run URL, exact Git SHA, platform files and SHA-256 manifest. Use a review build with no public release tag.
-3. Verify the build SHA against the implementation commit. Compare each file against the manifest with `Get-FileHash -Algorithm SHA256 <installer>` on Windows or `sha256sum -c SHA256SUMS` on Ubuntu. Run the normal interactive installer or launcher with the accompanying verified package.
+2. Run the normal Windows and Ubuntu packaging and installed smoke steps documented in [release.yml](../../.github/workflows/release.yml). Exercise a compiled Windows wizard fixture and the Ubuntu launcher under isolated regular-user homes. Save PR run URL, exact Git SHA, platform files and SHA-256 sidecars and `BUILD-COMMIT`. Use a review build with no public release tag.
+3. Compare `BUILD-COMMIT` with the implementation commit. Compare each file against the manifest with `Get-FileHash -Algorithm SHA256 <installer>` on Windows or `sha256sum -c ./*.sha256` on Ubuntu. Run the normal interactive installer or launcher with the accompanying verified package.
 
 ## Fresh-session checklist
 

@@ -302,14 +302,40 @@ def test_the_scan_is_proven_able_to_fail() -> None:
 
 def test_ci_uses_the_audited_toolchain() -> None:
     document = _workflow()
-    for job in ("checks", "live-contract", "live-e2e"):
+    for job in ("checks", "live-contract", "live-e2e", "workstation-client-discovery-matrix"):
         step = _step_using(document, job, "astral-sh/setup-uv@")
         assert step["uses"] == "astral-sh/setup-uv@v10.3.3"
         assert step["with"]["version"] == "0.13.7"
     for job in document["jobs"]:
+        if job == "workstation-client-discovery":
+            # The aggregate only checks matrix results.
+            continue
         step = _step_using(document, job, "actions/checkout@")
         assert step["uses"] == "actions/checkout@v7.0.1"
     assert "uv run --no-sync python --version" in _run_commands(document, "checks")
+
+
+def test_workstation_discovery_requires_both_platforms() -> None:
+    document = _workflow()
+    aggregate = document["jobs"]["workstation-client-discovery"]
+    matrix_id = "workstation-client-discovery-matrix"
+    assert aggregate["name"] == "Workstation client discovery"
+    assert aggregate["needs"] == matrix_id
+    assert aggregate["if"] == "always()"
+    assert document["jobs"][matrix_id]["strategy"]["matrix"]["os"] == [
+        "windows-2025",
+        "ubuntu-24.04",
+    ]
+    assert any(
+        "test_setup_client_discovery.py" in step for step in _run_commands(document, matrix_id)
+    )
+    assert aggregate["steps"] == [
+        {
+            "name": "Require both fixture runs",
+            "env": {"RESULT": "${{ needs.workstation-client-discovery-matrix.result }}"},
+            "run": 'test "$RESULT" = success',
+        }
+    ]
 
 
 # --- The image (004-ci-scanning-packaging, checks I7-I9) ---------------------------------------

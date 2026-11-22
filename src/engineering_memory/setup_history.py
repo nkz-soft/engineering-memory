@@ -12,8 +12,7 @@ from engineering_memory.ingestion.chatgpt.export import Export as ChatGPTExport
 from engineering_memory.ingestion.chatgpt.records import RecordScanner
 from engineering_memory.ingestion.claude_chat.export import Export as ClaudeExport
 from engineering_memory.ingestion.source import SourceFormatError, SourceUnavailable
-from engineering_memory.settings import load_settings
-from engineering_memory.setup_clients import profile_roots
+from engineering_memory.settings import load_settings, workstation_agent_profiles
 
 EXPORTS = {"chatgpt": ChatGPTExport, "claude-chat": ClaudeExport}
 
@@ -80,12 +79,12 @@ def _detect_export(path: Path) -> Candidate | None:
 
 
 def discover(inbox: Path | None) -> list[Candidate]:
-    roots = profile_roots()
+    codex, claude, _ = workstation_agent_profiles()
     candidates = [
         Candidate(source, path)
         for source, root in (
-            ("codex", roots["Codex"] / "sessions"),
-            ("claude-code", roots["Claude Code"] / "projects"),
+            ("codex", codex / "sessions"),
+            ("claude-code", claude / "projects"),
         )
         for path in _agent_files(root)
     ]

@@ -1,6 +1,7 @@
 """Interactive first-run setup for the installed workstation bundle."""
 
 import ctypes
+import hashlib
 import json
 import os
 import sys
@@ -79,10 +80,10 @@ def _check_provider_route(profile: Path) -> None:
     typer.echo("The provider accepted the synthetic completion request.")
 
 
-def _prepare_backend(profile: Path) -> None:
+def _prepare_backend(profile: Path) -> bool:
     run_stack("check")
     if not typer.confirm("Start the local backend and provision the shared bank?", default=True):
-        raise typer.Abort
+        return False
     run_stack("start")
     _check_provider_route(profile)
     try:
@@ -92,9 +93,11 @@ def _prepare_backend(profile: Path) -> None:
             "Bank provisioning failed. Check the backend and provider settings, then retry."
         ) from None
     typer.echo("Shared memory bank provisioned.")
+    return True
 
 
 _INSTALLER_PROTOCOL = "EM1"
+_MCP_PROTOCOL = "EM-MCP1"
 
 
 def _supported_installer_user() -> bool:
@@ -138,9 +141,76 @@ def _installer_start() -> str:
     return "ready"
 
 
+def _encoded(value: str) -> str:
+    return "v" + value.encode().hex()
+
+
+def _mcp_scan(executable: Path):
+    clients = setup_clients.discover()
+    reviews = []
+    for target in setup_clients.group_targets(clients):
+        review = setup_clients.inspect(target, executable)
+        ids = ",".join(sorted(client.id for client in target.clients))
+        token = (
+            hashlib.sha256(f"{review.token}:{ids}".encode()).hexdigest() if review.token else "-"
+        )
+        reviews.append((token, review))
+    return clients, reviews
+
+
+def _installer_mcp(action: str, request: dict[str, str]) -> tuple[str, ...]:
+    executable = Path(sys.executable).absolute()
+    if action == "mcp-scan" and not request:
+        clients, reviews = _mcp_scan(executable)
+        output = [_MCP_PROTOCOL]
+        for token, review in reviews:
+            output.extend(
+                (
+                    token,
+                    review.state,
+                    _encoded(", ".join(client.name for client in review.target.clients)),
+                    _encoded(str(review.target.config)),
+                    _encoded(review.diagnostic),
+                )
+            )
+        for client in clients:
+            if client.config is None:
+                output.extend(
+                    (
+                        "-",
+                        "blocked",
+                        _encoded(client.name),
+                        "v",
+                        _encoded(client.diagnostic or setup_clients.PROFILE_RESOLUTION),
+                    )
+                )
+        return tuple(output)
+    if action == "mcp-apply" and request.keys() == {"mcp"}:
+        consent = request["mcp"]
+        if len(consent) > 72:
+            return ("request",)
+        token, _, decision = consent.partition(":")
+        if len(token) != 64 or decision not in {"keep", "replace"}:
+            return ("request",)
+        _, reviews = _mcp_scan(executable)
+        for current, review in reviews:
+            if current == token:
+                result = setup_clients.verify(review, executable, replace=decision == "replace")
+                return _MCP_PROTOCOL, result.state, result.probe, _encoded(result.diagnostic)
+        return (
+            _MCP_PROTOCOL,
+            "blocked",
+            "skipped",
+            _encoded("The target or its configuration changed. Go back to rescan and retry."),
+        )
+    return ("request",)
+
+
 def _installer_output(action: str, request: dict[str, str]) -> tuple[str, ...]:
     if not _supported_installer_user():
         return ("user",)
+    if action in {"mcp-scan", "mcp-apply"}:
+        return _installer_mcp(action, request)
     if workstation_setup_overrides():
         return ("overrides",)
     profile, data = workstation.locations()
@@ -172,7 +242,7 @@ def _run_installer_ui(action: str) -> None:
     except Exception:
         output = ("profile",)
     typer.echo("\n".join(output))
-    if output[0] not in {_INSTALLER_PROTOCOL, "saved", "ready"}:
+    if output[0] not in {_INSTALLER_PROTOCOL, _MCP_PROTOCOL, "saved", "ready"}:
         raise typer.Exit(1)
 
 
@@ -213,18 +283,22 @@ def _run_setup() -> None:
         raise typer.Exit(1)
 
     stages = []
+    backend_ready = False
+    profile_failed = False
     try:
         check_docker()
         profile, data = workstation.locations()
-        if not setup_profile.configure(profile, data):
-            raise typer.Abort
-        stages.append("Profile saved")
-        _prepare_backend(profile)
-        stages.append("Backend ready and bank provisioned")
+        if setup_profile.configure(profile, data):
+            stages.append("Profile saved")
+            backend_ready = _prepare_backend(profile)
+        if backend_ready:
+            stages.append("Backend ready and bank provisioned")
+        else:
+            stages.append("Backend and history import deferred")
     except (setup_profile.ProfileError, StackError) as error:
         typer.echo(str(error), err=True)
-        typer.echo(". ".join([*stages, "History import deferred. Rerun setup to retry."]))
-        raise typer.Exit(1) from None
+        stages.append("History import deferred. Rerun setup to retry")
+        profile_failed = True
     except (typer.Abort, KeyboardInterrupt, EOFError):
         typer.echo(". ".join([*stages, "Setup deferred. Rerun setup to continue."]))
         return
@@ -234,12 +308,16 @@ def _run_setup() -> None:
         stages.append(
             "MCP registration reviewed" if clients else "MCP registration needs attention"
         )
-        history = setup_history.import_selected()
-        stages.append("History selection reviewed" if history else "History import needs attention")
+        history = True
+        if backend_ready:
+            history = setup_history.import_selected()
+            stages.append(
+                "History selection reviewed" if history else "History import needs attention"
+            )
     except (typer.Abort, KeyboardInterrupt, EOFError):
         typer.echo(". ".join([*stages, "Remaining setup deferred. Rerun setup to continue."]))
         return
 
     typer.echo(". ".join(stages) + ".")
-    if not (clients and history):
+    if profile_failed or not (clients and history):
         raise typer.Exit(1)

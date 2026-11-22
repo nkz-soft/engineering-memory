@@ -80,6 +80,34 @@ jobs:
       - name: Tests
         run: uv run pytest
 
+  workstation-client-discovery-matrix:
+    name: Workstation client discovery (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: '0.13.7'
+      - run: uv sync --locked
+      - run: uv run --no-sync pytest -q tests/unit/test_setup_client_discovery.py tests/unit/test_setup_clients.py tests/unit/test_setup_mcp_probe.py tests/unit/test_workstation_setup.py
+
+  workstation-client-discovery:
+    name: Workstation client discovery
+    runs-on: ubuntu-24.04
+    needs: workstation-client-discovery-matrix
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - name: Require both fixture runs
+        env:
+          RESULT: ${{ needs.workstation-client-discovery-matrix.result }}
+        run: test "$RESULT" = success
+
   scan:
     name: Secret scan
     runs-on: ubuntu-latest

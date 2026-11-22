@@ -36,10 +36,12 @@ data paths as needed. Enter your API key in the masked field. On reinstall, the
 installer loads saved settings and retains outbound proxy settings. Leave the key
 blank to keep it for the saved provider, or enter a replacement.
 
-Select **Save**, then choose whether to start the local stack and provision the
-shared bank. Start Docker before selecting this option. If setup fails, retry
-from the installer or finish and continue later. Select **Configure later** to
-finish before saving. `/SILENT` and `/VERYSILENT` skip configuration.
+Select **Save** or **Configure later**, then choose which profiles to register
+on **Connect MCP clients**. If you saved provider settings, the next page
+offers to start the local stack and provision the shared bank. Start Docker
+before selecting this option. If setup fails, retry from the installer or
+finish and continue later. `/SILENT` and `/VERYSILENT` skip configuration and
+client registration.
 
 ### Ubuntu 24.04 LTS amd64
 
@@ -65,8 +67,8 @@ version is present, use a clean workstation or review it in apt before retrying.
 ## Verify and manage the installation
 
 On Ubuntu, the terminal wizard checks Docker before prompting for provider
-settings. After you confirm startup, it provisions the shared bank and offers
-optional MCP registration and history import.
+settings. Client registration is offered even when startup is deferred.
+History import is offered after the shared bank is ready.
 
 After completing setup and opting in to startup, open a new terminal and check
 the installed version and service state. On Windows, a new terminal also picks
@@ -172,21 +174,29 @@ rerunning the installer preserves the private configuration and local data.
 
 ## Coding-agent setup
 
-Give the client the absolute installed command path and the single argument
-`serve`. Resolve the actual Windows path with
-`(Get-Command engineering-memory).Source` or use
-`/usr/bin/engineering-memory` on Ubuntu. In the commands below, substitute
-that path and quote it if it contains spaces.
+On Windows and Ubuntu, interactive installation offers the native Codex CLI,
+Codex Desktop, Claude Code and Claude Desktop installed for your account.
+Ubuntu coverage includes the vendor Desktop preview and beta. Select each
+profile you want to configure. A common Codex CLI and Desktop configuration
+is shown once. The Windows wizard recognizes packaged Claude Desktop profiles,
+including `Claude-3p`.
 
-```text
-codex mcp add engineering-memory -- "<absolute installed executable>" serve
-claude mcp add --transport stdio --scope user engineering-memory -- "<absolute installed executable>" serve
-```
+The installer adds the absolute installed Engineering Memory executable and
+the argument `serve`. A matching entry is kept. If the existing entry points
+to a checkout or another server, review and confirm before replacing it.
+When Codex CLI rejects `service_tier = "default"`, use a compatible Codex
+version or correct the setting in Codex before checking a fresh session.
+Setup preserves that setting. If a profile is ambiguous, check the active
+configuration in the client and retry `engineering-memory setup`.
 
-Start a fresh client session. Ask it to use Engineering Memory to find an
-imported decision and open the matching conversation with `get_conversation`.
-The MCP server reads the same local configuration when launched from any
-working directory.
+A passed local MCP check means the installed executable completed
+`initialize` and listed `search_memory` and `get_conversation`. It uses a
+temporary offline profile. To verify your client, fully quit and relaunch
+Desktop, or start a new CLI session. Check `/mcp` in Codex or Claude Code and
+the Chat connector picker or local MCP settings in Claude Desktop. If a
+profile was saved but the local check failed, rerun setup and check the
+reported diagnostic. If tools are missing only in a new session, check the
+client's active profile and managed settings.
 
 To keep coding-agent history current, configure
 [automatic session import](session-import.md) and optionally schedule it
@@ -194,8 +204,8 @@ under the same user account.
 
 ## Maintainer release procedure
 
-Each PR build uploads versioned packages, the Ubuntu launcher and checksum
-sidecars. After merge, tag the approved commit `v0.0.1` and push the tag. The same workflow uses the
+Each PR build uploads versioned packages, the Ubuntu launcher, checksum
+sidecars and a `BUILD-COMMIT` file for the exact revision. After merge, tag the approved commit `v0.0.1` and push the tag. The same workflow uses the
 locked uv environment and pinned Python and Inno Setup versions, checks the
 installed version on both platforms, and creates a draft release with the
 packages, launcher, checksums and installation notes. To reproduce the payload locally,
