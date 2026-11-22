@@ -66,11 +66,15 @@ end;
 
 const
   InstallerProtocol = 'EM1';
+  McpProtocol = 'EM-MCP1';
   SetupFieldCount = 8;
   KeyField = 7;
 
 var
-  SettingsPage: TWizardPage;
+  SettingsPage, McpPage: TWizardPage;
+  McpChoices: TNewCheckListBox;
+  McpDetails: TNewMemo;
+  McpTokens, McpStates, McpNames, McpNotes: TArrayOfString;
   StartPage: TInputOptionWizardPage;
   ProgressPage: TOutputMarqueeProgressWizardPage;
   Edits: array[0..7] of TNewEdit;
@@ -130,6 +134,146 @@ begin
   end;
   Value := Utf8Decode(Bytes);
   Result := True;
+end;
+
+procedure ShowMcpTarget(Sender: TObject);
+var
+  Index: Integer;
+begin
+  Index := McpChoices.ItemIndex;
+  if (Index >= 0) and (Index < GetArrayLength(McpNotes)) then
+    McpDetails.Text := McpNotes[Index];
+end;
+
+procedure LoadMcpTargets;
+var
+  Output: TArrayOfString;
+  Token, State, Names, Profile, Diagnostic: String;
+  Count, Index, Offset: Integer;
+begin
+  McpChoices.Items.Clear;
+  McpDetails.Text := 'Client discovery failed. You can finish installation and retry from setup.';
+  SetArrayLength(McpTokens, 0);
+  SetArrayLength(McpStates, 0);
+  SetArrayLength(McpNames, 0);
+  SetArrayLength(McpNotes, 0);
+  if not RunSetupHelper('mcp-scan', Output) then Exit;
+  Count := GetArrayLength(Output);
+  if Count < 1 then Exit;
+  if (Output[0] <> McpProtocol) or ((Count - 1) mod 5 <> 0) or (Count > 21) then Exit;
+  Count := (Count - 1) div 5;
+  if Count = 0 then
+  begin
+    McpDetails.Text := 'No supported client installations were found.';
+    Exit;
+  end;
+  for Index := 0 to Count - 1 do
+  begin
+    Offset := 1 + Index * 5;
+    Token := Output[Offset];
+    State := Output[Offset + 1];
+    if not DecodeField(Output[Offset + 2], Names) then Break;
+    if not DecodeField(Output[Offset + 3], Profile) then Break;
+    if not DecodeField(Output[Offset + 4], Diagnostic) then Break;
+    if State = 'absent' then State := 'add'
+    else if State = 'matching' then State := 'verify'
+    else if State = 'conflict' then State := 'conflict'
+    else if (State <> 'blocked') or (Token <> '-') then Break;
+    if (State <> 'blocked') and (Length(Token) <> 64) then Break;
+    SetArrayLength(McpTokens, Index + 1);
+    SetArrayLength(McpStates, Index + 1);
+    SetArrayLength(McpNames, Index + 1);
+    SetArrayLength(McpNotes, Index + 1);
+    McpTokens[Index] := Token;
+    McpStates[Index] := State;
+    McpNames[Index] := Names;
+    McpNotes[Index] := Profile;
+    if Diagnostic <> '' then
+    begin
+      if Profile <> '' then McpNotes[Index] := Profile + #13#10;
+      McpNotes[Index] := McpNotes[Index] + Diagnostic;
+    end;
+    McpChoices.AddCheckBox(Names + ' (' + State + ')', '', 0, False,
+      State <> 'blocked', False, False, nil);
+  end;
+  if McpChoices.Items.Count > 0 then
+  begin
+    McpChoices.ItemIndex := 0;
+    ShowMcpTarget(nil);
+  end;
+end;
+
+function ApplyMcpTarget(const Token, Decision: String; var Output: TArrayOfString): Boolean;
+var
+  Name, Previous: String;
+  Existed: Boolean;
+begin
+  Result := False;
+  Name := 'EM_INSTALLER_UI_MCP';
+  Existed := ProcessEnvSize(Name, 0, 0) > 0;
+  Previous := GetEnv(Name);
+  if not SetProcessEnv(Name, Token + ':' + Decision) then Exit;
+  try
+    Result := RunSetupHelper('mcp-apply', Output);
+  finally
+    if Existed then SetProcessEnv(Name, Previous)
+    else DeleteProcessEnv(Name, 0);
+  end;
+end;
+
+function ApplyMcpTargets: Boolean;
+var
+  Output: TArrayOfString;
+  Summary, Decision, Diagnostic: String;
+  Index: Integer;
+  Success: Boolean;
+begin
+  Result := True;
+  Summary := '';
+  for Index := 0 to GetArrayLength(McpTokens) - 1 do
+  begin
+    if not McpChoices.Checked[Index] or (McpStates[Index] = 'blocked') then Continue;
+    if Summary <> '' then Summary := Summary + #13#10#13#10;
+    Summary := Summary + McpNames[Index] + ': ';
+    Decision := 'keep';
+    if McpStates[Index] = 'conflict' then
+    begin
+      if MsgBox('Replace the existing Engineering Memory registration for ' + McpNames[Index] + '?' + #13#10#13#10 +
+          McpNotes[Index], mbConfirmation, MB_YESNO or MB_DEFBUTTON2) <> IDYES then
+      begin
+        Summary := Summary + 'Kept existing registration. Local MCP check: skipped.';
+        Continue;
+      end;
+      Decision := 'replace';
+    end;
+    ProgressPage.SetText('Checking the installed MCP server...', McpNames[Index]);
+    ProgressPage.Show;
+    try
+      Success := ApplyMcpTarget(McpTokens[Index], Decision, Output);
+    finally
+      ProgressPage.Hide;
+    end;
+    if Success then Success := GetArrayLength(Output) = 4;
+    if Success then
+      Success := (Output[0] = McpProtocol) and DecodeField(Output[3], Diagnostic);
+    if not Success then
+    begin
+      Summary := Summary + 'Could not run client setup. Go back to rescan or rerun setup later.';
+      Result := False;
+      Continue;
+    end;
+    Summary := Summary + Output[1] + '. Local MCP check: ' + Output[2] + '.';
+    if Diagnostic <> '' then Summary := Summary + ' ' + Diagnostic;
+    if (Output[1] = 'blocked') or (Output[1] = 'failed') or
+       ((Output[2] <> 'passed') and (Output[2] <> 'skipped')) then Result := False;
+  end;
+  if not Result then
+  begin
+    Summary := Summary + #13#10#13#10 +
+      'Select a target to retry, or continue without selecting one.';
+    LoadMcpTargets;
+  end;
+  if Summary <> '' then MsgBox(Summary, mbInformation, MB_OK);
 end;
 
 function StatusMessage(const Status: String): String;
@@ -280,7 +424,19 @@ begin
   DeferCheck.Caption := 'Con&figure later';
   DeferCheck.OnClick := @UpdateSettingsButton;
 
-  StartPage := CreateInputOptionPage(SettingsPage.ID, 'Start Engineering Memory',
+  McpPage := CreateCustomPage(SettingsPage.ID, 'Connect MCP clients',
+    'Choose the installed clients that should use Engineering Memory.');
+  McpChoices := TNewCheckListBox.Create(McpPage);
+  McpChoices.Parent := McpPage.Surface;
+  McpChoices.SetBounds(0, 0, McpPage.SurfaceWidth, ScaleY(106));
+  McpChoices.OnClick := @ShowMcpTarget;
+  McpDetails := TNewMemo.Create(McpPage);
+  McpDetails.Parent := McpPage.Surface;
+  McpDetails.SetBounds(0, ScaleY(114), McpPage.SurfaceWidth, ScaleY(79));
+  McpDetails.ReadOnly := True;
+  McpDetails.ScrollBars := ssVertical;
+
+  StartPage := CreateInputOptionPage(McpPage.ID, 'Start Engineering Memory',
     'Your settings have been saved.',
     'Select the option to start now. Leave it unselected to finish without starting Docker services.',
     False, False);
@@ -305,7 +461,8 @@ begin
     StartPage.Values[0] := False;
     Loaded := LoadSetupFields;
     UpdateSettingsButton(nil);
-  end;
+  end
+  else if CurPageID = McpPage.ID then LoadMcpTargets;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -347,6 +504,8 @@ begin
     else
       MsgBox(StatusMessage(Status), mbError, MB_OK);
   end
+  else if CurPageID = McpPage.ID then
+    Result := ApplyMcpTargets
   else if CurPageID = StartPage.ID then
   begin
     if not StartPage.Values[0] then Exit;

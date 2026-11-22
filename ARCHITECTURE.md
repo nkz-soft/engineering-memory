@@ -1057,6 +1057,11 @@ packages manage command discovery and binary replacement. A generic archive
 would leave that work to operators, and a container-only CLI would require
 container startup for each agent process.
 
+Use `tomlkit` for workstation setup edits to Codex's user TOML. It preserves
+unrelated values and comments even if the active Codex CLI cannot load the
+profile. The Python standard library remains the parser for read-only TOML
+configuration elsewhere. See [workstation MCP registration](specs/048-workstation-mcp-registration/plan.md).
+
 **Verification.** Build and smoke-test both tagged packages before drafting
 a release. Verify import, recall with source, and persistence through restart
 and reinstall on both supported platforms before publishing.

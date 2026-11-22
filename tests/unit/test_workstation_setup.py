@@ -74,8 +74,9 @@ def test_setup_orders_workstation_stages(monkeypatch, tmp_path, failure):
         expected.extend(["profile", "check", "start"])
         if failure != "start":
             expected.append("provision")
-        if failure not in {"start", "provision"}:
-            expected.extend(["clients", "import"])
+    expected.append("clients")
+    if failure not in {"docker", "start", "provision"}:
+        expected.append("import")
     assert events == expected
     assert result.exit_code == (1 if failure else 0)
     assert "synthetic-secret-marker" not in result.output
@@ -183,3 +184,60 @@ def test_installer_reports_safe_backend_stage(monkeypatch, tmp_path, failure, st
     assert result.exit_code == bool(failure)
     assert calls == events
     assert "SYNTHETIC" not in result.output
+
+
+def test_installer_client_actions_require_snapshot_and_keep_profile_private(monkeypatch, tmp_path):
+    from engineering_memory import setup_mcp_probe
+    from engineering_memory.cli import setup
+    from engineering_memory.setup_client_discovery import Client
+
+    path = tmp_path / "Profil Codex é" / "config.toml"
+    path.parent.mkdir()
+    path.write_text('service_tier = "default"\nmodel = "fixture-secret-value"\n', encoding="utf-8")
+    clients = (
+        Client("codex-cli", "Codex CLI", path),
+        Client("codex-desktop", "Codex Desktop", path),
+    )
+    monkeypatch.setattr(setup, "_supported_installer_user", lambda: True)
+    monkeypatch.setattr(setup.setup_clients, "discover", lambda: clients)
+    monkeypatch.setattr(setup_mcp_probe, "probe", lambda executable: "passed")
+    preview = setup._installer_output("mcp-scan", {})
+    assert preview[0] == "EM-MCP1"
+    assert len(preview) == 6
+    _, token, status, names, config, warning = preview
+
+    def decode(field):
+        return bytes.fromhex(field[1:]).decode()
+
+    assert status == "absent"
+    assert decode(names) == "Codex CLI, Codex Desktop"
+    assert Path(decode(config)) == path
+    assert "service_tier" in decode(warning)
+    assert "fixture-secret-value" not in decode(warning)
+    before = path.read_bytes()
+    assert setup._installer_output("mcp-apply", {"mcp": f"{token}:keep"})[0] == "EM-MCP1"
+    assert path.read_bytes() != before
+    assert setup._installer_output("mcp-apply", {"mcp": f"{token}:replace"})[1] == "blocked"
+    assert "fixture-secret-value" in path.read_text(encoding="utf-8")
+
+
+def test_terminal_client_setup_available_when_backend_deferred(monkeypatch, tmp_path):
+    from engineering_memory.cli import setup
+
+    events = []
+    monkeypatch.setattr(setup, "has_terminal", lambda: True)
+    monkeypatch.setattr(setup.workstation, "is_installed", lambda: True)
+    monkeypatch.setattr(setup.workstation, "locations", lambda: (tmp_path, tmp_path))
+    monkeypatch.setattr(setup.os, "geteuid", lambda: 1000, raising=False)
+    monkeypatch.setattr(setup, "check_docker", lambda: None)
+    monkeypatch.setattr(setup.setup_profile, "configure", lambda *args: True)
+    monkeypatch.setattr(setup, "run_stack", lambda action: events.append(action))
+    monkeypatch.setattr(setup.setup_clients, "configure", lambda _: not events.append("register"))
+    monkeypatch.setattr(
+        setup.setup_history, "import_selected", lambda: pytest.fail("History is deferred")
+    )
+
+    result = runner.invoke(app, ["setup"], input="n\n")
+    assert result.exit_code == 0
+    assert events == ["check", "register"]
+    assert "MCP registration reviewed" in result.output

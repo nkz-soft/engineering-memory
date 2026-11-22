@@ -95,6 +95,7 @@ EXPECTED_RUNTIME_DEPENDENCIES = frozenset(
         "opentelemetry-api",
         "opentelemetry-sdk",
         "typer",
+        "tomlkit",
         "sqlalchemy",
         "httpx",
         "tenacity",
@@ -123,6 +124,7 @@ that needed it, and with the row of the constitution's Technology Stack table th
   the SDK for the process that configures a provider, not two competing choices
   (specs/003-logging-telemetry-baseline/research.md R11). No exporter distribution is declared:
   nothing is exported yet, and the feature that exports chooses its exporter then.
+* `tomlkit` — round-trip edits to workstation Codex MCP configuration only (ADR-013).
 * `typer` — the CLI row, added by 004-ci-scanning-packaging. The container image's entry point must
   be an installed application, so the entry point had to exist; it is a shell with no command, and
   `tests/unit/test_cli.py` keeps it that way (specs/004-ci-scanning-packaging/research.md R11).

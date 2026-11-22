@@ -106,6 +106,14 @@ def workstation_subprocess_environment() -> dict[str, str]:
     return environment
 
 
+def workstation_native_process_variables() -> dict[str, str]:
+    """Keep the Windows process variables needed to start an isolated native child."""
+    if os.name != "nt":
+        return {}
+    names = ("SYSTEMROOT", "SYSTEMDRIVE", "PROCESSOR_ARCHITECTURE", "PATHEXT")
+    return {name: os.environ[name] for name in names if name in os.environ}
+
+
 def workstation_agent_profiles() -> tuple[Path, Path, Path]:
     codex = Path(os.getenv("CODEX_HOME") or Path.home() / ".codex").expanduser().absolute()
     claude_override = os.getenv("CLAUDE_CONFIG_DIR")
