@@ -88,6 +88,56 @@ def test_setup_orders_workstation_stages(monkeypatch, tmp_path, failure):
         assert "Start the local backend" not in result.output
 
 
+def test_configure_existing_cancel_does_not_create_profile(monkeypatch, tmp_path):
+    from engineering_memory import setup_profile
+
+    profile = tmp_path / "config"
+    monkeypatch.setattr(setup_profile, "_collect", lambda *_: None)
+    monkeypatch.setattr(setup_profile.typer, "confirm", lambda *_, **__: False)
+
+    assert not setup_profile.configure_existing(profile, tmp_path)
+    assert not profile.exists()
+
+
+def test_configure_existing_reports_malformed_profile_safely(tmp_path):
+    from engineering_memory import setup_profile
+
+    profile = tmp_path / "config"
+    profile.mkdir()
+    compose = profile / "compose.env"
+    content = b"\xfffixture"
+    compose.write_bytes(content)
+    with pytest.raises(setup_profile.ProfileError, match="Could not read"):
+        setup_profile.configure_existing(profile, tmp_path)
+    assert compose.read_bytes() == content
+
+
+def test_configure_only_reviews_profile_and_mcp_without_docker(monkeypatch, tmp_path):
+    from engineering_memory.cli import setup
+
+    events = []
+    monkeypatch.setattr(setup, "has_terminal", lambda: True)
+    monkeypatch.setattr(setup.workstation, "is_installed", lambda: True)
+    monkeypatch.setattr(setup.workstation, "locations", lambda: (tmp_path, tmp_path))
+
+    def review(*_):
+        events.append("profile")
+        return True
+
+    monkeypatch.setattr(setup.setup_profile, "configure_existing", review)
+    monkeypatch.setattr(setup.setup_clients, "configure", lambda *_: not events.append("mcp"))
+
+    def unexpected(*_):
+        pytest.fail("Configuration-only setup must not touch Docker or import history")
+
+    monkeypatch.setattr(setup, "check_docker", unexpected)
+    monkeypatch.setattr(setup, "_prepare_backend", unexpected)
+    monkeypatch.setattr(setup.setup_history, "import_selected", unexpected)
+    result = runner.invoke(app, ["setup", "--configure-only"], input="y\n")
+    assert result.exit_code == 0, result.output
+    assert events == ["profile", "mcp"]
+
+
 def test_setup_rejects_ambient_backend_override(monkeypatch):
     from engineering_memory.cli import setup
 
@@ -136,6 +186,26 @@ def test_installer_read_and_save_keep_key_private(monkeypatch, tmp_path):
     assert reopened.stdout.splitlines()[:2] == ["EM1", "1"]
     assert "SYNTHETIC-install-key" not in reopened.output
     assert "EM_INSTALLER_UI_" not in "\n".join(os.environ)
+
+
+def test_maintenance_read_never_recovers_or_changes_a_profile(monkeypatch, tmp_path):
+    _, profile, _ = installer_home(monkeypatch, tmp_path)
+    profile.mkdir()
+    compose = profile / "compose.env"
+    compose.write_text("PRODUCT_PROVIDER_MODEL=openrouter/example\n", encoding="utf-8")
+
+    opened = runner.invoke(app, ["setup", "--installer-ui", "read-maintenance"])
+    assert opened.exit_code == 0, opened.output
+    assert opened.stdout.startswith("EM1\n")
+    assert list(profile.iterdir()) == [compose]
+
+    journal = profile / ".setup-recovery"
+    journal.write_text('["original", null]', encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in profile.iterdir()}
+    blocked = runner.invoke(app, ["setup", "--installer-ui", "read-maintenance"])
+    assert blocked.exit_code == 1
+    assert blocked.stdout == "recovery-required\n"
+    assert {path.name: path.read_bytes() for path in profile.iterdir()} == before
 
 
 def test_installer_malformed_request_clears_environment(monkeypatch, tmp_path):

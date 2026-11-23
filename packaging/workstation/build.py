@@ -8,6 +8,8 @@ import tomllib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from windows_manifest import build_manifest
+
 ROOT = Path(__file__).resolve().parents[2]
 NAME = "engineering-memory"
 ASSETS = (
@@ -67,6 +69,8 @@ def main() -> None:
         result = subprocess.check_output([str(executable), "--version"], text=True, cwd=scratch)
         if result.strip() != f"{NAME} {version}":
             raise SystemExit(f"Unexpected packaged version: {result!r}")
+        if sys.platform == "win32":
+            build_manifest(executable.parent, version)
 
 
 if __name__ == "__main__":
