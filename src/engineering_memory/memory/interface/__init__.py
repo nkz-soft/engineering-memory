@@ -12,6 +12,8 @@ from engineering_memory.memory.interface.store import (
     RecallResult,
     ReflectionReader,
     ReflectionResult,
+    RetainProgress,
+    TrackedRetain,
 )
 
 __all__ = [
@@ -21,4 +23,6 @@ __all__ = [
     "RecallResult",
     "ReflectionReader",
     "ReflectionResult",
+    "RetainProgress",
+    "TrackedRetain",
 ]

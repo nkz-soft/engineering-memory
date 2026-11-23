@@ -6,9 +6,10 @@ import json
 import math
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 
@@ -26,9 +27,14 @@ from engineering_memory.memory.interface import (
     MemoryStoreRejected,
     MemoryStoreUnavailable,
     ReflectionResult,
+    RetainProgress,
 )
 from engineering_memory.normalization import AnyTag, EnrichedConversation
 from engineering_memory.settings import HindsightSettings
+
+
+class _RetainNotSent(MemoryStoreUnavailable):
+    """The transport failed before it could send the submission."""
 
 
 class HindsightStore:
@@ -75,6 +81,7 @@ class HindsightStore:
         self._retry = retry_policy or RetryPolicy()
         self._request_ordinal = 0
         self._bank = settings.bank_id
+        self._receipt_scope = hashlib.sha256((self._base + self._root).encode()).hexdigest()
 
     def close(self):
         if self._owned:
@@ -110,35 +117,63 @@ class HindsightStore:
         reject_identity=None,
         operation_id=None,
         document_id=None,
+        tracked_submission=False,
     ):
         self._request_ordinal += 1
         kind = "poll" if method == "GET" else path.rsplit("/", 1)[-1]
         if kind == "memories":
             kind = "retain"
 
+        possibly_sent = False
+
         def request_once():
-            nonlocal reject_identity
+            nonlocal reject_identity, possibly_sent
             try:
                 return self._single_request(
-                    method, path, deadline, content=content, reject_identity=reject_identity
+                    method,
+                    path,
+                    deadline,
+                    content=content,
+                    reject_identity=reject_identity,
+                    tracked_submission=tracked_submission,
                 )
-            except TransientFailure:
-                # Acceptance may have happened before the response was lost. A
-                # later refusal cannot resolve that earlier uncertainty.
+            except _RetainNotSent:
+                raise TransientFailure("connection_unavailable") from None
+            except (TransientFailure, MemoryStoreUnavailable):
+                # A later refusal cannot resolve an earlier ambiguous response.
+                possibly_sent = True
                 reject_identity = None
                 raise
+            except MemoryStoreRejected:
+                if tracked_submission and possibly_sent:
+                    raise MemoryStoreUnavailable("retain submission status is unknown") from None
+                raise
 
-        return self._retry.run(
-            request_once,
-            deadline,
-            operation=kind,
-            request_ordinal=self._request_ordinal,
-            bank=self._bank,
-            operation_id=operation_id,
-            document_id=document_id,
-        )
+        try:
+            return self._retry.run(
+                request_once,
+                deadline,
+                operation=kind,
+                request_ordinal=self._request_ordinal,
+                bank=self._bank,
+                operation_id=operation_id,
+                document_id=document_id,
+            )
+        except MemoryStoreUnavailable:
+            if tracked_submission and not possibly_sent:
+                raise _RetainNotSent("memory connection unavailable") from None
+            raise
 
-    def _single_request(self, method, path, deadline, *, content=None, reject_identity=None):
+    def _single_request(
+        self,
+        method,
+        path,
+        deadline,
+        *,
+        content=None,
+        reject_identity=None,
+        tracked_submission=False,
+    ):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise MemoryStoreUnavailable("memory operation unavailable: deadline exceeded")
@@ -162,6 +197,10 @@ class HindsightStore:
                     follow_redirects=False,
                 )
         except (httpx.TransportError, TimeoutError) as error:
+            if tracked_submission and isinstance(
+                error, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)
+            ):
+                raise _RetainNotSent("memory connection unavailable") from None
             category = transient_transport(error)
             if category is not None and time.monotonic() < deadline:
                 raise TransientFailure(category) from None
@@ -171,6 +210,8 @@ class HindsightStore:
         if response.status_code in {429, 502, 503, 504}:
             raise TransientFailure("http_status", response.status_code)
         if not response.is_success:
+            if tracked_submission and response.status_code not in {400, 401, 403, 404, 413, 422}:
+                raise MemoryStoreUnavailable("retain submission status is unknown")
             if reject_identity is not None:
                 self._pending.pop(reject_identity, None)
             raise MemoryStoreRejected("memory operation rejected")
@@ -180,11 +221,101 @@ class HindsightStore:
                 raise ValueError
             return result
         except (ValueError, UnicodeError):
+            if tracked_submission:
+                raise MemoryStoreUnavailable("retain submission status is unknown") from None
             raise MemoryStoreRejected("invalid memory response") from None
 
     @staticmethod
     def _encode(body):
         return json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+    @staticmethod
+    def _acknowledged(result: dict, operation: str) -> bool:
+        return (
+            result.get("success") is True
+            and result.get("async") is True
+            and result.get("operation_id") == operation
+            and result.get("operation_ids") in (None, [operation])
+        )
+
+    def _retain_body(self, item: dict, operation: str) -> bytes:
+        body = self._encode({"items": [item], "async": True, "operation_id": operation})
+        if len(body) > self._max_bytes:
+            raise MemoryStoreRejected("conversation exceeds request size limit")
+        return body
+
+    def retain_tracked(
+        self, enriched: EnrichedConversation, checkpoint: Callable[[str, bool], None]
+    ) -> RetainProgress:
+        """Submit with a saved identity, then wait within the CLI budget."""
+        operation = str(uuid4())
+        body = self._retain_body(item_for(enriched), operation)
+        receipt = f"{self._receipt_scope}:{operation}"
+        checkpoint(receipt, False)
+        deadline = time.monotonic() + self._completion
+        try:
+            result = self._request(
+                "POST",
+                self._root + "/memories",
+                deadline,
+                content=body,
+                operation_id=operation,
+                document_id=enriched.document_id,
+                tracked_submission=True,
+            )
+        except (MemoryStoreRejected, _RetainNotSent):
+            return RetainProgress.FAILED
+        except MemoryStoreUnavailable:
+            return RetainProgress.UNKNOWN
+        if not self._acknowledged(result, operation):
+            return RetainProgress.UNKNOWN
+        checkpoint(receipt, True)
+        while time.monotonic() < deadline:
+            status = self._retain_progress(operation, deadline)
+            if status is not RetainProgress.PENDING:
+                return status
+            time.sleep(min(self._interval, max(0, deadline - time.monotonic())))
+        return RetainProgress.PENDING
+
+    def check_retain(self, receipt: str) -> RetainProgress:
+        scope, _, operation = receipt.partition(":")
+        if scope != self._receipt_scope:
+            return RetainProgress.UNKNOWN
+        try:
+            operation = str(UUID(operation))
+        except ValueError:
+            return RetainProgress.UNKNOWN
+        return self._retain_progress(operation, time.monotonic() + self._timeout)
+
+    def _retain_progress(self, operation: str, deadline: float) -> RetainProgress:
+        try:
+            result = self._request(
+                "GET", self._root + "/operations/" + operation, deadline, operation_id=operation
+            )
+        except (MemoryStoreRejected, MemoryStoreUnavailable):
+            return RetainProgress.UNKNOWN
+        if result.get("operation_id") != operation:
+            return RetainProgress.UNKNOWN
+        status = result.get("status")
+        if status == "completed":
+            return RetainProgress.COMPLETED
+        if status in ("failed", "cancelled"):
+            return RetainProgress.FAILED
+        if status not in ("pending", "processing"):
+            return RetainProgress.UNKNOWN
+
+        # The aggregate can lag its children. Only an entirely terminal child set
+        # resolves the batch.
+        children = result.get("child_operations")
+        if isinstance(children, list) and children:
+            statuses = [
+                child.get("status") if isinstance(child, dict) else None for child in children
+            ]
+            if all(state in ("completed", "failed", "cancelled") for state in statuses):
+                if all(state == "completed" for state in statuses):
+                    return RetainProgress.COMPLETED
+                return RetainProgress.FAILED
+        return RetainProgress.PENDING
 
     def retain(self, enriched: EnrichedConversation) -> None:
         item = item_for(enriched)
@@ -194,9 +325,7 @@ class HindsightStore:
             previous = self._pending.get(identity)
             replaying = bool(previous and previous[0] == fingerprint)
             operation = previous[1] if replaying else str(uuid4())
-            body = self._encode({"items": [item], "async": True, "operation_id": operation})
-            if len(body) > self._max_bytes:
-                raise MemoryStoreRejected("conversation exceeds request size limit")
+            body = self._retain_body(item, operation)
             if identity not in self._pending and len(self._pending) >= 128:
                 raise MemoryStoreUnavailable("too many uncertain memory operations")
             self._pending[identity] = (fingerprint, operation)
@@ -210,12 +339,7 @@ class HindsightStore:
                 operation_id=operation,
                 document_id=identity,
             )
-            if (
-                result.get("success") is not True
-                or result.get("async") is not True
-                or result.get("operation_id") != operation
-                or result.get("operation_ids") not in (None, [operation])
-            ):
+            if not self._acknowledged(result, operation):
                 raise MemoryStoreRejected("invalid retain acknowledgement")
             while True:
                 result = self._request(

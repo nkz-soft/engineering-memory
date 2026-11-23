@@ -19,6 +19,8 @@ Contract: specs/007-boundary-interfaces/contracts/interfaces.md, rules MS-1 to M
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
 from engineering_memory.errors import PermanentBoundaryError, TransientBoundaryError
@@ -32,6 +34,8 @@ __all__ = [
     "RecallResult",
     "ReflectionReader",
     "ReflectionResult",
+    "RetainProgress",
+    "TrackedRetain",
 ]
 
 BOUNDARY = "memory store"
@@ -121,6 +125,30 @@ class MemoryStore(Protocol):
             MemoryStoreRejected: refused, unauthorized or invalid input.
             MemoryStoreUnavailable: timeout, reset or a retryable status.
         """
+        ...
+
+
+class RetainProgress(StrEnum):
+    """Observable progress of a tracked retain."""
+
+    UNKNOWN = "unknown"
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+@runtime_checkable
+class TrackedRetain(Protocol):
+    """Optional durable write capability for asynchronous memory stores."""
+
+    def retain_tracked(
+        self, enriched: EnrichedConversation, checkpoint: Callable[[str, bool], None]
+    ) -> RetainProgress:
+        """Checkpoint a destination-scoped receipt before sending and after acknowledgement."""
+        ...
+
+    def check_retain(self, receipt: str) -> RetainProgress:
+        """Look up the receipt without sending another retain."""
         ...
 
 

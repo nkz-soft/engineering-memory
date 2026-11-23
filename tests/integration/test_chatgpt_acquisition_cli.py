@@ -140,6 +140,7 @@ def test_v1_status_and_preview_are_read_only_and_acquisition_migrates(configured
     state.initialize()
     state.close()
     with sqlite3.connect(path) as conn:
+        conn.execute("DROP TABLE retain_receipts")
         conn.execute("DROP TABLE source_health")
         conn.execute("DROP TABLE project_import_health")
         conn.execute("DROP TABLE export_acquisitions")
@@ -155,7 +156,7 @@ def test_v1_status_and_preview_are_read_only_and_acquisition_migrates(configured
     )
     assert invoke("acquire-chatgpt", "--file", str(export))["imported"] == 1
     with sqlite3.connect(path) as conn:
-        assert conn.execute("SELECT version FROM import_state_schema").fetchone() == (3,)
+        assert conn.execute("SELECT version FROM import_state_schema").fetchone() == (4,)
         assert conn.execute("SELECT count(*) FROM export_acquisitions").fetchone() == (1,)
 
 
@@ -213,6 +214,7 @@ def test_v1_migration_rolls_back_if_new_schema_validation_fails(configured, monk
     state.initialize()
     state.close()
     with sqlite3.connect(path) as conn:
+        conn.execute("DROP TABLE retain_receipts")
         conn.execute("DROP TABLE source_health")
         conn.execute("DROP TABLE project_import_health")
         conn.execute("DROP TABLE export_acquisitions")
@@ -222,7 +224,7 @@ def test_v1_migration_rolls_back_if_new_schema_validation_fails(configured, monk
 
     def reject_migrated(connection):
         version = validate(connection)
-        if version == 3:
+        if version == 4:
             raise ImportStateCorrupt("test injection")
         return version
 

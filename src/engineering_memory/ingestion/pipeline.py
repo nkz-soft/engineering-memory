@@ -16,13 +16,28 @@ from engineering_memory.ingestion.report import (
     RunReport,
     Stage,
 )
+from engineering_memory.ingestion.retention import RetainJournal, RetainReceipt, RetainStatus
 from engineering_memory.ingestion.source import (
     ConversationSource,
     SourceConversation,
     SourceFormatError,
 )
-from engineering_memory.ingestion.state import ImportRecord, ImportState, ImportStatus, may_skip
-from engineering_memory.memory.interface import MemoryStore
+from engineering_memory.ingestion.state import (
+    ImportRecord,
+    ImportState,
+    ImportStateCorrupt,
+    ImportStateUnavailable,
+    ImportStatus,
+    may_skip,
+)
+from engineering_memory.memory.interface import (
+    MemoryStore,
+    MemoryStoreRejected,
+    MemoryStoreUnavailable,
+    RetainProgress,
+    TrackedRetain,
+)
+from engineering_memory.normalization import EnrichedConversation
 from engineering_memory.normalization.base import OpaqueIdentifier
 from engineering_memory.normalization.enrichment import enrich
 from engineering_memory.observability.logging import get_logger
@@ -54,6 +69,7 @@ class IngestionPipeline:
         user: str | None = None,
         clock: Callable[[], datetime] = _utc_now,
         record_import: Callable[[ImportRecord, str, datetime], None] | None = None,
+        retain_journal: RetainJournal | None = None,
     ) -> None:
         self.sanitizer = sanitizer
         self.classifier = classifier
@@ -66,9 +82,16 @@ class IngestionPipeline:
         self.user = user
         self.clock = clock
         self.record_import = record_import
+        self.retain_journal = retain_journal
+        self.tracked_memory = memory if isinstance(memory, TrackedRetain) else None
 
     def run(
-        self, source: ConversationSource, *, force: bool = False, dry_run: bool = False
+        self,
+        source: ConversationSource,
+        *,
+        force: bool = False,
+        dry_run: bool = False,
+        reconcile_missing: bool = True,
     ) -> RunReport:
         """Return outcomes in source order; cancellation propagates unchanged."""
         if not dry_run and (self.memory is None or self.state is None):
@@ -77,10 +100,22 @@ class IngestionPipeline:
         report_type = PreviewReport if dry_run else RunReport
         outcome_type = PreviewOutcome if dry_run else ConversationOutcome
         overlay = {} if dry_run else None
+        handled_retains: set[str] = set()
+        receipts: dict[str, RetainReceipt] = {}
+        if not dry_run and self.retain_journal is not None:
+            try:
+                receipts = {
+                    receipt.source_id: receipt
+                    for receipt in self.retain_journal.pending_retains(source.source)
+                }
+            except Exception:
+                return report_type(terminal_error=Stage.STATE_READ)
+        terminal_error = None
         try:
             reader = iter(source.read())
         except Exception:
-            return report_type(terminal_error=Stage.SOURCE)
+            terminal_error = Stage.SOURCE
+            reader = iter(())
         while True:
             started_at = self.clock()
             started = perf_counter()
@@ -100,14 +135,32 @@ class IngestionPipeline:
                 outcomes.append(outcome)
                 continue
             except Exception:
-                return report_type(outcomes=tuple(outcomes), terminal_error=Stage.SOURCE)
-            outcome, project = self._process(item, force=force, overlay=overlay)
+                terminal_error = Stage.SOURCE
+                break
+            source_id = item.conversation.source_id
+            if source_id in handled_retains:
+                continue
+            receipt = receipts.pop(source_id, None)
+            outcome, project = self._process(item, force=force, overlay=overlay, receipt=receipt)
+            if receipt is not None or _retain_unresolved(outcome):
+                handled_retains.add(source_id)
             self._try_emit(outcome, project, started_at, started)
             outcomes.append(outcome)
-        return report_type(outcomes=tuple(outcomes))
+        if reconcile_missing:
+            for receipt in receipts.values():
+                started_at, started = self.clock(), perf_counter()
+                outcome = self._reconcile_retain(receipt)
+                self._try_emit(outcome, receipt.project, started_at, started)
+                outcomes.append(outcome)
+        return report_type(outcomes=tuple(outcomes), terminal_error=terminal_error)
 
     def _process(
-        self, item: SourceConversation, *, force: bool, overlay: dict | None = None
+        self,
+        item: SourceConversation,
+        *,
+        force: bool,
+        overlay: dict | None = None,
+        receipt: RetainReceipt | None = None,
     ) -> tuple[ConversationOutcome, str | None]:
         conversation = item.conversation
         content_hash = None
@@ -120,6 +173,10 @@ class IngestionPipeline:
         key = (conversation.source, conversation.source_id)
         try:
             content_hash = conversation.content_hash()
+            if receipt is not None:
+                outcome = self._reconcile_retain(receipt)
+                if receipt.content_hash == content_hash or _retain_unresolved(outcome):
+                    return outcome, receipt.project
             stage = Stage.STATE_READ
             record = (
                 overlay[key]
@@ -164,6 +221,8 @@ class IngestionPipeline:
                 self.archive.store(enriched, item.original)
             stage = Stage.RETAIN
             if not preview:
+                if self.tracked_memory is not None and self.retain_journal is not None:
+                    return self._submit_retain(enriched, content_hash, project), project
                 self.memory.retain(enriched)
             stage = Stage.STATE_WRITE
             retained = ImportRecord(
@@ -215,6 +274,88 @@ class IngestionPipeline:
             **metadata,
         ), project
 
+    def _submit_retain(
+        self, enriched: EnrichedConversation, content_hash: str, project: str
+    ) -> ConversationOutcome:
+        conversation = enriched.conversation
+        receipt = None
+
+        def checkpoint(token: str, accepted: bool) -> None:
+            nonlocal receipt
+            receipt = RetainReceipt(
+                source=conversation.source,
+                source_id=conversation.source_id,
+                document_id=conversation.document_id,
+                content_hash=content_hash,
+                token=token,
+                project=project,
+                started_at=enriched.provenance.imported_at,
+                accepted=accepted,
+            )
+            self.retain_journal.checkpoint_retain(receipt)
+
+        try:
+            progress = self.tracked_memory.retain_tracked(enriched, checkpoint)
+        except Exception as error:
+            if receipt is None:
+                raise
+            if isinstance(error, (ImportStateCorrupt, ImportStateUnavailable)):
+                return self._receipt_outcome(receipt, ImportStatus.FAILED, Stage.STATE_WRITE)
+            return self._receipt_outcome(receipt, receipt.status)
+        return self._settle_retain(receipt, progress)
+
+    def _reconcile_retain(self, receipt: RetainReceipt) -> ConversationOutcome:
+        progress = RetainProgress.UNKNOWN
+        if self.tracked_memory is not None:
+            with suppress(MemoryStoreRejected, MemoryStoreUnavailable):
+                progress = self.tracked_memory.check_retain(receipt.token)
+        return self._settle_retain(receipt, progress)
+
+    def _settle_retain(
+        self, receipt: RetainReceipt, progress: RetainProgress
+    ) -> ConversationOutcome:
+        try:
+            if progress is RetainProgress.PENDING and not receipt.accepted:
+                receipt = receipt.model_copy(update={"accepted": True})
+                self.retain_journal.checkpoint_retain(receipt)
+            if progress in (RetainProgress.UNKNOWN, RetainProgress.PENDING):
+                return self._receipt_outcome(receipt, receipt.status)
+
+            success = progress is RetainProgress.COMPLETED
+            status = ImportStatus.IMPORTED if success else ImportStatus.FAILED
+            error = None if success else Stage.RETAIN
+            outcome = self._receipt_outcome(receipt, status, error)
+            self.retain_journal.finish_retain(
+                receipt,
+                ImportRecord(
+                    source=receipt.source,
+                    source_id=receipt.source_id,
+                    document_id=receipt.document_id,
+                    content_hash=receipt.content_hash,
+                    recorded_at=outcome.completed_at,
+                    status=status,
+                    error=error,
+                ),
+            )
+            return outcome
+        except Exception:
+            return self._receipt_outcome(receipt, ImportStatus.FAILED, Stage.STATE_WRITE)
+
+    def _receipt_outcome(
+        self,
+        receipt: RetainReceipt,
+        status: ImportStatus | RetainStatus,
+        error: Stage | None = None,
+    ) -> ConversationOutcome:
+        return ConversationOutcome(
+            source=receipt.source,
+            source_id=receipt.source_id,
+            document_id=receipt.document_id,
+            status=status,
+            completed_at=self.clock(),
+            error=error,
+        )
+
     def _remember(self, overlay: dict | None, record: ImportRecord) -> None:
         if overlay is not None:
             overlay[(record.source, record.source_id)] = record
@@ -262,6 +403,10 @@ class IngestionPipeline:
             state_record_failed=outcome.state_record_failed,
             **({"dry_run": True} if preview else {}),
         )
+
+
+def _retain_unresolved(outcome: ConversationOutcome) -> bool:
+    return isinstance(outcome.status, RetainStatus) or outcome.error is Stage.STATE_WRITE
 
 
 def _usable_identity(subject: str | None) -> str | None:
