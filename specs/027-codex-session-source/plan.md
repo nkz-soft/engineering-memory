@@ -58,3 +58,20 @@ Planned validation: tests/unit, tests/contracts/test_codex_source.py, tests/inte
 ## Complexity Tracking
 
 No constitution violations. Risks: upstream format drift, duplicate event streams, compaction replay, orphan tool records and ambiguous context. The source contract specifies deterministic handling; implementation must expand fixtures before claiming additional dialect support.
+
+## Codex Desktop compatibility amendment
+
+Use the existing shared Codex parser in manual import, automatic capture and replay. Use
+the upstream rollout policy and TurnItem definitions to identify the known bookkeeping
+and completion variants. Verify text completions against response dialogue in the same turn,
+in either record order. Keep model shell UI details in the original archive and require a
+paired model shell result in the same turn before accepting a shell completion. Keep the existing native identity,
+timestamps, normalization, archive and sanitizer boundaries.
+
+Constitution check: exact originals remain replayable (I). Native document identity and
+source timestamps stay stable (II). Synthetic tests run before parser changes (III).
+Manual import, capture and replay keep the shared source and memory boundaries (IV).
+Only normalized content reaches the shared sanitizer and access surface (V). No deviations.
+
+Verify single-snapshot dry run with fresh temporary storage settings and use the repository's
+locked Windows packaging workflow to produce a local CLI payload for manual MCP acceptance.
