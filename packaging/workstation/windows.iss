@@ -1,5 +1,9 @@
+#ifndef AppIdentity
+  #define AppIdentity "EngineeringMemory"
+#endif
+
 [Setup]
-AppId=EngineeringMemory
+AppId={#AppIdentity}
 AppName=Engineering Memory
 AppVersion={#AppVersion}
 DefaultDirName={localappdata}\Programs\EngineeringMemory
@@ -8,14 +12,21 @@ ArchitecturesAllowed=x64compatible and not arm64
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.22000
 DisableDirPage=yes
-ChangesEnvironment=yes
+Uninstallable=ShouldInstallPayload
+CreateUninstallRegKey=ShouldInstallPayload
+ChangesEnvironment=ShouldInstallPayload
+SetupMutex={#AppIdentity}-setup
 OutputBaseFilename=engineering-memory-{#AppVersion}-windows-x64-setup
 SolidCompression=yes
 
 [Files]
-Source: "{#Payload}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#Payload}\engineering-memory.build"; Flags: dontcopy
+Source: "{#Payload}\*"; DestDir: "{app}"; Excludes: "\engineering-memory.build"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: ShouldInstallPayload
+Source: "{#Payload}\engineering-memory.build"; DestDir: "{app}"; Flags: ignoreversion; Check: ShouldInstallPayload; AfterInstall: VerifyInstalledPayload
 
 [Code]
+#include "windows-maintenance.iss"
+
 const
   UserEnvironment = 'Environment';
 
@@ -56,7 +67,16 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurStep = ssPostInstall then UpdatePath(True);
+  if (CurStep = ssPostInstall) and ShouldInstallPayload then
+  begin
+    if PayloadVerified and BuildRecorded then UpdatePath(True)
+    else
+    begin
+      Log('EM-MAINTENANCE: installation verification failed');
+      if not WizardSilent then
+        MsgBox('Setup could not verify the installed build. Close running Engineering Memory processes and rerun this installer to repair it.', mbError, MB_OK);
+    end;
+  end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
@@ -75,6 +95,8 @@ var
   McpChoices: TNewCheckListBox;
   McpDetails: TNewMemo;
   McpTokens, McpStates, McpNames, McpNotes: TArrayOfString;
+  McpReplacements: array of Boolean;
+  OriginalFields: array[0..6] of String;
   StartPage: TInputOptionWizardPage;
   ProgressPage: TOutputMarqueeProgressWizardPage;
   Edits: array[0..7] of TNewEdit;
@@ -98,9 +120,14 @@ begin
   Result := False;
   SetArrayLength(Output, 0);
   if not HelpersEnabled then Exit;
+  if ConfigureExisting then
+  begin
+    if not InstallationUnchanged then Exit;
+  end
+  else if not (PayloadVerified and BuildRecorded) then Exit;
   try
-    if not ExecAndCaptureOutput(ExpandConstant('{app}\engineering-memory.exe'),
-      'setup --installer-ui ' + Action, ExpandConstant('{app}'), SW_SHOWNORMAL,
+    if not ExecAndCaptureOutput(AddBackslash(WizardDirValue) + 'engineering-memory.exe',
+      'setup --installer-ui ' + Action, WizardDirValue, SW_SHOWNORMAL,
       ewWaitUntilTerminated, ExitCode, Captured) then Exit;
     if Captured.Error then Exit;
     Output := Captured.StdOut;
@@ -221,6 +248,28 @@ begin
   end;
 end;
 
+function ConfirmMcpReplacement(Index: Integer): Boolean;
+begin
+  Result := MsgBox('Replace the existing Engineering Memory registration for ' + McpNames[Index] +
+    '?' + #13#10#13#10 + McpNotes[Index], mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+end;
+
+procedure ConfirmMcpReplacements;
+var
+  Index: Integer;
+begin
+  SetArrayLength(McpReplacements, GetArrayLength(McpTokens));
+  for Index := 0 to GetArrayLength(McpTokens) - 1 do
+  begin
+    McpReplacements[Index] := False;
+    if McpChoices.Checked[Index] and (McpStates[Index] = 'conflict') then
+    begin
+      McpReplacements[Index] := ConfirmMcpReplacement(Index);
+      if not McpReplacements[Index] then McpChoices.Checked[Index] := False;
+    end;
+  end;
+end;
+
 function ApplyMcpTargets: Boolean;
 var
   Output: TArrayOfString;
@@ -238,8 +287,11 @@ begin
     Decision := 'keep';
     if McpStates[Index] = 'conflict' then
     begin
-      if MsgBox('Replace the existing Engineering Memory registration for ' + McpNames[Index] + '?' + #13#10#13#10 +
-          McpNotes[Index], mbConfirmation, MB_YESNO or MB_DEFBUTTON2) <> IDYES then
+      if ConfigureExisting then
+      begin
+        if not McpReplacements[Index] then Continue;
+      end
+      else if not ConfirmMcpReplacement(Index) then
       begin
         Summary := Summary + 'Kept existing registration. Local MCP check: skipped.';
         Continue;
@@ -288,6 +340,7 @@ begin
     'sqlite', 'storage': Result := 'Check the archive and SQLite paths. Use an absolute SQLite file path outside the installation and private configuration directories.';
     'api_key': Result := 'Enter a valid API key. A saved key can be kept for its existing provider.';
     'overrides': Result := 'Close the installer and remove workstation environment overrides before running setup again.';
+    'recovery-required': Result := 'The private profile has an unfinished settings write. Run engineering-memory setup from a regular terminal to recover it, or keep the existing settings.';
     'user': Result := 'Run engineering-memory setup from a regular terminal as the user who will use Engineering Memory.';
     'prerequisite': Result := 'Settings saved. Start Docker in Linux-container mode and check the Docker Engine, Compose and profile settings. You can retry or clear the checkbox to finish.';
     'startup': Result := 'Settings saved. The stack could not become ready. Check port conflicts, Docker resources and image access. You can retry or clear the checkbox to finish.';
@@ -299,13 +352,16 @@ end;
 function LoadSetupFields: Boolean;
 var
   Output: TArrayOfString;
+  Action: String;
   Values: array[0..6] of String;
   Index: Integer;
 begin
   Result := False;
   for Index := 0 to SetupFieldCount - 1 do Edits[Index].Enabled := False;
   Edits[KeyField].Text := '';
-  if not RunSetupHelper('read', Output) then
+  Action := 'read';
+  if ConfigureExisting then Action := 'read-maintenance';
+  if not RunSetupHelper(Action, Output) then
   begin
     MsgBox(StatusMessage(HelperStatus(Output)), mbError, MB_OK);
     Exit;
@@ -314,7 +370,11 @@ begin
   if (Output[0] <> InstallerProtocol) or (Length(Output[2]) <> 64) then Exit;
   for Index := 0 to KeyField - 1 do
     if not DecodeField(Output[Index + 3], Values[Index]) then Exit;
-  for Index := 0 to KeyField - 1 do Edits[Index].Text := Values[Index];
+  for Index := 0 to KeyField - 1 do
+  begin
+    OriginalFields[Index] := Values[Index];
+    Edits[Index].Text := Values[Index];
+  end;
   if Output[1] = '1' then
     KeyLabel.Caption := '&API key (blank keeps saved key)'
   else
@@ -388,6 +448,7 @@ end;
 procedure UpdateSettingsButton(Sender: TObject);
 begin
   if DeferCheck.Checked then WizardForm.NextButton.Caption := '&Next'
+  else if Loaded and ConfigureExisting then WizardForm.NextButton.Caption := '&Next'
   else if Loaded then WizardForm.NextButton.Caption := '&Save'
   else WizardForm.NextButton.Caption := '&Retry';
 end;
@@ -396,6 +457,7 @@ procedure InitializeWizard;
 var
   HalfWidth, Right, FullWidth: Integer;
 begin
+  InitializeMaintenance;
   if WizardSilent then Exit;
   if IsAdmin then
   begin
@@ -403,9 +465,15 @@ begin
       mbInformation, MB_OK);
     Exit;
   end;
+  if not ShouldInstallPayload and (MaintenanceMode <> 'identical') then Exit;
+  ConfigureExisting := MaintenanceMode = 'identical';
   HelpersEnabled := True;
-  SettingsPage := CreateCustomPage(wpInstalling, 'Configure Engineering Memory',
-    'Choose a provider and local settings. You can complete configuration later.');
+  if ConfigureExisting then
+    SettingsPage := CreateCustomPage(DecisionPage.ID, 'Configure Engineering Memory',
+      'Review your saved settings. Changes are applied after the MCP page.')
+  else
+    SettingsPage := CreateCustomPage(wpInstalling, 'Configure Engineering Memory',
+      'Choose a provider and local settings. You can complete configuration later.');
   FullWidth := SettingsPage.SurfaceWidth;
   HalfWidth := (FullWidth - ScaleX(10)) div 2;
   Right := FullWidth - HalfWidth;
@@ -421,7 +489,8 @@ begin
   DeferCheck := TNewCheckBox.Create(SettingsPage);
   DeferCheck.Parent := SettingsPage.Surface;
   DeferCheck.SetBounds(0, ScaleY(181), FullWidth, ScaleY(19));
-  DeferCheck.Caption := 'Con&figure later';
+  if ConfigureExisting then DeferCheck.Caption := '&Keep saved settings'
+  else DeferCheck.Caption := 'Con&figure later';
   DeferCheck.OnClick := @UpdateSettingsButton;
 
   McpPage := CreateCustomPage(SettingsPage.ID, 'Connect MCP clients',
@@ -449,20 +518,97 @@ end;
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
+  if (MaintenanceMode = 'identical') and (PageID = wpReady) then Result := True;
   if HelpersEnabled then
-    if PageID = StartPage.ID then Result := Deferred;
+  begin
+    if not ConfigureExisting and not (PayloadVerified and BuildRecorded) then
+      if (PageID = SettingsPage.ID) or (PageID = McpPage.ID) or (PageID = StartPage.ID) then Result := True;
+    if (PageID = StartPage.ID) and (Deferred or ConfigureExisting) then Result := True;
+  end;
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
+  if CurPageID = wpFinished then
+  begin
+    if MaintenanceMode = 'identical' then
+    begin
+      WizardForm.FinishedHeadingLabel.Caption := 'Engineering Memory maintenance complete';
+      WizardForm.FinishedLabel.Caption := 'The installed application files were kept.';
+    end
+    else if not (PayloadVerified and BuildRecorded) then
+    begin
+      WizardForm.FinishedHeadingLabel.Caption := 'Setup could not verify the installation';
+      WizardForm.FinishedLabel.Caption := 'Close running Engineering Memory processes and rerun this installer to repair the installation.';
+    end;
+  end;
   if not HelpersEnabled then Exit;
   if CurPageID = SettingsPage.ID then
   begin
     StartPage.Values[0] := False;
-    Loaded := LoadSetupFields;
+    if not ConfigureExisting or not Loaded then Loaded := LoadSetupFields;
     UpdateSettingsButton(nil);
   end
-  else if CurPageID = McpPage.ID then LoadMcpTargets;
+  else if CurPageID = McpPage.ID then
+  begin
+    LoadMcpTargets;
+    if ConfigureExisting then WizardForm.NextButton.Caption := '&Apply';
+  end;
+end;
+
+function MaintenanceSettingsChanged: Boolean;
+var
+  Index: Integer;
+begin
+  Result := True;
+  if Edits[KeyField].Text <> '' then Exit;
+  for Index := 0 to KeyField - 1 do
+    if Edits[Index].Text <> OriginalFields[Index] then Exit;
+  Result := False;
+end;
+
+function ConfirmMaintenanceChanges: Boolean;
+var
+  Index: Integer;
+  HasChanges: Boolean;
+begin
+  ConfirmMcpReplacements;
+  HasChanges := not Deferred and MaintenanceSettingsChanged;
+  for Index := 0 to GetArrayLength(McpTokens) - 1 do
+    if McpChoices.Checked[Index] then HasChanges := True;
+  Result := not HasChanges;
+  if HasChanges then
+    Result := MsgBox('Apply these settings and the selected MCP changes?', mbConfirmation,
+      MB_YESNO or MB_DEFBUTTON2) = IDYES;
+end;
+
+function SaveMaintenanceSettings: Boolean;
+var
+  Status: String;
+  Index: Integer;
+begin
+  Result := True;
+  if Deferred or not MaintenanceSettingsChanged then Exit;
+  Status := SaveSetupFields;
+  if Status = 'saved' then
+  begin
+    Edits[KeyField].Text := '';
+    for Index := 0 to KeyField - 1 do OriginalFields[Index] := Edits[Index].Text;
+    { Refresh the snapshot before any later edit or retry. }
+    Loaded := False;
+    Deferred := True;
+  end
+  else
+  begin
+    Result := False;
+    if Status = 'stale' then
+    begin
+      Loaded := False;
+      Edits[KeyField].Text := '';
+      MsgBox('Settings changed in another session. Go back to reload the saved settings.', mbInformation, MB_OK);
+    end
+    else MsgBox(StatusMessage(Status), mbError, MB_OK);
+  end;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -471,6 +617,17 @@ var
   Output: TArrayOfString;
 begin
   Result := True;
+  if DecisionPage <> nil then
+    if CurPageID = DecisionPage.ID then
+    begin
+      Result := (DecisionPage.CheckListBox.Items.Count > 0) and (DecisionPage.SelectedValueIndex >= 0);
+      if Result and not InstallationUnchanged then
+      begin
+        MsgBox('The installed files or registration changed. Close Setup and run it again.', mbError, MB_OK);
+        Result := False;
+      end;
+      Exit;
+    end;
   if not HelpersEnabled then Exit;
   if CurPageID = SettingsPage.ID then
   begin
@@ -485,6 +642,11 @@ begin
     begin
       Loaded := LoadSetupFields;
       UpdateSettingsButton(nil);
+      Exit;
+    end;
+    if ConfigureExisting then
+    begin
+      Result := True;
       Exit;
     end;
     Status := SaveSetupFields;
@@ -505,7 +667,20 @@ begin
       MsgBox(StatusMessage(Status), mbError, MB_OK);
   end
   else if CurPageID = McpPage.ID then
-    Result := ApplyMcpTargets
+  begin
+    if ConfigureExisting then
+    begin
+      Result := False;
+      if not InstallationUnchanged then
+      begin
+        MsgBox('The installed files or registration changed. Close Setup and run it again.', mbError, MB_OK);
+        Exit;
+      end;
+      if not ConfirmMaintenanceChanges then Exit;
+      if not SaveMaintenanceSettings then Exit;
+    end;
+    Result := ApplyMcpTargets;
+  end
   else if CurPageID = StartPage.ID then
   begin
     if not StartPage.Values[0] then Exit;

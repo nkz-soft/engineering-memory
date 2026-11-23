@@ -67,7 +67,8 @@ jobs:
           $compiler = Join-Path $toolDir 'ISCC.exe'
           $payload = (Resolve-Path build/payload/engineering-memory).Path
           $output = (New-Item -Force -ItemType Directory build/assets).FullName
-          & $compiler "/DAppVersion=$env:VERSION" "/DPayload=$payload" "/O$output" packaging/workstation/windows.iss
+          $identity = (Get-FileHash -LiteralPath (Join-Path $payload 'engineering-memory.build')).Hash.ToLowerInvariant()
+          & $compiler "/DAppVersion=$env:VERSION" "/DBuildIdentity=$identity" "/DPayload=$payload" "/O$output" packaging/workstation/windows.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $installer = Join-Path $output "engineering-memory-$env:VERSION-windows-x64-setup.exe"
           function Install-Silent([string]$mode, [string]$log) {
@@ -98,6 +99,9 @@ jobs:
           $env:Path = "$path;$env:Path"
           $installed = (Get-Command engineering-memory -CommandType Application).Source
           uv run --no-sync python packaging/workstation/smoke.py $installed $env:VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $python = (Resolve-Path .venv/Scripts/python.exe).Path
+          & packaging/workstation/test-windows-maintenance.ps1 -Compiler $compiler -Python $python -Scratch (Join-Path $env:RUNNER_TEMP 'engineering-memory-maintenance-matrix')
       - name: Generate package checksum
         run: |
           cd build/assets

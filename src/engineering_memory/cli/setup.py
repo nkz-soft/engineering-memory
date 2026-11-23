@@ -214,8 +214,13 @@ def _installer_output(action: str, request: dict[str, str]) -> tuple[str, ...]:
     if workstation_setup_overrides():
         return ("overrides",)
     profile, data = workstation.locations()
-    if action == "read":
-        fields, has_key, token = setup_profile.read_installer_profile(profile, data)
+    if action in {"read", "read-maintenance"}:
+        read_profile = (
+            setup_profile.preview_installer_profile
+            if action == "read-maintenance"
+            else setup_profile.read_installer_profile
+        )
+        fields, has_key, token = read_profile(profile, data)
         # ASCII framing preserves empty fields and UTF-8 through Inno's pipe reader.
         encoded = tuple(
             "v" + fields[name].encode().hex() for name in setup_profile.INSTALLER_FIELDS

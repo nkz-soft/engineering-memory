@@ -32,16 +32,43 @@ If the hashes match, run the installer as your own user.
 After copying files, the installer opens **Configure Engineering Memory**.
 A fresh profile starts with OpenRouter, model `openai/gpt-oss-20b` and API base
 `https://openrouter.ai/api/v1`. Edit the provider, model, API base, ports and
-data paths as needed. Enter your API key in the masked field. On reinstall, the
-installer loads saved settings and retains outbound proxy settings. Leave the key
+data paths as needed. Enter your API key in the masked field. The wizard loads
+saved settings and retains outbound proxy settings. Leave the key
 blank to keep it for the saved provider, or enter a replacement.
 
 Select **Save** or **Configure later**, then choose which profiles to register
 on **Connect MCP clients**. If you saved provider settings, the next page
 offers to start the local stack and provision the shared bank. Start Docker
 before selecting this option. If setup fails, retry from the installer or
-finish and continue later. `/SILENT` and `/VERYSILENT` skip configuration and
-client registration.
+finish and continue later.
+
+#### Rerun the Windows installer
+
+Setup checks the installation for your Windows account before it copies files.
+
+| What Setup finds | What you can do |
+| --- | --- |
+| Same version and build | Open the existing settings and MCP pages or exit. No application files are copied. Review both pages and confirm **Apply** to save settings or change selected MCP registrations. Cancelling before confirmation leaves both unchanged. |
+| Newer version | Review the installed and incoming versions and accept an in-place update. |
+| Different build at the same version | Review the two build identifiers and explicitly accept replacement. |
+| Older package | Close Setup and obtain the installed version or a newer verified package. |
+| Missing or damaged files, or a legacy installation without a build identity | Use **Repair the installation** with a verified package of the same or a newer version when Setup can establish the installed version. If Setup cannot establish the version or location, check the installed entry and verify the package before retrying. |
+
+Updating or repairing keeps the private profile, credentials, ports, proxy
+settings, archive, SQLite state, Docker volume and unrelated MCP registrations.
+On the optional setup pages, choose **Configure later** and leave MCP targets
+unselected to keep the current profile. When Setup reports files in use, close
+the running Engineering Memory processes and retry.
+
+`/SILENT` and `/VERYSILENT` install a fresh payload or update a verified healthy
+installation to a strictly newer version. An identical healthy package exits
+successfully without changing files or settings. Older packages, same-version
+replacements, and repair or uncertain states exit with a nonzero status. Silent
+runs skip configuration, MCP registration and service startup. Add
+`/SUPPRESSMSGBOXES /NORESTART /LOG="<absolute log path>"` for unattended use and
+look for `EM-MAINTENANCE` in the installer log when a run is blocked. Use the
+maintained installer for these checks. Earlier installer builds did not implement
+the version guard.
 
 ### Ubuntu 24.04 LTS amd64
 
@@ -214,8 +241,11 @@ run `uv sync --locked --no-dev --group release` followed by
 on native x64. On Ubuntu run `bash packaging/workstation/build-deb.sh
 build/payload/engineering-memory build/assets 0.0.1`. On Windows compile
 `packaging/workstation/windows.iss` with Inno Setup 6.5.4, defining
-`AppVersion=0.0.1` and `Payload=<absolute path to build/payload/engineering-memory>`
-with ISCC's `/D` options.
+`AppVersion=0.0.1`, `Payload=<absolute path to build/payload/engineering-memory>`,
+and `BuildIdentity=<lowercase SHA-256 of engineering-memory.build in that payload>`
+with ISCC's `/D` options. The Windows payload build generates the manifest. The
+installer uses its hash as the build identity, independently of the release
+version.
 
 Download the exact draft assets and record both passes of the
 [clean-workstation acceptance guide](../../specs/045-workstation-release/quickstart.md).

@@ -100,3 +100,18 @@ def test_workstation_proxy_overlay_routes_only_litellm_and_keeps_hindsight_direc
     for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
         assert direct[name] == direct[name.lower()] == ""
     assert path in (ROOT / "packaging/workstation/build.py").read_text(encoding="utf-8")
+
+
+def test_identical_run_guards_all_persistent_installation_actions():
+    windows = (ROOT / "packaging/workstation/windows.iss").read_text(encoding="utf-8")
+    assert "Uninstallable=ShouldInstallPayload" in windows
+    assert "CreateUninstallRegKey=ShouldInstallPayload" in windows
+    assert "Check: ShouldInstallPayload" in windows
+    assert "if (CurStep = ssPostInstall) and ShouldInstallPayload" in windows
+
+
+def test_existing_configuration_defers_mutation_until_final_confirmation():
+    windows = (ROOT / "packaging/workstation/windows.iss").read_text(encoding="utf-8")
+    assert "if ConfigureExisting then" in windows
+    assert "ConfirmMaintenanceChanges" in windows
+    assert "SaveMaintenanceSettings" in windows

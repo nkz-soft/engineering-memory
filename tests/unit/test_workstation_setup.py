@@ -138,6 +138,26 @@ def test_installer_read_and_save_keep_key_private(monkeypatch, tmp_path):
     assert "EM_INSTALLER_UI_" not in "\n".join(os.environ)
 
 
+def test_maintenance_read_never_recovers_or_changes_a_profile(monkeypatch, tmp_path):
+    _, profile, _ = installer_home(monkeypatch, tmp_path)
+    profile.mkdir()
+    compose = profile / "compose.env"
+    compose.write_text("PRODUCT_PROVIDER_MODEL=openrouter/example\n", encoding="utf-8")
+
+    opened = runner.invoke(app, ["setup", "--installer-ui", "read-maintenance"])
+    assert opened.exit_code == 0, opened.output
+    assert opened.stdout.startswith("EM1\n")
+    assert list(profile.iterdir()) == [compose]
+
+    journal = profile / ".setup-recovery"
+    journal.write_text('["original", null]', encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in profile.iterdir()}
+    blocked = runner.invoke(app, ["setup", "--installer-ui", "read-maintenance"])
+    assert blocked.exit_code == 1
+    assert blocked.stdout == "recovery-required\n"
+    assert {path.name: path.read_bytes() for path in profile.iterdir()} == before
+
+
 def test_installer_malformed_request_clears_environment(monkeypatch, tmp_path):
     _, profile, _ = installer_home(monkeypatch, tmp_path)
     monkeypatch.setenv("EM_INSTALLER_UI_VERSION", "invalid")

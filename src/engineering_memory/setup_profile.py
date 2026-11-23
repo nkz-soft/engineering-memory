@@ -486,6 +486,25 @@ def read_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str], b
         )
 
 
+def preview_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str], bool, str]:
+    """Read settings without changing ACLs, creating a lock file, or repairing the profile."""
+    if not _readable(profile):
+        return _installer_snapshot({}, {}, data)
+    compose, app = _profile_files(profile)
+    journal = profile / ".setup-recovery"
+    if _readable(journal):
+        raise InstallerProfileError("recovery-required")
+    for path in (compose, app):
+        if _readable(path) and not path.is_file():
+            raise ProfileError("A private profile entry is not a regular file.")
+    snapshot = _installer_snapshot(
+        workstation_compose_values(compose), workstation_dotenv(app), data
+    )
+    if _readable(journal):
+        raise InstallerProfileError("recovery-required")
+    return snapshot
+
+
 def _check_installer_fields(fields: dict[str, str], profile: Path, key: str) -> None:
     if fields.keys() != set(INSTALLER_FIELDS):
         raise InstallerProfileError("request")
