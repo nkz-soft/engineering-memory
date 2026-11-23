@@ -102,6 +102,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $python = (Resolve-Path .venv/Scripts/python.exe).Path
           & packaging/workstation/test-windows-maintenance.ps1 -Compiler $compiler -Python $python -Scratch (Join-Path $env:RUNNER_TEMP 'engineering-memory-maintenance-matrix')
+          & packaging/workstation/test-windows-mcp.ps1 -Compiler $compiler -Python $python -Scratch (Join-Path $env:RUNNER_TEMP 'engineering-memory-mcp-wizard')
       - name: Generate package checksum
         run: |
           cd build/assets
