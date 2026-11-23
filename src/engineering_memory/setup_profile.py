@@ -380,7 +380,7 @@ def _readable(path: Path) -> bool:
 
 
 @contextmanager
-def _locked_profile(profile: Path, *, create: bool) -> Iterator[None]:
+def _locked_profile(profile: Path, *, create: bool, recover: bool = True) -> Iterator[None]:
     try:
         if create:
             profile.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -396,6 +396,10 @@ def _locked_profile(profile: Path, *, create: bool) -> Iterator[None]:
                         raise ProfileError("A private profile entry is not a regular file.")
                     _private(path)
             if journal.exists():
+                if not recover:
+                    raise ProfileError(
+                        "An unfinished settings write needs recovery. Run standard setup."
+                    )
                 _restore(journal, (compose, app))
             yield
     except (OSError, ValueError, AcquisitionError):
@@ -486,10 +490,9 @@ def read_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str], b
         )
 
 
-def preview_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str], bool, str]:
-    """Read settings without changing ACLs, creating a lock file, or repairing the profile."""
+def _preview_profile(profile: Path) -> tuple[dict[str, str | None], dict[str, str | None]]:
     if not _readable(profile):
-        return _installer_snapshot({}, {}, data)
+        return {}, {}
     compose, app = _profile_files(profile)
     journal = profile / ".setup-recovery"
     if _readable(journal):
@@ -497,12 +500,36 @@ def preview_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str]
     for path in (compose, app):
         if _readable(path) and not path.is_file():
             raise ProfileError("A private profile entry is not a regular file.")
-    snapshot = _installer_snapshot(
-        workstation_compose_values(compose), workstation_dotenv(app), data
-    )
+    values = workstation_compose_values(compose), workstation_dotenv(app)
     if _readable(journal):
         raise InstallerProfileError("recovery-required")
-    return snapshot
+    return values
+
+
+def preview_installer_profile(profile: Path, data: Path) -> tuple[dict[str, str], bool, str]:
+    """Read settings without changing ACLs, creating a lock file, or repairing the profile."""
+    compose, app = _preview_profile(profile)
+    return _installer_snapshot(compose, app, data)
+
+
+def configure_existing(profile: Path, data: Path) -> bool:
+    """Review settings before taking a write lock or changing the profile."""
+    try:
+        original = _preview_profile(profile)
+    except InstallerProfileError:
+        raise ProfileError(
+            "An unfinished settings write needs recovery. Run standard setup."
+        ) from None
+    except (OSError, ValueError):
+        raise ProfileError("Could not read the private profile. Check access and retry.") from None
+    values = _collect(*original, data, profile)
+    if not typer.confirm("Save these workstation settings?", default=True):
+        return False
+    with _locked_profile(profile, create=True, recover=False):
+        if _preview_profile(profile) != original:
+            raise ProfileError("Settings changed during review. Reopen setup and retry.")
+        _persist(profile, original[0], values)
+    return True
 
 
 def _check_installer_fields(fields: dict[str, str], profile: Path, key: str) -> None:

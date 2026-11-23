@@ -51,6 +51,16 @@ The design artifacts are [research.md](research.md), [data-model.md](data-model.
 3. **Reuse the wizard without payload effects (FR-003, FR-005).** Route the same settings and MCP pages before installation work in configuration-only mode. Stage edits and choices in memory until final confirmation and discard them on cancel. Retain validation, stale-edit guard, explicit registration replacement and unrelated profile preservation. Skip the payload, uninstaller and uninstall registration, PATH mutation, restart-manager actions, and startup for identical runs. Maintain the existing regular-user restriction for helper execution. A compiled test must verify that disabled install entries still leave the filesystem and registration untouched under the pinned Inno version.
 4. **Preserve and verify accepted updates (FR-004–005, FR-007–008).** Use in-place installation for immutable files. Gate helper use on verification of the installed payload and identity after copying. Surface file-in-use or incomplete-install errors and let retries reclassify actual evidence. Keep mutable paths out of copy and cleanup. Compile a realistic smoke matrix, document silent and recovery behavior, and complete the Windows desktop and synthetic recall procedure in [quickstart.md](quickstart.md).
 
+## Ubuntu Follow-up
+
+Keep package ownership and version ordering in apt and dpkg. Hash the packaged
+paths, modes, symlink targets and contents with normalized tar metadata and store
+the SHA-256 identity in the Debian control record. Compare the same fingerprint
+against registered paths before using the local executable. Apply the same
+maintenance consent matrix to the Ubuntu launcher. `--non-interactive` skips
+setup and uses `sudo -n` only when apt must change the payload. Existing
+configuration reuses the private profile and MCP wizard without starting Docker.
+
 ## Alternatives Considered
 
 - **Use version or Git revision as the sole identity.** Version conflates review builds. Revision misses differences in actual packaged bytes. Use the payload inventory and installer recipe as identity inputs.

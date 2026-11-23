@@ -252,6 +252,9 @@ def _run_installer_ui(action: str) -> None:
 
 
 def setup_command(
+    configure_only: bool = typer.Option(
+        False, help="Review the private profile and MCP clients without starting the backend."
+    ),
     installer: bool = typer.Option(False, "--installer", hidden=True),
     installer_ui: str | None = typer.Option(None, "--installer-ui", hidden=True),
 ) -> None:
@@ -260,14 +263,14 @@ def setup_command(
         _run_installer_ui(installer_ui)
         return
     try:
-        _run_setup()
+        _run_setup(configure_only=configure_only)
     finally:
         if installer and has_terminal():
             with suppress(EOFError, KeyboardInterrupt):
                 input("Press Enter to close setup.")
 
 
-def _run_setup() -> None:
+def _run_setup(*, configure_only: bool = False) -> None:
     if not has_terminal():
         typer.echo("Run engineering-memory setup in an interactive terminal.", err=True)
         raise typer.Exit(1)
@@ -291,11 +294,17 @@ def _run_setup() -> None:
     backend_ready = False
     profile_failed = False
     try:
-        check_docker()
         profile, data = workstation.locations()
-        if setup_profile.configure(profile, data):
-            stages.append("Profile saved")
-            backend_ready = _prepare_backend(profile)
+        if configure_only:
+            if typer.confirm(
+                "Review provider and workstation settings?", default=False
+            ) and setup_profile.configure_existing(profile, data):
+                stages.append("Profile saved")
+        else:
+            check_docker()
+            if setup_profile.configure(profile, data):
+                stages.append("Profile saved")
+                backend_ready = _prepare_backend(profile)
         if backend_ready:
             stages.append("Backend ready and bank provisioned")
         else:

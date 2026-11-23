@@ -88,12 +88,32 @@ bash engineering-memory-0.0.1-ubuntu-amd64-install.sh ./engineering-memory_0.0.1
 ```
 
 Authorize apt when prompted for sudo. The launcher then starts guided setup
-in the same terminal using your account. If a development build with a higher
-version is present, use a clean workstation or review it in apt before retrying.
+in the same terminal using your account.
+
+When rerun, the launcher checks the installed package version, build identity
+and package-owned files before invoking apt.
+
+| What the launcher finds | What you can do |
+| --- | --- |
+| Same version and build | Open your existing settings and MCP configuration as your own user, or decline to exit. There is no `sudo`, payload copy or backend startup in this mode. |
+| Higher incoming version | Review both versions and accept the update through apt. |
+| Different build at the same version | Explicitly accept package replacement through apt. |
+| Incomplete, damaged or legacy installation without a build identity | Confirm repair with a verified package of the same or a higher version. |
+| Older incoming package | Use a matching or newer verified package. The launcher blocks a downgrade. |
+
+You can also open only settings and MCP from an installed CLI with
+`engineering-memory setup --configure-only`. To run the Ubuntu launcher in
+unattended mode, put `--non-interactive` before the package argument. This
+installs a fresh payload or updates a verified healthy installation to a higher
+version, using `sudo -n` for apt. An identical package exits successfully
+without writing files. Replacement, repair and downgrade exit with a nonzero
+status. Unattended mode skips the setup wizard, MCP registration and service
+startup. Apt manages the package files. Workstation settings, archive, SQLite
+state, Docker volumes and MCP profiles stay in their existing locations.
 
 ## Verify and manage the installation
 
-On Ubuntu, the terminal wizard checks Docker before prompting for provider
+During standard Ubuntu setup, the terminal wizard checks Docker before prompting for provider
 settings. Client registration is offered even when startup is deferred.
 History import is offered after the shared bank is ready.
 

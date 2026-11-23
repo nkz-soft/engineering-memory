@@ -9,7 +9,11 @@ import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-_PROMPT = b"Set up engineering-memory for Codex CLI? [y/N]:"
+_RESPONSES = (
+    (b"Open the existing settings and MCP configuration? [y/N]", b"y\n"),
+    (b"Review provider and workstation settings? [y/N]:", b"n\n"),
+    (b"Set up engineering-memory for Codex CLI? [y/N]:", b"y\n"),
+)
 _SUCCESS = b"Codex CLI: saved. Local MCP check: passed."
 
 
@@ -25,7 +29,8 @@ def _exercise(launcher: Path, package: Path, environment: dict[str, str]) -> tup
         env=environment,
     ) as process:
         assert process.stdin is not None and process.stdout is not None
-        answered = False
+        next_prompt = iter(_RESPONSES)
+        response = next(next_prompt, None)
         try:
             while True:
                 remaining = max(0, deadline - time.monotonic())
@@ -36,10 +41,10 @@ def _exercise(launcher: Path, package: Path, environment: dict[str, str]) -> tup
                 if not chunk:
                     return process.wait(timeout=5), bytes(transcript)
                 transcript.extend(chunk)
-                if not answered and _PROMPT in transcript:
-                    process.stdin.write(b"y\n")
+                if response and response[0] in transcript:
+                    process.stdin.write(response[1])
                     process.stdin.flush()
-                    answered = True
+                    response = next(next_prompt, None)
         finally:
             if process.poll() is None:
                 process.kill()
@@ -64,9 +69,13 @@ def verify(launcher: Path, package: Path, scratch: Path) -> None:
         "XDG_CONFIG_HOME": str(scratch / "config"),
         "XDG_DATA_HOME": str(scratch / "data"),
     }
+    app = Path("/opt/engineering-memory/engineering-memory")
+    before = app.stat()
     status, transcript = _exercise(launcher, package, environment)
-    # The synthetic Docker failure is reported to the launcher. MCP setup still succeeds.
-    if status != 1 or _SUCCESS not in transcript or not (codex_profile / "config.toml").is_file():
+    after = app.stat()
+    if (before.st_ino, before.st_mtime_ns) != (after.st_ino, after.st_mtime_ns):
+        raise RuntimeError("Ubuntu configuration-only setup replaced the existing executable")
+    if status != 0 or _SUCCESS not in transcript or not (codex_profile / "config.toml").is_file():
         lines = transcript.decode(errors="replace").splitlines()
         raise RuntimeError(
             "Ubuntu launcher did not save and verify the registration.\n" + "\n".join(lines[-20:])

@@ -90,7 +90,7 @@ A Windows operator uses silent setup for a deployment and can tell whether the p
 
 ## Assumptions
 
-- Scope is the Windows 11 x64 per-user workstation installer from [#105](https://github.com/nkz-soft/engineering-memory/issues/105), including the existing wizard and MCP consent from [#119](https://github.com/nkz-soft/engineering-memory/pull/119). The Ubuntu installer and application data formats are outside this change.
+- The primary scope is the Windows 11 x64 per-user workstation installer from [#105](https://github.com/nkz-soft/engineering-memory/issues/105), including the existing wizard and MCP consent from [#119](https://github.com/nkz-soft/engineering-memory/pull/119). The Ubuntu 24.04 x64 launcher applies the corresponding maintenance choices using apt and dpkg. Both preserve application data formats.
 - A known older package is blocked in every mode. Where trustworthy ordering evidence is unavailable, use the latest verified installer for interactive recovery. Legacy installations require an explicit one-time recovery or migration before they can qualify for configuration-only mode.
 - Silent updates are allowed when the incoming version is strictly newer and the installed build is healthy. Same-version replacement and recovery are interactive operations.
 - Cancellation is available before confirmation of the configuration changes. Once confirmed, existing save, stale-edit and per-target apply outcomes govern retries. The configuration-only path does not start the stack.

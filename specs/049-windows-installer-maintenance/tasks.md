@@ -32,3 +32,10 @@
 - [x] T011 Verify Windows desktop flows and synthetic recall using the procedure in `specs/049-windows-installer-maintenance/quickstart.md`.
 
 Foundation precedes all stories. The installer decision and wizard share the same production script, so they are verified together before release checks.
+
+## Ubuntu Follow-up
+
+- [x] T012 Build and verify Debian build identities in `packaging/workstation/build-deb.sh` and `tests/structure/test_ubuntu_installer.py`.
+- [x] T013 Apply Ubuntu maintenance decisions in `packaging/workstation/install-ubuntu.sh` and cover its interactive and unattended paths in `tests/structure/test_ubuntu_installer.py`.
+- [x] T014 Reuse profile and MCP setup without startup in `src/engineering_memory/cli/setup.py` and `src/engineering_memory/setup_profile.py`.
+- [x] T015 Verify actual package handling and document launcher behavior in `.github/workflows/release.yml` and `docs/operations/workstation-install.md`.

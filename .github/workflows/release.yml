@@ -131,6 +131,35 @@ jobs:
           uv run --no-sync python packaging/workstation/smoke_launcher.py "$launcher" "./$package"
           uv run --no-sync python packaging/workstation/smoke.py /usr/bin/engineering-memory "$VERSION"
           uv run --locked --group release pytest -q tests/structure/test_ubuntu_installer.py
+          # Exercise the same decision matrix against the real apt and dpkg database.
+          installed=/opt/engineering-memory/engineering-memory
+          before=$(stat -c '%i:%y' "$installed")
+          bash "$launcher" --non-interactive "./$package"
+          test "$before" = "$(stat -c '%i:%y' "$installed")"
+
+          scratch=$(mktemp -d)
+          cp -a build/payload/engineering-memory "$scratch/payload"
+          printf '%s\n' 'Synthetic package variant' > "$scratch/payload/maintenance-fixture"
+          bash packaging/workstation/build-deb.sh "$scratch/payload" "$scratch" "$VERSION"
+          alternate="engineering-memory_${VERSION}_amd64.deb"
+          (cd "$scratch" && sha256sum "$alternate" > "$alternate.sha256")
+          if bash "$launcher" --non-interactive "$scratch/$alternate"; then
+            echo 'Unattended same-version replacement unexpectedly succeeded' >&2
+            exit 1
+          fi
+          test "$before" = "$(stat -c '%i:%y' "$installed")"
+
+          upgrade="${VERSION}.1"
+          upgraded="engineering-memory_${upgrade}_amd64.deb"
+          sed "s/@VERSION@/$upgrade/g" packaging/workstation/install-ubuntu.sh > "$scratch/install-upgrade.sh"
+          bash packaging/workstation/build-deb.sh "$scratch/payload" "$scratch" "$upgrade"
+          (cd "$scratch" && sha256sum "$upgraded" > "$upgraded.sha256")
+          bash "$scratch/install-upgrade.sh" --non-interactive "$scratch/$upgraded"
+          if bash "$launcher" --non-interactive "./$package"; then
+            echo 'Unattended downgrade unexpectedly succeeded' >&2
+            exit 1
+          fi
+          test "$(dpkg-query -W -f='${Version}' engineering-memory)" = "$upgrade"
       - name: Record review build commit
         if: github.event_name == 'pull_request'
         run: git rev-parse HEAD > build/assets/BUILD-COMMIT
