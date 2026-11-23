@@ -90,12 +90,27 @@ const
   SetupFieldCount = 8;
   KeyField = 7;
 
+type
+  TMcpRow = record
+    Token, State, Name, Profile, ProfileKey, ScanNote: String;
+    Registration, Probe, ResultNote: String;
+    Selected, NeedsReview, PreviousResult: Boolean;
+  end;
+  TMcpRows = array of TMcpRow;
+  TMcpAttempt = record
+    RowIndex: Integer;
+    Review: TMcpRow;
+    Decision: String;
+  end;
+
 var
   SettingsPage, McpPage: TWizardPage;
   McpChoices: TNewCheckListBox;
   McpDetails: TNewMemo;
-  McpTokens, McpStates, McpNames, McpNotes: TArrayOfString;
-  McpReplacements: array of Boolean;
+  McpCheckButton, McpRescanButton: TNewButton;
+  McpRows: TMcpRows;
+  McpMessage: String;
+  McpLoaded, McpScanReady, McpBusy, McpHasChecked: Boolean;
   OriginalFields: array[0..6] of String;
   StartPage: TInputOptionWizardPage;
   ProgressPage: TOutputMarqueeProgressWizardPage;
@@ -160,74 +175,184 @@ begin
     Bytes[Index] := Chr(CodeByte);
   end;
   Value := Utf8Decode(Bytes);
-  Result := True;
+  Result := Utf8Encode(Value) = Bytes;
+end;
+
+function McpActionable(const Row: TMcpRow): Boolean;
+begin
+  Result := (Row.State <> 'blocked') and not Row.NeedsReview;
+end;
+
+procedure LockMcpControls;
+begin
+  McpBusy := True;
+  McpChoices.Enabled := False;
+  McpCheckButton.Enabled := False;
+  McpRescanButton.Enabled := False;
+end;
+
+function FindMcpRow(const Rows: TMcpRows; const Row: TMcpRow): Integer;
+var
+  Index: Integer;
+begin
+  Result := -1;
+  if Row.Profile = '' then Exit;
+  for Index := 0 to GetArrayLength(Rows) - 1 do
+    if (Rows[Index].Name = Row.Name) and
+      (CompareText(Rows[Index].ProfileKey, Row.ProfileKey) = 0) then
+    begin
+      if Result >= 0 then
+      begin
+        Result := -1;
+        Exit;
+      end;
+      Result := Index;
+    end;
 end;
 
 procedure ShowMcpTarget(Sender: TObject);
 var
   Index: Integer;
+  Details: String;
 begin
+  Details := McpMessage;
   Index := McpChoices.ItemIndex;
-  if (Index >= 0) and (Index < GetArrayLength(McpNotes)) then
-    McpDetails.Text := McpNotes[Index];
+  if (Index >= 0) and (Index < GetArrayLength(McpRows)) then
+  begin
+    if Details <> '' then Details := Details + #13#10#13#10;
+    Details := Details + McpRows[Index].Profile + #13#10 +
+      'Current action: ' + McpRows[Index].State + '.';
+    if McpRows[Index].PreviousResult then
+      Details := Details + #13#10 + 'The list shows the previous result for this profile.';
+    if McpRows[Index].Registration <> '' then
+      Details := Details + #13#10 + 'Registration: ' + McpRows[Index].Registration +
+        '. Local MCP check: ' + McpRows[Index].Probe + '.';
+    if (McpRows[Index].ScanNote <> '') and
+      (Pos(McpRows[Index].ScanNote, McpRows[Index].ResultNote) = 0) then
+      Details := Details + #13#10 + McpRows[Index].ScanNote;
+    if McpRows[Index].ResultNote <> '' then
+      Details := Details + #13#10 + McpRows[Index].ResultNote;
+    if McpRows[Index].NeedsReview then
+      Details := Details + #13#10 + 'Rescan and select this profile to check it again.';
+  end;
+  McpDetails.Text := Trim(Details);
 end;
 
-procedure LoadMcpTargets;
+procedure RenderMcpRows(Focus: Integer);
 var
-  Output: TArrayOfString;
-  Token, State, Names, Profile, Diagnostic: String;
-  Count, Index, Offset: Integer;
+  Index: Integer;
+  Caption: String;
+  Actionable, HasActionable: Boolean;
 begin
   McpChoices.Items.Clear;
-  McpDetails.Text := 'Client discovery failed. You can finish installation and retry from setup.';
-  SetArrayLength(McpTokens, 0);
-  SetArrayLength(McpStates, 0);
-  SetArrayLength(McpNames, 0);
-  SetArrayLength(McpNotes, 0);
+  HasActionable := False;
+  for Index := 0 to GetArrayLength(McpRows) - 1 do
+  begin
+    Caption := McpRows[Index].Name + ' (' + McpRows[Index].State + ')';
+    if McpRows[Index].Registration <> '' then
+      Caption := McpRows[Index].Name + ' (' + McpRows[Index].Registration +
+        ' / ' + McpRows[Index].Probe + ')'
+    else if McpRows[Index].State = 'blocked' then
+      Caption := Caption + ' - check skipped'
+    else if McpHasChecked and not McpRows[Index].Selected then
+      Caption := Caption + ' - skipped';
+    Actionable := McpScanReady and McpActionable(McpRows[Index]);
+    HasActionable := HasActionable or Actionable;
+    McpChoices.AddCheckBox(Caption, '', 0, McpRows[Index].Selected,
+      Actionable, False, False, nil);
+  end;
+  if McpChoices.Items.Count > 0 then
+  begin
+    if (Focus < 0) or (Focus >= McpChoices.Items.Count) then Focus := 0;
+    McpChoices.ItemIndex := Focus;
+  end;
+  McpChoices.Enabled := not McpBusy;
+  McpCheckButton.Enabled := HasActionable and not McpBusy;
+  McpRescanButton.Enabled := not McpBusy;
+  ShowMcpTarget(nil);
+end;
+
+function ReadMcpRows(var Rows: TMcpRows): Boolean;
+var
+  Output: TArrayOfString;
+  Count, Index, Offset: Integer;
+begin
+  Result := False;
   if not RunSetupHelper('mcp-scan', Output) then Exit;
   Count := GetArrayLength(Output);
   if Count < 1 then Exit;
   if (Output[0] <> McpProtocol) or ((Count - 1) mod 5 <> 0) or (Count > 21) then Exit;
   Count := (Count - 1) div 5;
-  if Count = 0 then
-  begin
-    McpDetails.Text := 'No supported client installations were found.';
-    Exit;
-  end;
+  SetArrayLength(Rows, Count);
   for Index := 0 to Count - 1 do
   begin
     Offset := 1 + Index * 5;
-    Token := Output[Offset];
-    State := Output[Offset + 1];
-    if not DecodeField(Output[Offset + 2], Names) then Break;
-    if not DecodeField(Output[Offset + 3], Profile) then Break;
-    if not DecodeField(Output[Offset + 4], Diagnostic) then Break;
-    if State = 'absent' then State := 'add'
-    else if State = 'matching' then State := 'verify'
-    else if State = 'conflict' then State := 'conflict'
-    else if (State <> 'blocked') or (Token <> '-') then Break;
-    if (State <> 'blocked') and (Length(Token) <> 64) then Break;
-    SetArrayLength(McpTokens, Index + 1);
-    SetArrayLength(McpStates, Index + 1);
-    SetArrayLength(McpNames, Index + 1);
-    SetArrayLength(McpNotes, Index + 1);
-    McpTokens[Index] := Token;
-    McpStates[Index] := State;
-    McpNames[Index] := Names;
-    McpNotes[Index] := Profile;
-    if Diagnostic <> '' then
-    begin
-      if Profile <> '' then McpNotes[Index] := Profile + #13#10;
-      McpNotes[Index] := McpNotes[Index] + Diagnostic;
+    Rows[Index].Token := Output[Offset];
+    Rows[Index].State := Output[Offset + 1];
+    if not DecodeField(Output[Offset + 2], Rows[Index].Name) then Exit;
+    if not DecodeField(Output[Offset + 3], Rows[Index].Profile) then Exit;
+    if Rows[Index].Profile <> '' then
+      Rows[Index].ProfileKey := ExpandFileName(Rows[Index].Profile);
+    if not DecodeField(Output[Offset + 4], Rows[Index].ScanNote) then Exit;
+    case Rows[Index].State of
+      'absent': Rows[Index].State := 'add';
+      'matching': Rows[Index].State := 'verify';
+      'conflict', 'blocked': ;
+      else Exit;
     end;
-    McpChoices.AddCheckBox(Names + ' (' + State + ')', '', 0, False,
-      State <> 'blocked', False, False, nil);
+    if Rows[Index].State = 'blocked' then
+    begin
+      if Rows[Index].Token <> '-' then Exit;
+    end
+    else if not IsDigest(Rows[Index].Token) or (Rows[Index].Profile = '') then Exit;
   end;
-  if McpChoices.Items.Count > 0 then
+  Result := True;
+end;
+
+procedure LoadMcpTargets;
+var
+  NewRows: TMcpRows;
+  Index, Previous, OldFocus, Focus: Integer;
+begin
+  McpLoaded := True;
+  OldFocus := McpChoices.ItemIndex;
+  for Index := 0 to GetArrayLength(McpRows) - 1 do
+    McpRows[Index].Selected := McpChoices.Checked[Index];
+  LockMcpControls;
+  try
+    McpScanReady := ReadMcpRows(NewRows);
+  finally
+    McpBusy := False;
+  end;
+  Focus := OldFocus;
+  if not McpScanReady then
+    McpMessage := 'Client discovery failed. Rescan to retry, or continue.'
+  else
   begin
-    McpChoices.ItemIndex := 0;
-    ShowMcpTarget(nil);
+    McpMessage := '';
+    Focus := -1;
+    for Index := 0 to GetArrayLength(NewRows) - 1 do
+    begin
+      Previous := FindMcpRow(McpRows, NewRows[Index]);
+      if (Previous < 0) or (FindMcpRow(NewRows, NewRows[Index]) <> Index) then Continue;
+      NewRows[Index].Selected := McpRows[Previous].Selected and
+        (McpRows[Previous].Token = NewRows[Index].Token) and McpActionable(NewRows[Index]);
+      NewRows[Index].Registration := McpRows[Previous].Registration;
+      NewRows[Index].Probe := McpRows[Previous].Probe;
+      NewRows[Index].ResultNote := McpRows[Previous].ResultNote;
+      NewRows[Index].PreviousResult := McpRows[Previous].Registration <> '';
+      if Previous = OldFocus then Focus := Index;
+    end;
+    McpRows := NewRows;
+    if GetArrayLength(McpRows) = 0 then
+      McpMessage := 'No supported client installations were found.';
   end;
+  RenderMcpRows(Focus);
+end;
+
+procedure RescanMcpTargets(Sender: TObject);
+begin
+  if not McpBusy then LoadMcpTargets;
 end;
 
 function ApplyMcpTarget(const Token, Decision: String; var Output: TArrayOfString): Boolean;
@@ -248,84 +373,130 @@ begin
   end;
 end;
 
-function ConfirmMcpReplacement(Index: Integer): Boolean;
+function ConfirmMcpReplacement(const Row: TMcpRow): Boolean;
 begin
-  Result := MsgBox('Replace the existing Engineering Memory registration for ' + McpNames[Index] +
-    '?' + #13#10#13#10 + McpNotes[Index], mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+  Result := MsgBox('Replace the existing Engineering Memory registration for ' + Row.Name +
+    '?' + #13#10#13#10 + Row.Profile + #13#10 + Row.ScanNote,
+    mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
-procedure ConfirmMcpReplacements;
+function ReadMcpResult(const Output: TArrayOfString; var Row: TMcpRow): Boolean;
 var
-  Index: Integer;
+  Note: String;
 begin
-  SetArrayLength(McpReplacements, GetArrayLength(McpTokens));
-  for Index := 0 to GetArrayLength(McpTokens) - 1 do
-  begin
-    McpReplacements[Index] := False;
-    if McpChoices.Checked[Index] and (McpStates[Index] = 'conflict') then
-    begin
-      McpReplacements[Index] := ConfirmMcpReplacement(Index);
-      if not McpReplacements[Index] then McpChoices.Checked[Index] := False;
-    end;
+  Result := False;
+  if GetArrayLength(Output) <> 4 then Exit;
+  if (Output[0] <> McpProtocol) or not DecodeField(Output[3], Note) then Exit;
+  case Output[1] of
+    'saved', 'already configured':
+      case Output[2] of
+        'passed', 'failed', 'timeout', 'missing-tools': ;
+        else Exit;
+      end;
+    'blocked', 'failed', 'declined': if Output[2] <> 'skipped' then Exit;
+    else Exit;
   end;
+  Row.Registration := Output[1];
+  if Row.Registration = 'declined' then Row.Registration := 'kept';
+  Row.Probe := Output[2];
+  if Row.Probe = 'missing-tools' then Row.Probe := 'missing tools';
+  Row.ResultNote := Note;
+  Result := True;
 end;
 
-function ApplyMcpTargets: Boolean;
+procedure RunMcpAttempt(const Attempt: TMcpAttempt; var Row: TMcpRow);
 var
   Output: TArrayOfString;
-  Summary, Decision, Diagnostic: String;
-  Index: Integer;
-  Success: Boolean;
+  ReadResult: Boolean;
 begin
-  Result := True;
-  Summary := '';
-  for Index := 0 to GetArrayLength(McpTokens) - 1 do
+  Row.Selected := False;
+  Row.PreviousResult := False;
+  if Attempt.Decision = 'decline' then
   begin
-    if not McpChoices.Checked[Index] or (McpStates[Index] = 'blocked') then Continue;
-    if Summary <> '' then Summary := Summary + #13#10#13#10;
-    Summary := Summary + McpNames[Index] + ': ';
-    Decision := 'keep';
-    if McpStates[Index] = 'conflict' then
-    begin
-      if ConfigureExisting then
-      begin
-        if not McpReplacements[Index] then Continue;
-      end
-      else if not ConfirmMcpReplacement(Index) then
-      begin
-        Summary := Summary + 'Kept existing registration. Local MCP check: skipped.';
-        Continue;
-      end;
-      Decision := 'replace';
-    end;
-    ProgressPage.SetText('Checking the installed MCP server...', McpNames[Index]);
-    ProgressPage.Show;
-    try
-      Success := ApplyMcpTarget(McpTokens[Index], Decision, Output);
-    finally
-      ProgressPage.Hide;
-    end;
-    if Success then Success := GetArrayLength(Output) = 4;
-    if Success then
-      Success := (Output[0] = McpProtocol) and DecodeField(Output[3], Diagnostic);
-    if not Success then
-    begin
-      Summary := Summary + 'Could not run client setup. Go back to rescan or rerun setup later.';
-      Result := False;
-      Continue;
-    end;
-    Summary := Summary + Output[1] + '. Local MCP check: ' + Output[2] + '.';
-    if Diagnostic <> '' then Summary := Summary + ' ' + Diagnostic;
-    if (Output[1] = 'blocked') or (Output[1] = 'failed') or
-       ((Output[2] <> 'passed') and (Output[2] <> 'skipped')) then Result := False;
+    Row.Registration := 'kept';
+    Row.Probe := 'skipped';
+    Row.ResultNote := 'Kept the existing registration.';
+    Exit;
   end;
+  Row.NeedsReview := True;
+  ProgressPage.SetText('Checking the installed MCP server...', Attempt.Review.Name);
+  ProgressPage.Show;
+  try
+    ReadResult := ApplyMcpTarget(Attempt.Review.Token, Attempt.Decision, Output);
+  finally
+    ProgressPage.Hide;
+  end;
+  if ReadResult then ReadResult := ReadMcpResult(Output, Row);
+  if not ReadResult then
+  begin
+    Row.Registration := 'failed';
+    Row.Probe := 'unavailable';
+    Row.ResultNote := 'Could not get a client setup result.';
+  end;
+end;
+
+function ConfirmMaintenanceChanges(HasMcpChanges: Boolean): Boolean; forward;
+function SaveMaintenanceSettings: Boolean; forward;
+
+function ReviewMaintenanceInstallation: Boolean;
+begin
+  Result := InstallationUnchanged;
   if not Result then
+    MsgBox('The installed files or registration changed. Close Setup and run it again.', mbError, MB_OK);
+end;
+
+procedure CheckMcpTargets(Sender: TObject);
+var
+  Attempts: array of TMcpAttempt;
+  Index, Count, Focus: Integer;
+  HasMcpChanges: Boolean;
+begin
+  if McpBusy or not McpScanReady then Exit;
+  Count := 0;
+  Focus := McpChoices.ItemIndex;
+  for Index := 0 to GetArrayLength(McpRows) - 1 do
   begin
-    Summary := Summary + #13#10#13#10 +
-      'Select a target to retry, or continue without selecting one.';
-    LoadMcpTargets;
+    McpRows[Index].Selected := McpChoices.Checked[Index];
+    if not McpRows[Index].Selected or not McpActionable(McpRows[Index]) then Continue;
+    SetArrayLength(Attempts, Count + 1);
+    Attempts[Count].RowIndex := Index;
+    Attempts[Count].Review := McpRows[Index];
+    Attempts[Count].Decision := 'keep';
+    Count := Count + 1;
   end;
-  if Summary <> '' then MsgBox(Summary, mbInformation, MB_OK);
+  if Count = 0 then
+  begin
+    McpMessage := 'Select a client to check, or rescan to review updated profiles.';
+    ShowMcpTarget(nil);
+    Exit;
+  end;
+
+  LockMcpControls;
+  try
+    if ConfigureExisting and not ReviewMaintenanceInstallation then Exit;
+    HasMcpChanges := False;
+    for Index := 0 to Count - 1 do
+    begin
+      if Attempts[Index].Review.State = 'conflict' then
+      begin
+        if ConfirmMcpReplacement(Attempts[Index].Review) then Attempts[Index].Decision := 'replace'
+        else Attempts[Index].Decision := 'decline';
+      end;
+      if Attempts[Index].Decision <> 'decline' then HasMcpChanges := True;
+    end;
+    if ConfigureExisting then
+    begin
+      if not ConfirmMaintenanceChanges(HasMcpChanges) then Exit;
+      if not SaveMaintenanceSettings then Exit;
+    end;
+    McpMessage := '';
+    McpHasChecked := True;
+    for Index := 0 to Count - 1 do
+      RunMcpAttempt(Attempts[Index], McpRows[Attempts[Index].RowIndex]);
+  finally
+    McpBusy := False;
+    RenderMcpRows(Focus);
+  end;
 end;
 
 function StatusMessage(const Status: String): String;
@@ -494,14 +665,24 @@ begin
   DeferCheck.OnClick := @UpdateSettingsButton;
 
   McpPage := CreateCustomPage(SettingsPage.ID, 'Connect MCP clients',
-    'Choose the installed clients that should use Engineering Memory.');
+    'Use Check selected clients to apply your choices and see the results here.');
   McpChoices := TNewCheckListBox.Create(McpPage);
   McpChoices.Parent := McpPage.Surface;
-  McpChoices.SetBounds(0, 0, McpPage.SurfaceWidth, ScaleY(106));
+  McpChoices.SetBounds(0, 0, McpPage.SurfaceWidth, ScaleY(82));
   McpChoices.OnClick := @ShowMcpTarget;
+  McpCheckButton := TNewButton.Create(McpPage);
+  McpCheckButton.Parent := McpPage.Surface;
+  McpCheckButton.SetBounds(0, ScaleY(88), ScaleX(126), ScaleY(24));
+  McpCheckButton.Caption := 'Chec&k selected clients';
+  McpCheckButton.OnClick := @CheckMcpTargets;
+  McpRescanButton := TNewButton.Create(McpPage);
+  McpRescanButton.Parent := McpPage.Surface;
+  McpRescanButton.SetBounds(ScaleX(134), ScaleY(88), ScaleX(72), ScaleY(24));
+  McpRescanButton.Caption := '&Rescan';
+  McpRescanButton.OnClick := @RescanMcpTargets;
   McpDetails := TNewMemo.Create(McpPage);
   McpDetails.Parent := McpPage.Surface;
-  McpDetails.SetBounds(0, ScaleY(114), McpPage.SurfaceWidth, ScaleY(79));
+  McpDetails.SetBounds(0, ScaleY(118), McpPage.SurfaceWidth, McpPage.SurfaceHeight - ScaleY(118));
   McpDetails.ReadOnly := True;
   McpDetails.ScrollBars := ssVertical;
 
@@ -551,9 +732,14 @@ begin
   end
   else if CurPageID = McpPage.ID then
   begin
-    LoadMcpTargets;
+    if not McpBusy and not McpLoaded then LoadMcpTargets;
     if ConfigureExisting then WizardForm.NextButton.Caption := '&Apply';
   end;
+end;
+
+function BackButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := not McpBusy;
 end;
 
 function MaintenanceSettingsChanged: Boolean;
@@ -567,19 +753,15 @@ begin
   Result := False;
 end;
 
-function ConfirmMaintenanceChanges: Boolean;
+function ConfirmMaintenanceChanges(HasMcpChanges: Boolean): Boolean;
 var
-  Index: Integer;
-  HasChanges: Boolean;
+  Prompt: String;
 begin
-  ConfirmMcpReplacements;
-  HasChanges := not Deferred and MaintenanceSettingsChanged;
-  for Index := 0 to GetArrayLength(McpTokens) - 1 do
-    if McpChoices.Checked[Index] then HasChanges := True;
-  Result := not HasChanges;
-  if HasChanges then
-    Result := MsgBox('Apply these settings and the selected MCP changes?', mbConfirmation,
-      MB_YESNO or MB_DEFBUTTON2) = IDYES;
+  Result := True;
+  if HasMcpChanges then Prompt := 'Apply pending settings and check the selected MCP clients?'
+  else if not Deferred and MaintenanceSettingsChanged then Prompt := 'Apply changes to the saved settings?'
+  else Exit;
+  Result := MsgBox(Prompt, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
 function SaveMaintenanceSettings: Boolean;
@@ -668,18 +850,9 @@ begin
   end
   else if CurPageID = McpPage.ID then
   begin
-    if ConfigureExisting then
-    begin
-      Result := False;
-      if not InstallationUnchanged then
-      begin
-        MsgBox('The installed files or registration changed. Close Setup and run it again.', mbError, MB_OK);
-        Exit;
-      end;
-      if not ConfirmMaintenanceChanges then Exit;
-      if not SaveMaintenanceSettings then Exit;
-    end;
-    Result := ApplyMcpTargets;
+    Result := not McpBusy;
+    if Result and ConfigureExisting then
+      Result := ReviewMaintenanceInstallation and ConfirmMaintenanceChanges(False) and SaveMaintenanceSettings;
   end
   else if CurPageID = StartPage.ID then
   begin
