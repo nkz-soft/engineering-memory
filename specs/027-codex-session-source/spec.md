@@ -87,3 +87,18 @@ An operator imports sessions from different working directories without manually
 - Session metadata cwd is authoritative for one session; later turn-local cwd does not silently move the entire conversation between projects.
 - Forks with distinct native ids are distinct sessions; subagent aggregation, external tool-output files and encrypted reasoning are outside this feature.
 - #19 is closed; Claude Code source #27 is merged and provides generic context classification. No unresolved product clarification is required.
+
+## Compatibility amendment — Codex Desktop rollouts
+
+- **FR-010**: Manual snapshots, automatic capture and archive replay accept the known
+  `additional_tools`, `world_state`, `token_usage_record` and `thread_settings_applied`
+  records. Preserve these records in the original archive only.
+- **FR-011**: Accept text `UserMessage` and `AgentMessage` completions with matching
+  dialogue in `response_item` in the same turn. Accept model shell `CommandExecution` completions
+  from known sources when the same turn has a shell request and paired result. Keep them in the raw
+  archive and preserve the original dialogue and call sequence in normalization.
+- **FR-012**: Reject unrecognized record, event and completion types. Reject unsupported
+  completion-only dialogue and shell executions without model-facing shell evidence.
+- **SC-006**: The same invented rollout works through manual import and automatic capture.
+  Both retain exact bytes, native identity/timestamps and one copy of dialogue and tool evidence.
+  An isolated dry run of the operator's selected snapshot reports one candidate and zero failures.

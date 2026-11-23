@@ -151,3 +151,94 @@ def test_directory_symlink_reports_one_failure_and_continues(tmp_path, monkeypat
     with pytest.raises(SourceFormatError):
         next(reader)
     assert next(reader).conversation.source_id == "other"
+
+
+@pytest.mark.parametrize("automatic", [False, True], ids=["manual", "automatic"])
+def test_desktop_rollout_retains_only_response_evidence(tmp_path, automatic):
+    from engineering_memory.ingestion.session_capture import CapturedSessionSource
+
+    rows = synth.desktop_rollout()
+    path = synth.write(tmp_path / "desktop.jsonl", rows)
+    source = (
+        CapturedSessionSource("codex", tmp_path, quiet_seconds=0)
+        if automatic
+        else CodexSessionSource(path)
+    )
+    item = next(source.read())
+    conversation = item.conversation
+    assert item.original.content == synth.encode(rows)
+    assert conversation.document_id == "codex:desktop-fixture"
+    assert conversation.started_at.isoformat() == "2026-03-04T09:30:00+00:00"
+    assert conversation.last_activity_at.isoformat() == "2026-03-04T09:31:00+00:00"
+    user, request, response, assistant = conversation.messages
+    assert user.text == "Which cable specification did we choose?"
+    assert assistant.text == "We chose a shielded cable rated for 60 volts."
+    assert request.role == Role.ASSISTANT
+    assert response.role == Role.TOOL
+    assert request.tool_activity[0].name == response.tool_activity[0].name == "exec"
+    assert json.loads(request.tool_activity[0].request)["call_id"] == "call-1"
+    assert json.loads(response.tool_activity[0].result)["call_id"] == "call-1"
+    clean, _ = PatternSecretSanitizer().sanitize(conversation)
+    assert "60 volts" in clean.messages[2].tool_activity[0].result
+    assert "fixture-test-secret" not in clean.model_dump_json()
+    assert "fixture-world-state" not in clean.model_dump_json()
+    assert "fixture-ui-result" not in clean.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    "unsupported", ["envelope", "completion", "unmatched-dialogue", "no-result"]
+)
+def test_desktop_rollout_rejects_unsupported_evidence(tmp_path, unsupported):
+    rows = synth.desktop_rollout()
+    if unsupported == "envelope":
+        rows.append(synth.record("unsupported_record"))
+    elif unsupported == "completion":
+        rows.append(synth.record("event_msg", type="item_completed", item={"type": "Plan"}))
+    elif unsupported == "unmatched-dialogue":
+        rows[-2]["payload"]["item"]["content"][0]["text"] = "Event-only answer."
+    else:
+        rows.pop(8)
+    with pytest.raises(SourceFormatError, match="could not be parsed"):
+        load(tmp_path, rows)
+
+
+def test_tool_declaration_after_dialogue_does_not_extend_activity(tmp_path):
+    rows = synth.desktop_rollout()
+    declaration = rows.pop(1)
+    declaration["timestamp"] = "2026-03-05T09:31:00Z"
+    rows.append(declaration)
+    assert load(tmp_path, rows).conversation.last_activity_at.isoformat() == (
+        "2026-03-04T09:31:00+00:00"
+    )
+
+
+@pytest.mark.parametrize("completion_index", [5, 7, 10], ids=["user", "command", "assistant"])
+def test_completion_requires_response_evidence_in_its_turn(tmp_path, completion_index):
+    rows = synth.desktop_rollout()
+    completion = rows[completion_index]
+    later = synth.record(
+        "event_msg",
+        type="item_completed",
+        turn_id="later",
+        item={**completion["payload"]["item"], "id": "later-item"},
+    )
+    rows.insert(1, synth.record("event_msg", type="task_started", turn_id="first"))
+    rows.extend(
+        [
+            synth.record("event_msg", type="task_complete", turn_id="first"),
+            synth.record("event_msg", type="task_started", turn_id="later"),
+            later,
+            synth.record("event_msg", type="task_complete", turn_id="later"),
+        ]
+    )
+    with pytest.raises(SourceFormatError):
+        load(tmp_path, rows)
+
+
+def test_distinct_completions_cannot_reuse_one_response_message(tmp_path):
+    rows = synth.desktop_rollout()
+    original = rows[5]["payload"]["item"]
+    second = synth.record("event_msg", type="item_completed", item={**original, "id": "second"})
+    rows.insert(6, second)
+    with pytest.raises(SourceFormatError):
+        load(tmp_path, rows)

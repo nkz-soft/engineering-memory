@@ -1,7 +1,9 @@
 """Bounded Codex rollout parser; errors never include source values."""
 
 import json
+from collections import Counter
 from contextlib import suppress
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from engineering_memory.ingestion.source import SourceFormatError
@@ -23,7 +25,15 @@ _EVENTS = {
     "task_started",
     "task_complete",
     "turn_aborted",
+    "thread_settings_applied",
 }
+
+_COMPLETED_DIALOGUE = {
+    "UserMessage": (Role.USER, "text"),
+    "AgentMessage": (Role.ASSISTANT, "Text"),
+}
+_MODEL_SHELL_SOURCES = {"unified_exec_startup", "unified_exec_interaction"}
+_MODEL_SHELL_TOOLS = {"exec", "exec_command", "write_stdin"}
 
 _CONTENT_MARKERS = {"input_image": NonTextKind.IMAGE, "input_audio": NonTextKind.AUDIO}
 
@@ -68,6 +78,10 @@ def _response(payload, sent_at, calls, recorded_cwd):
     kind = _string(payload["type"])
     if kind == "reasoning":
         # Encrypted/internal reasoning is outside the visible-transcript contract.
+        return []
+    if kind == "additional_tools":
+        if payload["role"] != "developer" or not isinstance(payload["tools"], list):
+            raise ValueError
         return []
     if kind == "message":
         role = payload["role"]
@@ -120,6 +134,54 @@ def _response(payload, sent_at, calls, recorded_cwd):
     raise ValueError
 
 
+@dataclass
+class _TurnEvidence:
+    turn_id: str | None = None
+    completed_dialogue: dict[str, tuple[Role, str]] = field(default_factory=dict)
+    response_dialogue: Counter[tuple[Role, str]] = field(default_factory=Counter)
+    shell_calls: set[str] = field(default_factory=set)
+    completed_shell: bool = False
+    paired_shell: bool = False
+
+    def record_completion(self, payload):
+        if self.turn_id is not None and payload.get("turn_id", self.turn_id) != self.turn_id:
+            raise ValueError
+        item = payload["item"]
+        kind, item_id = _string(item["type"]), _string(item["id"])
+        if kind == "CommandExecution":
+            # UI execution IDs may differ from model call IDs.
+            if item["source"] not in _MODEL_SHELL_SOURCES:
+                raise ValueError
+            self.completed_shell = True
+            return
+        if kind not in _COMPLETED_DIALOGUE:
+            raise ValueError
+        role, text_kind = _COMPLETED_DIALOGUE[kind]
+        content = item["content"]
+        if not isinstance(content, list) or any(block["type"] != text_kind for block in content):
+            raise ValueError
+        text = "".join(_string(block["text"], empty=True) for block in content)
+        if self.completed_dialogue.setdefault(item_id, (role, text)) != (role, text):
+            raise ValueError
+
+    def record_response(self, payload, normalized):
+        kind = payload["type"]
+        if kind == "message" and normalized[0].role in {Role.USER, Role.ASSISTANT}:
+            self.response_dialogue[(normalized[0].role, "".join(m.text for m in normalized))] += 1
+        elif (
+            kind in {"function_call", "custom_tool_call"} and payload["name"] in _MODEL_SHELL_TOOLS
+        ):
+            self.shell_calls.add(payload["call_id"])
+        elif kind in {"function_call_output", "custom_tool_call_output"}:
+            self.paired_shell |= payload["call_id"] in self.shell_calls
+
+    def validate(self):
+        if Counter(self.completed_dialogue.values()) - self.response_dialogue:
+            raise ValueError
+        if self.completed_shell and not self.paired_shell:
+            raise ValueError
+
+
 def parse_session(raw: bytes) -> Conversation:
     """Read a complete snapshot, rejecting partial or ambiguous histories as a unit."""
     try:
@@ -142,6 +204,7 @@ def _parse(raw, *, main_only=False):
     messages, times, calls = [], [], {}
     mirrored_dialogue = False
     response_seen = False
+    turn = _TurnEvidence()
     for line in raw.decode("utf-8").split("\n"):
         if not line.strip():
             continue
@@ -168,24 +231,32 @@ def _parse(raw, *, main_only=False):
                     _string(payload[field])
         elif kind == "event_msg":
             event = _string(payload["type"])
-            if event not in _EVENTS:
+            if event == "item_completed":
+                turn.record_completion(payload)
+            elif event in {"task_started", "task_complete", "turn_aborted"}:
+                turn.validate()
+                turn = _TurnEvidence(payload.get("turn_id") if event == "task_started" else None)
+            elif event not in _EVENTS:
                 raise ValueError
             mirrored_dialogue |= event in {"user_message", "agent_message"}
         elif kind == "turn_context":
             cwd = payload.get("cwd")
             if isinstance(cwd, str) and cwd.strip():
                 turn_cwd = cwd
-        elif kind == "compacted":
+        elif kind in {"compacted", "world_state", "token_usage_record"}:
             continue
         elif kind == "response_item":
             sent_at = _time(record["timestamp"])
-            times.append(sent_at)
+            if payload["type"] != "additional_tools":
+                times.append(sent_at)
             initial_cwd = metadata.get("cwd") if metadata is not None else None
             normalized = _response(payload, sent_at, calls, turn_cwd or initial_cwd)
             response_seen |= bool(normalized)
             messages.extend(normalized)
+            turn.record_response(payload, normalized)
         else:
             raise ValueError
+    turn.validate()
     if metadata is None or (mirrored_dialogue and not response_seen):
         raise ValueError
     git = metadata.get("git") or {}

@@ -32,10 +32,23 @@ unfinished calls keep an absent result. Duplicate call IDs and conflicting metad
 Requests/results remain in record order. Incomplete function argument JSON remains text.
 Decoded JSON arguments and outputs pass through the existing sanitizer, including nested secrets.
 
-`event_msg` allows user_message, agent_message, agent_reasoning, token_count, task_started,
-task_complete and turn_aborted only; these add no dialogue. Unknown events fail the snapshot.
-This explicit subset avoids duplicating response/event mirrors.
-`turn_context`, `compacted` records and internal `reasoning` response items do not add dialogue.
+Legacy `event_msg` records `user_message`, `agent_message`, `agent_reasoning`, `token_count`,
+`task_started`, `task_complete` and `turn_aborted` add no dialogue.
+
+Codex Desktop rollouts can also record `additional_tools` declarations, `world_state` snapshots,
+`token_usage_record` accounting, and `thread_settings_applied` checkpoints. Their payloads stay in
+the original archive and do not change conversation dates. For `item_completed` events, text
+`UserMessage` and `AgentMessage` items require a same-role response in the same turn, before or
+after the event.
+Each distinct completion requires its own match.
+A `CommandExecution` from unified-exec startup or interaction is kept in the original when the
+same turn contains a paired model shell request and result. The original UI item ID and the model
+`call_id` can differ. Normalization uses the model's `call_id` and leaves the event's display
+details in the original. Other completion kinds and event-only transcripts are unsupported.
+
+Manual import, automatic capture and archive replay use this same bounded dialect. Unknown event
+and completion types fail the snapshot. `turn_context`, `compacted` records and internal
+`reasoning` response items do not add dialogue.
 Compaction summaries/replacement history are not appended or used to reconstruct missing history.
 Unknown envelope or content-bearing response types fail the snapshot explicitly. There is no
 claim of universal Codex version compatibility; add synthetic fixtures before expanding support.
@@ -51,7 +64,11 @@ private and must not be committed. Access serves sanitized normalized content on
 Baseline fields were checked against OpenAI's protocol source at revision
 `dbaead0106de82bd129a4f6f503d173ad5109f68`:
 [models.rs](https://github.com/openai/codex/blob/dbaead0106de82bd129a4f6f503d173ad5109f68/codex-rs/protocol/src/models.rs).
-Fixtures contain invented sessions and tool results, not copied user history.
+The Desktop extension follows the upstream
+[response model](https://github.com/openai/codex/blob/main/codex-rs/protocol/src/models.rs),
+[turn items](https://github.com/openai/codex/blob/main/codex-rs/protocol/src/items.rs) and
+[rollout persistence policy](https://github.com/openai/codex/blob/main/codex-rs/rollout/src/policy.rs).
+Fixtures contain only invented sessions and tool results.
 
 ```bash
 uv run pytest tests/unit/test_codex_source.py tests/contracts/test_codex_source.py tests/integration/test_codex_cli.py

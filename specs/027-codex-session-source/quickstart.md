@@ -56,3 +56,31 @@ tests/integration/test_codex_cli.py.
 
 Final full-suite verification: `uv run pytest -q` — **2084 passed, 38 skipped in 90.21s**.
 `uv run engineering-memory import --help` also confirmed Codex selection and unchanged ChatGPT default.
+
+## Manual acceptance with a local Windows build
+
+Use the complete unpacked CLI payload. Keep `engineering-memory.exe` and its
+`_internal` directory together. Use a test workstation profile and backend for the
+write step. The same profile must be visible to both the import command and the MCP
+server launched by Claude Desktop.
+
+1. Select one synthetic Codex snapshot. Run the following command using the absolute
+   executable path and verify that `would_import` is 1 and `failed` is 0.
+
+   ```powershell
+   & $exe import --source codex --export $snapshot --dry-run --json
+   ```
+
+2. With the test backend available, import just that snapshot. Keep the resulting
+   `codex:<native-id>` for source verification.
+
+   ```powershell
+   & $exe import --source codex --export $snapshot --json
+   ```
+
+3. In the test Claude Desktop profile, point the Engineering Memory local MCP
+   server's `command` to the unpacked executable and keep `args` set to `["serve"]`.
+   Relaunch Claude Desktop. Ask it to find the synthetic decision using
+   `search_memory` with `tags: ["source:codex"]`, then open the matching document
+   using `get_conversation` with its `document_id`. Confirm that the source
+   conversation supports the decision and the agreed duration.
