@@ -29,6 +29,6 @@
 ## Phase 6 — Verification
 
 - [x] T010 Document operator actions, silent outcomes and recovery in `docs/operations/workstation-install.md`.
-- [ ] T011 Verify Windows desktop flows and synthetic recall using the procedure in `specs/049-windows-installer-maintenance/quickstart.md`.
+- [x] T011 Verify Windows desktop flows and synthetic recall using the procedure in `specs/049-windows-installer-maintenance/quickstart.md`.
 
 Foundation precedes all stories. The installer decision and wizard share the same production script, so they are verified together before release checks.

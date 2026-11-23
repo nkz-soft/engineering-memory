@@ -315,12 +315,9 @@ begin
         StringChangeEx(Relative, '/', '\', True);
         Path := AddBackslash(ObservedDirectory) + Relative;
         if not SafePath(Path) or DirExists(Path) then Exit;
-        if FileExists(Path) then
-        begin
-          SetArrayLength(ObsoleteFiles, Count + 1);
-          ObsoleteFiles[Count] := Path;
-          Count := Count + 1;
-        end;
+        SetArrayLength(ObsoleteFiles, Count + 1);
+        ObsoleteFiles[Count] := Path;
+        Count := Count + 1;
       end;
     end;
     Path := AddBackslash(ObservedDirectory) + BuildManifest;
@@ -346,6 +343,20 @@ begin
   if Result <> '' then Log('EM-MAINTENANCE: ' + Result);
 end;
 
+procedure RemoveEmptyPayloadParents(const FilePath: String);
+var
+  Directory: String;
+begin
+  Directory := ExtractFileDir(FilePath);
+  while Length(Directory) > Length(ObservedDirectory) do
+  begin
+    if not SafePath(Directory) then Exit;
+    if DirExists(Directory) then
+      if not RemoveDir(Directory) then Exit;
+    Directory := ExtractFileDir(Directory);
+  end;
+end;
+
 procedure VerifyInstalledPayload;
 var
   Lines: TArrayOfString;
@@ -359,6 +370,7 @@ begin
     if not SafePath(ObsoleteFiles[I]) then Exit;
     if FileExists(ObsoleteFiles[I]) then
       if not DeleteFile(ObsoleteFiles[I]) then Exit;
+    RemoveEmptyPayloadParents(ObsoleteFiles[I]);
   end;
   PayloadVerified := True;
 end;

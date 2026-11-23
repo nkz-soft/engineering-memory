@@ -10,7 +10,10 @@ $appId = 'EMFixture-' + [guid]::NewGuid().ToString('N').Substring(0, 16)
 $app = Join-Path $Scratch 'installed'
 $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\${appId}_is1"
 $environmentKey = 'HKCU:\Environment'
-$originalPath = (Get-ItemProperty -LiteralPath $environmentKey -Name Path -ErrorAction SilentlyContinue).Path
+$environmentRegistry = Get-Item -LiteralPath $environmentKey
+$readRaw = [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+$originalPath = $environmentRegistry.GetValue('Path', $null, $readRaw)
+$originalPathKind = if ($null -ne $originalPath) { $environmentRegistry.GetValueKind('Path') }
 $originalLocalAppData = $env:LOCALAPPDATA
 $originalCodexHome = $env:CODEX_HOME
 $originalClaudeHome = $env:CLAUDE_CONFIG_DIR
@@ -48,7 +51,11 @@ function Compile-Fixture([string]$Name, [string]$Version, [string]$Content) {
     $runtime = (New-Item -ItemType Directory -Path (Join-Path $payload '_internal')).FullName
     Set-Content -LiteralPath (Join-Path $payload 'engineering-memory.exe') -Value 'fixture launcher'
     Set-Content -LiteralPath (Join-Path $runtime 'engine.dll') -Value $Content
-    if ($Name -eq 'first') { Set-Content -LiteralPath (Join-Path $runtime 'obsolete.dll') -Value 'retired fixture' }
+    if ($Name -eq 'first') {
+        Set-Content -LiteralPath (Join-Path $runtime 'obsolete.dll') -Value 'retired fixture'
+        $metadata = (New-Item -ItemType Directory -Path (Join-Path $runtime 'fixture-0.0.2.dist-info')).FullName
+        Set-Content -LiteralPath (Join-Path $metadata 'METADATA') -Value 'Version: 0.0.2'
+    }
     if ($Name -eq 'newer') {
         $upcoming = (New-Item -ItemType Directory -Path (Join-Path $payload 'upcoming')).FullName
         Set-Content -LiteralPath (Join-Path $upcoming 'new.dll') -Value 'new runtime file'
@@ -70,7 +77,7 @@ function Get-InstalledSnapshot {
     })
     $registration = Get-Item -LiteralPath $key
     $values = @($registration.GetValueNames() | Sort-Object | ForEach-Object { "$_=$($registration.GetValue($_))" })
-    $envPath = (Get-ItemProperty -LiteralPath $environmentKey -Name Path).Path
+    $envPath = $environmentRegistry.GetValue('Path', $null, $readRaw)
     return ($entries -join "`n") + "`n" + ($values -join "`n") + "`n" + $envPath
 }
 
@@ -114,6 +121,7 @@ try {
     Invoke-Fixture $newer '/SILENT' 'update' $true
     Assert-Build $newer
     if (Test-Path -LiteralPath (Join-Path $app '_internal/obsolete.dll')) { throw 'An obsolete payload file survived the update' }
+    if (Test-Path -LiteralPath (Join-Path $app '_internal/fixture-0.0.2.dist-info')) { throw 'An obsolete metadata directory survived the update' }
     foreach ($switch in '/SILENT','/VERYSILENT') {
         $unchanged = Get-InstalledSnapshot
         Invoke-Fixture $first $switch 'downgrade' $false
@@ -142,7 +150,10 @@ try {
     if ($uninstaller) {
         $null = Start-Process -FilePath $uninstaller.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -WindowStyle Hidden -Wait -PassThru
     }
-    if ($null -ne $originalPath) {
-        New-ItemProperty -LiteralPath $environmentKey -Name Path -Value $originalPath -PropertyType ExpandString -Force | Out-Null
+    $currentPath = $environmentRegistry.GetValue('Path', $null, $readRaw)
+    if ($null -eq $originalPath -and $currentPath -ceq '') {
+        Remove-ItemProperty -LiteralPath $environmentKey -Name Path
+    } elseif ($null -ne $originalPath -and ($currentPath -cne $originalPath -or $environmentRegistry.GetValueKind('Path') -ne $originalPathKind)) {
+        New-ItemProperty -LiteralPath $environmentKey -Name Path -Value $originalPath -PropertyType $originalPathKind -Force | Out-Null
     }
 }
