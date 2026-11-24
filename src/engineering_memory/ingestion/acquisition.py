@@ -94,5 +94,9 @@ class ExportAcquisition:
         complete = report.status == RunStatus.SUCCESS
         if complete:
             self.state.complete_acquisition(digest, datetime.now(UTC))
-        self.report("imported" if complete else "import_failed", report, digest)
+        outcome = {
+            RunStatus.SUCCESS: "imported",
+            RunStatus.PENDING: "pending",
+        }.get(report.status, "import_failed")
+        self.report(outcome, report, digest)
         return complete

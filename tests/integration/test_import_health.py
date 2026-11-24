@@ -24,15 +24,17 @@ def open_state(path):
     return state
 
 
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [1, 2, 3])
 def test_legacy_store_reads_empty_and_migrates(tmp_path, version):
     path = tmp_path / "state.db"
     state = SQLiteImportState(path)
     state.initialize()
     state.close()
     with sqlite3.connect(path, autocommit=False) as connection:
-        connection.execute("DROP TABLE source_health")
-        connection.execute("DROP TABLE project_import_health")
+        connection.execute("DROP TABLE retain_receipts")
+        if version < 3:
+            connection.execute("DROP TABLE source_health")
+            connection.execute("DROP TABLE project_import_health")
         if version == 1:
             connection.execute("DROP TABLE export_acquisitions")
         connection.execute("UPDATE import_state_schema SET version = ?", (version,))

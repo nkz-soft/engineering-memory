@@ -4,6 +4,7 @@ from enum import StrEnum
 
 from pydantic import model_validator
 
+from engineering_memory.ingestion.retention import RetainStatus
 from engineering_memory.ingestion.state import ImportStatus
 from engineering_memory.normalization import Source
 from engineering_memory.normalization.base import FrozenModel, OpaqueIdentifier, Timestamp
@@ -26,6 +27,7 @@ class Stage(StrEnum):
 class RunStatus(StrEnum):
     SUCCESS = "success"
     PARTIAL_SUCCESS = "partial_success"
+    PENDING = "pending"
     FAILURE = "failure"
 
 
@@ -33,7 +35,7 @@ class ConversationOutcome(FrozenModel):
     source: Source
     source_id: OpaqueIdentifier | None = None
     document_id: str | None = None
-    status: ImportStatus
+    status: ImportStatus | RetainStatus
     completed_at: Timestamp
     error: Stage | None = None
     state_record_failed: bool = False
@@ -64,9 +66,17 @@ class RunReport(FrozenModel):
         return sum(item.status is ImportStatus.FAILED for item in self.outcomes)
 
     @property
+    def pending(self) -> int:
+        return sum(item.status is RetainStatus.PENDING for item in self.outcomes)
+
+    @property
+    def uncertain(self) -> int:
+        return sum(item.status is RetainStatus.UNCERTAIN for item in self.outcomes)
+
+    @property
     def status(self) -> RunStatus:
         if not self.failed and self.terminal_error is None:
-            return RunStatus.SUCCESS
+            return RunStatus.PENDING if self.pending or self.uncertain else RunStatus.SUCCESS
         if self.imported or self.skipped:
             return RunStatus.PARTIAL_SUCCESS
         return RunStatus.FAILURE

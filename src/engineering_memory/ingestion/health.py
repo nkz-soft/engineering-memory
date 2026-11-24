@@ -40,11 +40,12 @@ class SourceHealth(FrozenModel):
             source=source,
             outcome={
                 RunStatus.SUCCESS: "waiting" if deferred and not report.imported else "healthy",
+                RunStatus.PENDING: "waiting",
                 RunStatus.PARTIAL_SUCCESS: "partial",
                 RunStatus.FAILURE: "failed",
             }[report.status],
             last_attempt_at=completed_at,
-            deferred_count=deferred,
+            deferred_count=deferred + report.pending + report.uncertain,
             error_categories=tuple(errors),
         )
 

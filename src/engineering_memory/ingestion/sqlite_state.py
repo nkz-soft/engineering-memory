@@ -33,6 +33,7 @@ from sqlalchemy.pool import NullPool
 
 from engineering_memory.ingestion.acquisition_state import AcquisitionRecord, EvidenceKind
 from engineering_memory.ingestion.health import ProjectImportEvidence, SourceHealth
+from engineering_memory.ingestion.retention import RetainReceipt
 from engineering_memory.ingestion.state import (
     ImportRecord,
     ImportStateCorrupt,
@@ -103,12 +104,26 @@ _PROJECT_HEALTH = Table(
     Column("started_at", Text, nullable=False),
     Column("completed_at", Text, nullable=False),
 )
+_RETAINS = Table(
+    "retain_receipts",
+    _METADATA,
+    Column("source", Text, primary_key=True, nullable=False),
+    Column("source_id", Text, primary_key=True, nullable=False),
+    Column("document_id", Text, nullable=False),
+    Column("content_hash", Text, nullable=False),
+    Column("token", Text, nullable=False),
+    Column("project", Text, nullable=False),
+    Column("started_at", Text, nullable=False),
+    Column("accepted", Integer, nullable=False),
+    CheckConstraint("accepted IN (0, 1)", name="retain_accepted"),
+)
 _TABLES_BY_VERSION = {
     1: (_SCHEMA, _RECORDS),
     2: (_SCHEMA, _RECORDS, _ACQUISITIONS),
-    3: tuple(_METADATA.tables.values()),
+    3: (_SCHEMA, _RECORDS, _ACQUISITIONS, _SOURCE_HEALTH, _PROJECT_HEALTH),
+    4: tuple(_METADATA.tables.values()),
 }
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 4
 _PROJECT_SLUG = TypeAdapter(Slug)
 _UNAVAILABLE = {
     sqlite3.SQLITE_BUSY,
@@ -265,11 +280,22 @@ class SQLiteImportState:
         with self._errors():
             self._require_ready()
             with self._engine.connect() as connection:
-                rows = connection.execute(
-                    select(_RECORDS).order_by(_RECORDS.c.source, _RECORDS.c.source_id)
-                ).mappings()
-                for row in rows:
-                    yield ImportRecord.model_validate(dict(row))
+                yield from self._read_records(connection)
+
+    @staticmethod
+    def _read_records(connection: Connection) -> Iterator[ImportRecord]:
+        rows = connection.execute(
+            select(_RECORDS).order_by(_RECORDS.c.source, _RECORDS.c.source_id)
+        ).mappings()
+        for row in rows:
+            yield ImportRecord.model_validate(dict(row))
+
+    def snapshot(self) -> tuple[list[ImportRecord], list[RetainReceipt]]:
+        """Read terminal records and unresolved receipts in a single SQLite snapshot."""
+        with self._errors():
+            self._require_ready()
+            with self._engine.connect() as connection:
+                return list(self._read_records(connection)), self._read_receipts(connection)
 
     @staticmethod
     def _record(connection: Connection, record: ImportRecord) -> None:
@@ -290,46 +316,108 @@ class SQLiteImportState:
             with self._engine.begin() as connection:
                 self._record(connection, record)
 
+    def pending_retains(self, source: Source | None = None) -> list[RetainReceipt]:
+        with self._errors():
+            self._require_ready()
+            with self._engine.connect() as connection:
+                return self._read_receipts(connection, source)
+
+    def _read_receipts(
+        self, connection: Connection, source: Source | None = None
+    ) -> list[RetainReceipt]:
+        if self._schema_version < 4:
+            return []
+        columns = _RETAINS.c
+        query = select(_RETAINS).order_by(columns.source, columns.source_id)
+        if source is not None:
+            query = query.where(columns.source == source)
+        return [
+            RetainReceipt.model_validate(dict(row)) for row in connection.execute(query).mappings()
+        ]
+
+    @staticmethod
+    def _matches_receipt(receipt: RetainReceipt):
+        columns = _RETAINS.c
+        return (
+            (columns.source == receipt.source)
+            & (columns.source_id == receipt.source_id)
+            & (columns.token == receipt.token)
+        )
+
+    def checkpoint_retain(self, receipt: RetainReceipt) -> None:
+        with self._errors():
+            self._require_ready()
+            with self._engine.begin() as connection:
+                if receipt.accepted:
+                    updated = connection.execute(
+                        _RETAINS.update().where(self._matches_receipt(receipt)).values(accepted=1)
+                    )
+                    if updated.rowcount != 1:
+                        raise ImportStateCorrupt("retain receipt missing")
+                else:
+                    values = receipt.model_dump(mode="json")
+                    values["started_at"] = _utc_text(receipt.started_at)
+                    connection.execute(_RETAINS.insert().values(**values))
+
+    def finish_retain(self, receipt: RetainReceipt, record: ImportRecord) -> None:
+        with self._errors():
+            self._require_ready()
+            with self._engine.begin() as connection:
+                deleted = connection.execute(
+                    _RETAINS.delete().where(self._matches_receipt(receipt))
+                )
+                if deleted.rowcount != 1:
+                    raise ImportStateCorrupt("retain receipt missing")
+                if record.status is ImportStatus.IMPORTED:
+                    self._confirm_import(connection, record, receipt.project, receipt.started_at)
+                else:
+                    self._record(connection, record)
+
     def record_import(self, record: ImportRecord, project: str, started_at: datetime) -> None:
         """Commit a retained conversation and its content-free timestamps together."""
         if record.status is not ImportStatus.IMPORTED:
             raise ValueError("confirmed import required")
         with self._errors():
             self._require_ready()
-            project = _PROJECT_SLUG.validate_python(project)
-            stamp = _utc_text(record.recorded_at)
-            initial = SourceHealth(source=record.source)
             with self._engine.begin() as connection:
-                self._record(connection, record)
-                connection.execute(
-                    insert(_SOURCE_HEALTH)
-                    .values(
-                        **initial.model_dump(mode="json", exclude={"last_success_at"}),
-                        last_success_at=stamp,
-                    )
-                    .on_conflict_do_update(
-                        index_elements=[_SOURCE_HEALTH.c.source],
-                        set_={"last_success_at": stamp},
-                        where=or_(
-                            _SOURCE_HEALTH.c.last_success_at.is_(None),
-                            _SOURCE_HEALTH.c.last_success_at < stamp,
-                        ),
-                    )
+                self._confirm_import(connection, record, project, started_at)
+
+    def _confirm_import(
+        self, connection: Connection, record: ImportRecord, project: str, started_at: datetime
+    ) -> None:
+        project = _PROJECT_SLUG.validate_python(project)
+        stamp = _utc_text(record.recorded_at)
+        initial = SourceHealth(source=record.source)
+        self._record(connection, record)
+        connection.execute(
+            insert(_SOURCE_HEALTH)
+            .values(
+                **initial.model_dump(mode="json", exclude={"last_success_at"}),
+                last_success_at=stamp,
+            )
+            .on_conflict_do_update(
+                index_elements=[_SOURCE_HEALTH.c.source],
+                set_={"last_success_at": stamp},
+                where=or_(
+                    _SOURCE_HEALTH.c.last_success_at.is_(None),
+                    _SOURCE_HEALTH.c.last_success_at < stamp,
+                ),
+            )
+        )
+        if project not in {"unknown", "unclassified"} and started_at <= record.recorded_at:
+            lower = _utc_text(started_at)
+            columns = _PROJECT_HEALTH.c
+            connection.execute(
+                insert(_PROJECT_HEALTH)
+                .values(project=project, started_at=lower, completed_at=stamp)
+                .on_conflict_do_update(
+                    index_elements=[columns.project],
+                    set_={
+                        "started_at": func.max(columns.started_at, lower),
+                        "completed_at": func.max(columns.completed_at, stamp),
+                    },
                 )
-                if project not in {"unknown", "unclassified"} and started_at <= record.recorded_at:
-                    lower = _utc_text(started_at)
-                    columns = _PROJECT_HEALTH.c
-                    connection.execute(
-                        insert(_PROJECT_HEALTH)
-                        .values(project=project, started_at=lower, completed_at=stamp)
-                        .on_conflict_do_update(
-                            index_elements=[columns.project],
-                            set_={
-                                "started_at": func.max(columns.started_at, lower),
-                                "completed_at": func.max(columns.completed_at, stamp),
-                            },
-                        )
-                    )
+            )
 
     def record_attempt(self, health: SourceHealth) -> None:
         """Record a completed attempt without replacing the last success."""
@@ -358,7 +446,7 @@ class SQLiteImportState:
     ) -> tuple[list[SourceHealth], ProjectImportEvidence | None]:
         with self._errors():
             self._require_ready()
-            if self._schema_version < _SCHEMA_VERSION:
+            if self._schema_version < 3:
                 return [], None
             with self._engine.connect() as connection:
                 rows = connection.execute(

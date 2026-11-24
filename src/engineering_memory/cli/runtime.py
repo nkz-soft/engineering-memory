@@ -13,6 +13,7 @@ from engineering_memory.classification import (
     load_project_rules,
 )
 from engineering_memory.classification.metadata_classifier import MetadataProjectClassifier
+from engineering_memory.cli.session_lock import CaptureBusy, capture_lock
 from engineering_memory.ingestion.acquisition_source import AcquisitionError
 from engineering_memory.ingestion.chatgpt import ChatGPTExportSource
 from engineering_memory.ingestion.chatgpt.archive_source import ChatGPTArchiveSource
@@ -36,6 +37,8 @@ from engineering_memory.settings import SettingsError, load_settings, load_state
 
 
 def error_category(error: Exception) -> str:
+    if isinstance(error, CaptureBusy):
+        return "busy"
     if isinstance(error, AcquisitionError):
         return str(error)
     if isinstance(error, (SettingsError, ProjectRulesError)):
@@ -108,6 +111,7 @@ def _import_pipeline(
         importer_version=version,
         bank=settings.hindsight.bank_id,
         record_import=state.record_import if state is not None and not dry_run else None,
+        retain_journal=state if not dry_run else None,
     )
     return pipeline, state
 
@@ -120,6 +124,7 @@ def run_import(
     *,
     dry_run: bool = False,
     source: str = "chatgpt",
+    reconcile_missing: bool = True,
 ) -> RunReport:
     sources = {
         "chatgpt": (ChatGPTExportSource, ChatGPTArchiveSource),
@@ -130,6 +135,8 @@ def run_import(
     export_reader, archive_reader = sources[source]
     settings = load_settings()
     with ExitStack() as resources:
+        if not dry_run:
+            resources.enter_context(capture_lock(settings.import_state_path))
         pipeline, state = _import_pipeline(settings, version, resources, dry_run=dry_run)
         input_source = (
             export_reader(Path(export)) if export is not None else archive_reader(pipeline.archive)
@@ -145,7 +152,9 @@ def run_import(
                     resources.callback(close)
                 return reader
 
-        report = pipeline.run(OwnedSource(), force=force, dry_run=dry_run)
+        report = pipeline.run(
+            OwnedSource(), force=force, dry_run=dry_run, reconcile_missing=reconcile_missing
+        )
         if dry_run:
             if data is None:
                 return report
@@ -175,6 +184,8 @@ def run_import(
                 imported=report.imported,
                 skipped=report.skipped,
                 failed=report.failed,
+                pending=report.pending,
+                uncertain=report.uncertain,
                 terminal_error=report.terminal_error,
                 outcomes=[outcome.model_dump(mode="json") for outcome in report.outcomes],
             )
@@ -186,7 +197,6 @@ def run_import(
 
 
 def run_session_import(data: dict, version: str) -> None:
-    from engineering_memory.cli.session_lock import CaptureBusy, capture_lock
     from engineering_memory.ingestion.session_capture import CapturedSessionSource
 
     settings = load_settings()
@@ -223,7 +233,12 @@ def run_session_import(data: dict, version: str) -> None:
                         "unchanged": report.skipped,
                         "deferred": source.deferred,
                         "failed": report.failed,
-                        "error": "source_unavailable" if report.terminal_error else None,
+                        "pending": report.pending,
+                        "uncertain": report.uncertain,
+                        "error": {
+                            Stage.SOURCE: "source_unavailable",
+                            Stage.STATE_READ: "state",
+                        }.get(report.terminal_error),
                     }
                 )
     except CaptureBusy:
@@ -239,6 +254,8 @@ def run_session_import(data: dict, version: str) -> None:
             if any(row["imported"] or row["unchanged"] for row in rows)
             else "failure"
         )
+    elif any(row["pending"] or row["uncertain"] for row in rows):
+        data["status"] = "pending"
 
 
 def run_status(data: dict) -> None:
@@ -252,19 +269,32 @@ def run_status(data: dict) -> None:
             data["last_chatgpt_export"] = last.model_dump(
                 mode="json", include={"produced_at", "production_evidence", "ingested_at"}
             )
-        records = []
-        for record in state.iter_records():
+        stored_records, receipts = state.snapshot()
+        records = {}
+        for record in stored_records:
             row = record.model_dump(mode="json", exclude={"content_hash"})
             row["error"] = (
                 record.error
                 if record.error in set(Stage)
                 else ("unknown" if record.error else None)
             )
-            records.append(row)
+            records[(record.source, record.source_id)] = row
+        for receipt in receipts:
+            records[(receipt.source, receipt.source_id)] = {
+                "source": receipt.source.value,
+                "source_id": receipt.source_id,
+                "document_id": receipt.document_id,
+                "status": receipt.status.value,
+                "recorded_at": receipt.started_at.isoformat(),
+                "error": None,
+            }
+        rows = [records[key] for key in sorted(records)]
         data.update(
-            imported=sum(row["status"] == "imported" for row in records),
-            failed=sum(row["status"] == "failed" for row in records),
-            records=records,
+            imported=sum(row["status"] == "imported" for row in rows),
+            failed=sum(row["status"] == "failed" for row in rows),
+            pending=sum(row["status"] == "pending" for row in rows),
+            uncertain=sum(row["status"] == "uncertain" for row in rows),
+            records=rows,
         )
     finally:
         state.close()

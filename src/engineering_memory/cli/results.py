@@ -36,6 +36,14 @@ def result(command: str, *, dry_run: bool = False) -> dict:
     return data
 
 
+def _emit_unresolved(data: dict) -> None:
+    if data.get("pending") or data.get("uncertain"):
+        typer.echo(
+            f"Retain pending: {data.get('pending', 0)}, uncertain: {data.get('uncertain', 0)}. "
+            "Run the import again to check the outcome."
+        )
+
+
 def emit(data: dict, *, structured: bool) -> None:
     if structured:
         typer.echo(json.dumps(data, ensure_ascii=True))
@@ -44,7 +52,7 @@ def emit(data: dict, *, structured: bool) -> None:
         messages = {
             "configuration": "configuration invalid",
             "memory": "memory unavailable",
-            "busy": "another session import is running for this profile",
+            "busy": "another import is running for this profile",
         }
         typer.echo(messages.get(data["error"], f"{data['error']}: command failed"), err=True)
     if data["command"] == "models refresh":
@@ -71,6 +79,7 @@ def emit(data: dict, *, structured: bool) -> None:
         typer.echo(
             f"Imported: {data['imported']}; skipped: {data['skipped']}; failed: {data['failed']}"
         )
+        _emit_unresolved(data)
         for row in data["outcomes"]:
             if row["error"]:
                 typer.echo(f"{row['source_id'] or '<unknown>'}: {row['error']}")
@@ -82,11 +91,11 @@ def emit(data: dict, *, structured: bool) -> None:
                 f"{row['source']}: imported {row['imported']}, unchanged {row['unchanged']}, "
                 f"deferred {row['deferred']}, failed {row['failed']}"
             )
-            if row["error"]:
-                typer.echo(
-                    f"{row['source']}: check the configured history directory ({row['error']}).",
-                    err=True,
-                )
+            _emit_unresolved(row)
+            if row["error"] == "source_unavailable":
+                typer.echo(f"{row['source']}: check the configured history directory.", err=True)
+            elif row["error"]:
+                typer.echo(f"{row['source']}: {row['error']}: import stopped.", err=True)
     elif data["command"] == "rebuild-neighborhood":
         if coverage := data["coverage"]:
             typer.echo(
@@ -98,12 +107,14 @@ def emit(data: dict, *, structured: bool) -> None:
             f"Export acquisition: {data['outcome']}. "
             f"Imported: {data['imported']}; skipped: {data['skipped']}; failed: {data['failed']}"
         )
+        _emit_unresolved(data)
         if data["digest"]:
             typer.echo(f"Archive digest: {data['digest']}")
         if data["terminal_error"]:
             typer.echo(f"Terminal error: {data['terminal_error']}")
     else:
         typer.echo(f"Latest state: imported: {data['imported']}; failed: {data['failed']}")
+        _emit_unresolved(data)
         if export := data["last_chatgpt_export"]:
             produced = export["produced_at"] or "unknown"
             typer.echo(

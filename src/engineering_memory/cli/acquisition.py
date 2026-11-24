@@ -22,7 +22,7 @@ def run_acquisition(data: dict, file: str | None, version: str) -> None:
         raise SettingsError("configure a ChatGPT export inbox")
 
     def ingest(archive: Path) -> RunReport:
-        return run_import(None, str(archive), False, version)
+        return run_import(None, str(archive), False, version, reconcile_missing=False)
 
     def report(outcome: str, run: RunReport | None, digest: str | None) -> None:
         if run is None:
@@ -33,12 +33,14 @@ def run_acquisition(data: dict, file: str | None, version: str) -> None:
             outcome=outcome,
             digest=digest,
             status=run.status.value,
-            error=None if outcome == "imported" else "import_failed",
+            error="import_failed" if outcome == "import_failed" else None,
             terminal_error=run.terminal_error,
         )
         data["imported"] += run.imported
         data["skipped"] += run.skipped
         data["failed"] += run.failed
+        data["pending"] = data.get("pending", 0) + run.pending
+        data["uncertain"] = data.get("uncertain", 0) + run.uncertain
 
     with acquisition_lock(path) as acquired:
         if not acquired:

@@ -38,12 +38,30 @@ Changed content updates the same document. The shared import state skips
 extraction for unchanged content. Native files are left untouched.
 
 The report counts imported, unchanged, deferred and failed candidates for each
-source. Check the configured directory if the source is unavailable. A failure
-returns a nonzero exit code while keeping successful imports. Deferred files
-are scanned again next time. For a settled, malformed file, check that it uses
-a supported format before retrying. An overlapping `import-sessions` run for
-the same import-state path reports busy. Avoid running a separate manual import
-of the same histories while a scheduled run is active.
+source. Deferred files are scanned again next time. For a settled, malformed
+file, check that it uses a supported format before retrying. Manual and
+automatic imports sharing an import-state path report busy if another import
+is active.
+
+## When retain outlasts the import command
+
+`pending` means the backend accepted the retain and the CLI is still waiting
+for its result. The wait for a new retain is bounded to four minutes.
+`uncertain` means the CLI could not confirm whether submission was accepted.
+Both outcomes return exit code 1 and appear in `engineering-memory status --json`
+without increasing the failed count.
+
+Run the same import command again to check the recorded retain. Scheduled
+imports do this on their next run. A manual import can use `--from-archive`
+for the same source if its original export is unavailable. The CLI checks the
+recorded retain against the same backend and bank without sending it again,
+even with `--force`. If the input changed, the CLI can submit the new version
+after the earlier retain reaches a terminal state. A backend-declared failure is reported as
+`failed` at stage `retain`.
+
+An unavailable or missing backend status leaves the retain unresolved. A
+`failed / retain` record written before this change has no saved receipt.
+Check any known older timeout against the backend before retrying it.
 
 ## Windows Task Scheduler
 
