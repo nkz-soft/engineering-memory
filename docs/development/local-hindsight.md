@@ -12,7 +12,7 @@ This is infrastructure for future contract tests and the memory adapter. It does
 - Disk space for the full image (upstream documents approximately 9 GB on AMD64) plus its data/model cache. Upstream recommends about 2 GB RAM for the API; allow additional headroom for embedded PostgreSQL and Docker. CPU inference is adequate for the synthetic check. Initial image/model preparation needs network access and can take several minutes.
 - An unused loopback port, 8888 by default. Change `HINDSIGHT_DEV_PORT` if necessary.
 
-The image is pinned in [service.yaml](../../deploy/hindsight/service.yaml) to upstream 1.2.0 and its immutable manifest digest. A pin change must be tested deliberately; the setup never floats to latest. Upstream references: [installation](https://hindsight.vectorize.io/developer/installation), [models](https://hindsight.vectorize.io/developer/models), [v1.2.0 release](https://github.com/vectorize-io/hindsight/releases/tag/v1.2.0).
+The image is pinned in [service.yaml](../../deploy/hindsight/service.yaml) to upstream 1.2.3 and its immutable manifest digest. A pin change must be tested deliberately; the setup never floats to latest. Upstream references: [installation](https://hindsight.vectorize.io/developer/installation), [models](https://hindsight.vectorize.io/developer/models), [v1.2.3 release](https://github.com/vectorize-io/hindsight/releases/tag/v1.2.3).
 
 Run all commands from the repository root. If `DOCKER_HOST` points at a different daemon, select the intended context explicitly, for example `docker --context desktop-linux compose ...` on Docker Desktop. Do not change another project's containers or daemon settings to make this setup work.
 
@@ -74,6 +74,12 @@ The full image uses local embedding/reranker providers explicitly. One GiB share
 
 Startup/health alone proves neither extraction nor proxy routing. Do not enable LLM payload/debug dumps for troubleshooting: the profile disables 4xx dumps and uses warning-level logging. Safe checks include container health, resource availability, route host/port, and proxy status metadata. Do not paste environment-bearing Docker output or backend error bodies into issues.
 
+## Upgrade an existing 1.2.0 instance
+
+Before updating the image, stop the 1.2.0 service and back up its `hindsight-data` volume while PostgreSQL is stopped. Keep the same Compose project name and named volume. After updating the checkout, run the pull and startup commands above. Hindsight applies database migrations at startup. Once the API is ready, recall a fact saved before the upgrade to verify that the existing data is accessible.
+
+To roll back, stop Hindsight 1.2.3 and restore the backup to the same volume while the service is stopped. Restore the 1.2.0 image pin, then start the service. Keep the backup until the upgraded instance passes the recall check.
+
 ## Configure the host-side smoke connection
 
 Use the existing application settings boundary. The smoke loads it once, but contacts only the engine. The existing required LLM URL must still be set; it may differ from the container-side proxy URL.
@@ -129,7 +135,7 @@ Ordinary `uv run pytest` remains offline. [Smoke unit tests](../../tests/unit/te
 
 Future engine contract tests use the host engine URL, optional engine token, and unique scratch banks. The default production bank remains `engineering-global`; provisioning and retain mission are separate #16 work. No consumer (Hermes, Claude Code or Codex) should connect directly to this engine as its memory provider.
 
-The pinned v1.2.0 source/OpenAPI declares retain at `/v1/default/banks/{bank_id}/memories`, recall at `/memories/recall`, readiness at `/health/ready`, and scratch cleanup at `/v1/default/banks/{bank_id}`. Smoke checks required methods in the running `/openapi.json` before writing. It prefers synchronous retain and observes a returned queued operation through the bank's operations endpoint if necessary.
+The pinned v1.2.3 source/OpenAPI declares retain at `/v1/default/banks/{bank_id}/memories`, recall at `/memories/recall`, readiness at `/health/ready`, and scratch cleanup at `/v1/default/banks/{bank_id}`. Smoke checks required methods in the running `/openapi.json` before writing. It prefers synchronous retain and observes a returned queued operation through the bank's operations endpoint if necessary.
 
 Architecture §9 currently records `/retain` and `/recall` spellings. This deployment feature records the discrepancy without silently rewriting the production contract. #16 must verify the running pinned contract, upsert/idempotency/provenance/tag semantics and production mission before the adapter relies on them. Static upstream inspection and offline mocks are not that live verification.
 
