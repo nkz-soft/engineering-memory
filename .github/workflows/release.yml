@@ -202,11 +202,16 @@ jobs:
           downloaded=(*)
           test "${#downloaded[@]}" -eq "$(( 2 * ${#assets[@]} ))"
           release_files=()
+          checksum_pattern='^[[:xdigit:]]{64} [ *](.+)$'
           for asset in "${assets[@]}"; do
             test -s "$asset"
-            test "$(wc -l < "$asset.sha256")" -eq 1
-            test "$(cut -d ' ' -f 3 "$asset.sha256")" = "$asset"
-            sha256sum -c "$asset.sha256"
+            mapfile -t checksum_lines < "$asset.sha256"
+            if [[ ${#checksum_lines[@]} -ne 1 || ! ${checksum_lines[0]} =~ $checksum_pattern ||
+                  ${BASH_REMATCH[1]} != "$asset" ]]; then
+              echo "Invalid checksum file for $asset." >&2
+              exit 1
+            fi
+            sha256sum -c --strict -- "$asset.sha256"
             release_files+=("$asset" "$asset.sha256")
           done
           if gh release view "$TAG" >/dev/null 2>&1; then

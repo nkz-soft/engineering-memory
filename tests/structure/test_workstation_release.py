@@ -1,6 +1,11 @@
+import hashlib
+import os
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -36,6 +41,63 @@ def test_release_workflow_separates_build_and_draft_permissions():
     assert 'assets=("$windows" "$linux" "$launcher")' in script
     assert '"${release_files[@]}"' in script
     assert "ubuntu-amd64-install.sh" in script
+
+
+@pytest.mark.parametrize(
+    ("sidecar_format", "valid"),
+    [
+        ("{digest}  {name}\n", True),
+        ("{digest} *{name}\n", True),
+        ("{digest} !{name}\n", False),
+        ("{digest}  other.exe\n", False),
+        ("{wrong_digest} *{name}\n", False),
+        ("{digest} *{name}\n{digest} *{name}\n", False),
+    ],
+    ids=["text", "binary", "invalid-mode", "wrong-file", "wrong-hash", "multiple-lines"],
+)
+def test_draft_checks_release_assets(tmp_path, sidecar_format, valid):
+    bash = shutil.which("bash")
+    git = shutil.which("git")
+    if os.name == "nt" and git:
+        git_bash = Path(git).resolve().parents[1] / "bin/bash.exe"
+        if git_bash.is_file():
+            bash = str(git_bash)
+    if not bash:
+        pytest.skip("Bash is required to run the release verification script")
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8"))
+    draft = next(step["run"] for step in workflow["jobs"]["draft"]["steps"] if "run" in step)
+    verify_assets, publish, _ = draft.partition('if gh release view "$TAG"')
+    assert publish
+
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    names = (
+        "engineering-memory-0.0.1-windows-x64-setup.exe",
+        "engineering-memory_0.0.1_amd64.deb",
+        "engineering-memory-0.0.1-ubuntu-amd64-install.sh",
+    )
+    for name in names:
+        payload = name.encode()
+        (assets / name).write_bytes(payload)
+        digest = hashlib.sha256(payload).hexdigest()
+        pattern = sidecar_format if name.endswith(".exe") else "{digest}  {name}\n"
+        (assets / f"{name}.sha256").write_bytes(
+            pattern.format(digest=digest, wrong_digest="0" * 64, name=name).encode()
+        )
+
+    script = tmp_path / "verify-assets.sh"
+    script.write_bytes(verify_assets.encode())
+    result = subprocess.run(
+        [bash, script.name],
+        cwd=tmp_path,
+        env={**os.environ, "TAG": "v0.0.1"},
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert (result.returncode == 0) == valid, result.stdout + result.stderr
 
 
 def test_workstation_compose_is_loopback_only_and_keeps_backend_volume():
