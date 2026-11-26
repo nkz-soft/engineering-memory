@@ -161,6 +161,172 @@ isolated client checks and mandatory real-engine import-to-stdio regression. No 
 live test was run during this documentation-only split, and no blocked check was marked
 passed. The draft state of PR #70 is unchanged.
 
+## T014 end-to-end live client verification (2026-11-26)
+
+The Windows 0.0.1 package from [package CI run 45352681627](https://github.com/nkz-soft/engineering-memory/actions/runs/45352681627)
+was built from the same source tree as revision
+`97b87b8f0889ac88b2d6a33471af36332fd6bc5a`. The packaged Python runtime
+was 3.13.18. The release build installs locked dependencies, including MCP
+SDK 2.3.0. Claude Code 2.1.332 was authenticated with an API key. Both
+accepted Codex Desktop sessions used runtime `0.171.0-alpha.13.2` and ran
+in a dedicated directory named `orchard` outside the checkout. Claude Code
+started from the same directory. Both clients used the installed
+`engineering-memory serve` read-only stdio endpoint and the same
+`engineering-global` bank on local Hindsight 1.2.3. The importer alone
+wrote to memory.
+
+### Seed and live Claude Code retrieval
+
+Create two synthetic ChatGPT export records using the shape from
+`tests/synthetic/chatgpt_export.py`. Give each record a user message naming
+its project, mentioning the cobalt relay worker retry policy and carrying
+a fake `password=` value for the redaction check. Give each an assistant
+message saying that after a failed health check, retries enter quarantine
+for the period below. Set the record and first message timestamps to the
+listed start and the second message timestamp to one second later.
+
+| Export ID | Project and alias | Start time (UTC) | Quarantine |
+| --- | --- | --- | --- |
+| `issue71-20261126-orchard` | `orchard` | `2026-03-20T10:00:00Z` | 14 minutes |
+| `issue71-20261126-cypress` | `cypress` | `2026-03-20T11:00:00Z` | 26 minutes |
+
+Put the export in `$root/chatgpt/conversations.json`. In
+`$root/projects.toml`, put one `[[project]]` rule per project, with
+`project` and its single `aliases` entry set to the slug above. Run these
+commands in a dedicated PowerShell process from the checkout:
+
+```powershell
+$root = (Resolve-Path 'data/issue71-full-20261126').Path
+$env:ENGINEERING_MEMORY_PROJECT_RULES_PATH = Join-Path $root 'projects.toml'
+$em = Join-Path $env:LOCALAPPDATA 'Programs/EngineeringMemory/engineering-memory.exe'
+& $em import --source chatgpt --export "$root/chatgpt" --dry-run --json
+& $em import --source chatgpt --export "$root/chatgpt" --json
+```
+
+The dry-run found both project tags and the `password` redaction category
+for both records. The real import returned `imported: 2, failed: 0`.
+
+Launch `claude` from the external `orchard` directory and ask for the
+quarantine duration without giving the answers. The native Claude Code log
+records one `search_memory` call per project, with `source:chatgpt` and
+`project:orchard` or `project:cypress`. Each returned its own document and
+excluded the other project's document. Claude opened both documents with
+`get_conversation`, `page_size=1`, offsets 0 and 1. The tool returned the
+start time and ChatGPT provenance, and the pages contained the seed
+decisions and `password=[REDACTED]`. Neither successful tool result exposed
+the fake password value.
+
+The first read passed `project` without `snapshot` and returned
+`invalid_input`. Claude Code Auto mode blocked subsequent read attempts.
+The operator explicitly authorized the two synthetic document IDs in the
+same session and retried with only document ID, offset and page size. The
+next calls succeeded.
+
+### Live refinement before and after import
+
+In that same Claude Code session, add this synthetic clarification for
+Orchard and ask Claude to confirm it. After two consecutive failed health
+checks, wait 73 seconds before a trial retransmission. Keep the existing
+14-minute quarantine. The marker is `EM-ISSUE71-ORCHARD-AMBER-1126`.
+
+While Claude Code is still open, start a fresh local Codex Desktop chat
+in the external directory. Ask about the marker and the trial
+retransmission without supplying the answer, using `source:claude-code`
+and `project:orchard`. The native Codex trace shows two searches with zero
+results before import. A separate initial attempt ran from the checkout
+and is excluded from the acceptance evidence.
+
+Exit Claude Code with `/exit` and stage the complete main-session JSONL
+under the ignored `$root/native` directory. Compare its SHA-256 with the
+source file. Use the same PowerShell settings as for the seed:
+
+```powershell
+$snapshot = Join-Path $root 'native/d40f3bbb-fdac-4152-aace-9d259f1f714f.jsonl'
+& $em import --source claude-code --export $snapshot --dry-run --json
+& $em import --source claude-code --export $snapshot --json
+```
+
+The dry-run returned `would_import: 1, failed: 0` with
+`project:orchard` and the `password` redaction category. The real import
+returned `imported: 1, failed: 0` with no pending or uncertain work.
+
+In a different fresh local Codex Desktop chat in the same external
+directory, ask the same blind question. The native trace confirms
+scoped `search_memory` and paged `get_conversation` with `page_size=4`. Codex
+recovered the rule and the marker from document
+`claude-code:d40f3bbb-fdac-4152-aace-9d259f1f714f`. Its original start
+was `2026-11-26T13:39:55.691Z` and provenance was `claude-code`,
+`project:orchard`. The refinement was in the page at offset 120 with
+timestamp `2026-11-26T14:10:57.919Z`. The confirmation was at offset 124
+with timestamp `2026-11-26T14:11:17.133Z`.
+
+The live Codex trace records both negative controls. With
+`source:claude-code` and `project:cypress`, the search returned no
+results. With `source:chatgpt` and `project:orchard`, it returned the
+original ChatGPT document and excluded the refinement. The separate
+Cypress seed lookup in Claude Code was the positive control for the
+other project.
+
+Repeat the unchanged Claude Code import command. The final run reported
+`imported: 0, skipped: 1, failed: 0` with the same document ID. The import
+log recorded no `retain` operation on the repeat, consistent with the
+pipeline skipping before retain. Provider request counts were not
+measured.
+
+The live ChatGPT-to-Claude-Code and Claude-Code-to-Codex journeys both
+passed in this run. Supporting evidence is summarized here from the actual
+client and importer logs. Raw native snapshots, local settings and
+credentials are kept out of Git.
+
+## T008 live client verification (2026-11-26)
+
+The Windows 0.0.1 package was built from the same source tree as repository
+revision `97b87b8f0889ac88b2d6a33471af36332fd6bc5a`. Claude Code 2.1.332
+was authenticated using an API key. The two Codex Desktop sessions recorded
+client version `0.171.0-alpha.13.2` and ran outside the service checkout.
+Engineering Memory used its read-only stdio MCP server, the
+`engineering-global` bank and Hindsight 1.2.3.
+
+1. Open Claude Code in a dedicated directory named
+   `issue71-t008-opal-relay` outside the checkout. Discuss the synthetic
+   rule marked `EM-T008-OPAL-1126`: after the fourth consecutive failure,
+   pause retransmission for 41 seconds. Keep the session open.
+2. In a fresh local Codex Desktop chat, ask for the rule without stating it.
+   Use tags `source:claude-code` and `project:issue71-t008-opal-relay`.
+   The native Codex record shows two `search_memory` calls using these tags.
+   Both returned empty results.
+3. Exit Claude Code with `/exit`. Copy its complete main-session JSONL to
+   the ignored staging directory below. Verify that SHA-256 matches the
+   source file, then run the dry-run and import. The dry-run reported
+   `would_import: 1` and `failed: 0` with the expected project tag. The
+   real import reported `imported: 1` and `failed: 0`.
+
+   ```powershell
+   $snapshot = 'data/issue-71-t008/native/8cf089a2-a9ce-47f2-acf6-f66dee1618ba.jsonl'
+   engineering-memory import --source claude-code --export $snapshot --dry-run --json
+   engineering-memory import --source claude-code --export $snapshot --json
+   ```
+
+4. Ask the same blind question in another fresh local Codex Desktop chat.
+   The native record shows a scoped `search_memory` call and
+   `get_conversation` calls with `page_size=2` at offsets 0, 2 and 4.
+   Codex found the marker and rule, with document ID
+   `claude-code:8cf089a2-a9ce-47f2-acf6-f66dee1618ba`, start time
+   `2026-11-26T13:07:08.156000Z` and Claude Code provenance. The dry-run
+   recorded zero redaction categories for this synthetic session.
+5. In a separate Codex MCP check, searching for the Opal marker with a
+   different project or with `source:codex` excluded the Opal document.
+   The other project, `project:agent-import-check`, was checked positively:
+   with `source:claude-code`, it returned the synthetic Copper Gate record
+   `claude-code:46cd59a6-d16a-4e1f-8e40-b9a81cf0a2c6`.
+6. Repeat the unchanged import command from step 3. It reported
+   `imported: 0`, `skipped: 1`, `failed: 0` and the same document ID.
+   The CLI log contained no retain operation for the repeat; provider
+   request counts were not measured.
+
+Only synthetic IDs and summarized tool outcomes are included here. The
+native transcripts and local importer reports remain untracked.
+
 ## T014 live client verification (2026-11-07)
 
 Revision `8c7629fa0db00fbc8f069538e6605f079aed3c4f` on Windows. Local versions
