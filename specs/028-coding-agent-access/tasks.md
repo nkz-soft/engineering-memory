@@ -25,7 +25,7 @@ Independent test: import a completed refinement and retrieve it in fresh Codex.
 
 - [x] T006 [US2] Extend tests/integration/test_coding_agent_access.py with before/after import visibility, identity, time, negative filters, sanitized paging and unchanged-import skipping.
 - [x] T007 [US2] Document Codex config/env_vars and import-mediated refinement workflow in docs/operations/coding-agent-memory.md.
-- [ ] T008 [US2] Deferred to #71 (T014): execute actual session refinement/import/Codex acceptance and record evidence or blocker in specs/028-coding-agent-access/verification.md.
+- [x] T008 [US2] Execute the Claude Code refinement/import/Codex acceptance under #71 and record evidence in specs/028-coding-agent-access/verification.md.
 
 ## Phase 5: US3 — Reproducibility (P2)
 
@@ -55,13 +55,11 @@ acceptance stays unchecked when blocked even if documentation and automation are
 
 ## Follow-up: real-agent integration testing
 
-The 2026-11-07 live run passed T005. For T008, the operator verified that Codex
-retrieved the imported refinement with its original provenance and sanitized
-context. A fresh Codex search before import remains unverified. See
-[verification.md](verification.md#t014-live-client-verification-2026-11-07)
-for both results.
+The 2026-11-07 live run passed T005. The 2026-11-26 live run passed T008,
+including fresh Codex searches before and after importing the native
+Claude Code session. See [verification.md](verification.md#t008-live-client-verification-2026-11-26).
 
-- [ ] T014 Verify shared memory with real Claude Code and Codex agents and record reproducible integration-test evidence in specs/028-coding-agent-access/verification.md.
+- [x] T014 Verify shared memory with real Claude Code and Codex agents and record reproducible integration-test evidence in [verification.md](verification.md#t014-end-to-end-live-client-verification-2026-11-26).
 
 T014 consolidates the live journeys in
 [#71](https://github.com/nkz-soft/engineering-memory/issues/71). PR #70 delivered
